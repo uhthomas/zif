@@ -20,19 +20,21 @@
   },
   "dependencies": {
     "async": "^2.1.2",
+    "better-react-spinkit": "^2.0.0-4",
     "electron-context-menu": "^0.8.0",
     "material-ui": "^0.16.1",
     "moment": "^2.17.1",
-    "nt": "^0.5.3",
+    "react-addons-css-transition-group": "^15.4.2",
     "react-autosuggest": "^7.0.2",
-    "react-html5video": "^1.4.0",
+    "react-flip-move": "^2.7.4",
     "react-list": "^0.8.0",
     "react-modal-box": "^1.0.3",
     "react-portal-tooltip": "^1.1.5",
     "react-tap-event-plugin": "2.0.0",
     "react-tooltip": "^3.2.2",
     "superagent": "^2.3.0",
-    "torrent-stream": "^1.0.3",
+    "wcjs-player": "^6.0.1",
+    "webchimera.js": "^0.2.7",
     "webtorrent": "^0.97.2"
   }
 }

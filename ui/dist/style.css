@@ -90,6 +90,7 @@ p, a {
 	font-size: 15pt;
 	float: left;
 	padding-left: 45px;
+	padding-right: 45px;
 	border-radius: 5px;
 	box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),0 0 8px rgba(63, 59, 59, 0.6);
 }
@@ -106,7 +107,13 @@ p, a {
 	margin-left: 17px;
 	margin-top: 14px;
 	z-index: 1;
-	color: #e9e581;
+}
+
+.searchContainer .searchLoad {
+	position: absolute;
+	right: 17px;
+	margin-top: 14px;
+	z-index: 1;
 }
 
 input[type="search"]::-webkit-search-decoration,
@@ -188,6 +195,10 @@ ul.topnav li a {
     color: #eee9d9;
 }
 
+#logo:hover {
+    background-color: #3f3b3b;
+}
+
 /* Change background color of links on hover */
 ul.topnav li a:hover {
 	background-color: #555;
@@ -219,6 +230,7 @@ ul.topnav li.icon {display: none;}
 
 .card:hover {
     box-shadow: 0 4px 8px 0 rgba(177, 17, 6, 0.6);
+    cursor: pointer;
 }
 
 .card .header {
@@ -257,7 +269,7 @@ t
 /******************************************************************************/
 /******************************************************************************/
 
-.icon *{
+.icon {
 	color: #3f3b3b;
 }
 
@@ -291,4 +303,13 @@ a {
     border: 0px;
 }
 
-.video-overlay, .video-overlay *, .video { width: 100%; }
+
+/* Animation */
+/******************************************************************************/
+.postAnim-enter, .postAnim-appear {
+	animation: 0.8s bounceInLeft ease;
+}
+
+.postAnim-leave{
+	animation: 0.8s bounceOutRight ease;
+}

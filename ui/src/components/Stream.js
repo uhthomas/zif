@@ -4,9 +4,9 @@ import Dialog from 'material-ui/Dialog';
 import RaisedButton from 'material-ui/RaisedButton';
 import Subheader from 'material-ui/Subheader';
 import {List, ListItem} from 'material-ui/List';
+import {FoldingCube} from "better-react-spinkit";
 
 import ReactList from 'react-list';
-import {Wave} from "better-react-spinkit";
 
 import Playback from "./Playback";
 import util from "../util"
@@ -20,7 +20,7 @@ class Stream extends Component
 	{
 		super(props);
 		
-		this.state = { open: true, files: [], playback:  false, torrent: null };
+		this.state = { open: this.props.open, files: [], playback:  false, torrent: null };
 
 		this.componentDidMount = this.componentDidMount.bind(this);
 		this.componentWillUnmount = this.componentWillUnmount.bind(this);
@@ -58,11 +58,13 @@ class Stream extends Component
 	}
 
 	onTorrent(e, arg){
-		this.setState({ files: this.sortFiles(arg.files), torrent: arg });
+		this.setState({ files: arg.torrent.files, torrent: arg.torrent, port: arg.port });
 		console.log(arg)
 	}
 
 	componentDidMount(){
+		this.state.open = this.props.open;
+
 		ipcRenderer.on("torrent", this.onTorrent);
 
 		if (!this.torrent)
@@ -85,31 +87,29 @@ class Stream extends Component
 	}
 
 	render() {
-		return (<Dialog
-		  title={"Streaming " + this.props.title}
-		  modal={false}
-		  open={this.state.open}
-		  onRequestClose={() => {this.setState({ open: false}); this.props.onClose();}}>
+		return (
 
-		  { this.state.files.length == 0 && 
-		  	<div style={{ marginLeft: "50%" }}>
-		  	  <Wave />
-		  	</div>
-		  }
+			<Dialog open={this.props.open} onRequestClose={() => this.props.onClose()}
+					autoScrollBodyContent={true}>
 
-		  <div style={{ overflow: "auto", maxHeight: "400px"}}>
-			<ReactList 
-				itemRenderer={this.renderItem}
-				length={this.state.files.length}
-				type='uniform'/>
-			</div>
+					{this.state.files.length == 0 &&
+						<div style={{textAlign: "center"}}>
+							<h3>Loading files...</h3>
+							<FoldingCube style={{display: "inline-block"}} />
+						</div>
+					}
 
-			{ this.state.playback && 
-				<Playback file={this.state.streamFile} url={"http://localhost:60000/" + this.state.index}
-							onClose={()=>{this.setState({ playback: false})}}/>
-			}
-		
-		</Dialog>)
+				<ReactList 
+					itemRenderer={this.renderItem}
+					length={this.state.files.length}
+					type='uniform'/>
+
+				{ this.state.playback && 
+					<Playback file={this.state.streamFile} url={"http://localhost:" + this.state.port + "/" + this.state.index}
+								onClose={()=>{this.setState({ playback: false})}}/>
+				}
+			</Dialog>
+		)
 	}
 }
 

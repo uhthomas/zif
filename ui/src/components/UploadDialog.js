@@ -10,7 +10,6 @@ import TextField from 'material-ui/TextField';
 import Divider from 'material-ui/Divider';
 
 import util from "../util"
-import nt from "nt"
 import fs from "fs"
 
 const {ipcRenderer} = require('electron');

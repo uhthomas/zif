@@ -19,7 +19,7 @@ class NavBar extends Component{
 		super(props);
 
 
-		this.state = { name: window.entry.name, uploadTooltip: false, channelTooltip: false };
+		this.state = { name: window.entry.name, uploadTooltip: false, channelTooltip: false, homeTooltip: false };
 		window.navbar = this;
 		this.uploadDialog = <Upload />;
 
@@ -27,7 +27,11 @@ class NavBar extends Component{
 	}
 
 	toggleUploadTooltip(){
-		this.setState({ uploadTooltip: !this.state.uploadTooltip, channelTooltip: false })
+		this.setState({ uploadTooltip: !this.state.uploadTooltip, channelTooltip: false, homeTooltip: false })
+	}
+
+	toggleHomeTooltip(){
+		this.setState({ homeTooltip: !this.state.homeTooltip, channelTooltip: false })
 	}
 
 	toggleChannelTooltip(){
@@ -40,7 +44,7 @@ class NavBar extends Component{
 					this.setState({});
 				}).bind(this));
 
-		this.setState({ channelTooltip: !this.state.channelTooltip, uploadTooltip: false })
+		this.setState({ channelTooltip: !this.state.channelTooltip, uploadTooltip: false, homeTooltip: false })
 	}
 
 	static get defaultProps(){
@@ -52,9 +56,13 @@ class NavBar extends Component{
 	render(){
 		return(
 				<ul className="topnav" id="mainMenu">
-					<li><span id="logo">Zif</span></li>
+					<li><a 
+							href="#" 
+							id="logo"
+							onMouseEnter={() => this.setState({homeTooltip: true})}
+							onMouseLeave={() => this.setState({homeTooltip: false})}
+							onClick={() => this.setState({homeTooltip: false})}>Zif</a></li>
 
-					<li><a href="#">Home</a></li>
 					<li><a href="#downloads">Downloads</a></li>
 
 					<li style={{float: "right"}}>
@@ -93,33 +101,31 @@ class NavBar extends Component{
 						</div>
 					</ToolTip>
 
+					<ToolTip active={this.state.homeTooltip} 
+							position="bottom" 
+							arrow="center" 
+							parent="#logo">
+						<div>
+							Home
+						</div>
+					</ToolTip>
+
 					<ToolTip active={this.state.channelTooltip} 
 							position="bottom" 
 							arrow="center" 
 							parent="#channel">
 						<div>
 							<List>
-								<Subheader>
-									{this.state.name}
-									<IconButton tooltip="Edit" style={{float: "right"}}
-										onTouchTap={() => this.editAccount.open()}>
-										<FontIcon className="material-icons">mode_edit</FontIcon>
-									</IconButton>
-								</Subheader>
-								<Divider />
 								<ListItem
-								  hoverColor="white"
 								  primaryText="Address"
 								  secondaryText={window.entry.address.encoded}/>
 								<Divider />
 								<ListItem
-								  hoverColor="white"
 								  primaryText="Description"
 								  secondaryText={window.entry.desc}
 								  secondaryTextLines={2}/>
 								<Divider />
 								<ListItem
-								  hoverColor="white"
 								  primaryText={<div> {window.entry.postCount} Posts</div>}/>
 							</List>
 						</div>

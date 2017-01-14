@@ -4,6 +4,7 @@ import async from "async";
 import util from "../util"
 import TextField from 'material-ui/TextField';
 import AutoComplete from 'material-ui/AutoComplete';
+import {FadingCircle} from "better-react-spinkit";
 
 class Search extends Component
 {
@@ -17,7 +18,8 @@ class Search extends Component
 			focuedWidth: this.props.focusedWidth,
 			dataSource: [],
 			width: window.innerWidth,
-			height: window.innerHeight
+			height: window.innerHeight,
+			searching: false
 		};
 
 
@@ -56,6 +58,8 @@ class Search extends Component
 
 	onSubmit(req)
 	{
+		this.setState({searching: true});
+
 		var functions = [];
 		var subs = window.config.subscriptions;
 
@@ -102,14 +106,19 @@ class Search extends Component
 
 			this.props.onResults(posts, req);
 
+			if(this.mounted)
+				this.setState({searching: false});
+
 		}).bind(this));
 
 	}
 
 	componentWillUnmount() {
+		this.mounted = false;
 	}
 
 	componentDidMount() {
+		this.mounted = true;
 		var search = document.getElementById("search");
 
 		search.addEventListener("keyup", function(event) {
@@ -133,7 +142,7 @@ class Search extends Component
 	render()
 	{
 		return (
-				<div className="searchBox">
+				<div className="searchBox animated bounceInDown">
 					<div className="searchContainer">
 						<span className="icon">
 							<i className="material-icons">search</i>
@@ -144,6 +153,11 @@ class Search extends Component
 							defaultValue={this.props.query}
 							placeholder="Search"
 						/>
+						<span className="searchLoad">
+						{ this.state.searching && 
+							<FadingCircle/>
+						}
+						</span>
 					</div>
 				</div>
 		)

@@ -11,6 +11,7 @@ import {List, ListItem} from 'material-ui/List';
 import moment from "moment"
 import Stream from "./Stream"
 import resolve from "../EntryStore.js"
+import PostFocus from "./PostFocus"
 
 const style = {
 	marginTop: "10px"
@@ -25,7 +26,8 @@ class Post extends Component
 
 		this.state = {
 			source: props.source,
-			showStream: false
+			showStream: false,
+			showFocus: false
 		};
 
 		this.onContextMenu= this.onContextMenu.bind(this);
@@ -91,9 +93,8 @@ class Post extends Component
 
 	render() {
 		return (
-			<div className="card" onContextMenu={this.onContextMenu}>
-				<details>
-					<summary className="header">
+			<div className="card" onContextMenu={this.onContextMenu}
+					onClick={() => {this.setState({ showFocus: true })}}>
 						<div style={{display: "inline"}}>
 							<h2 className="title">{this.props.title}</h2>
 							<div className="info">
@@ -103,36 +104,13 @@ class Post extends Component
 							</div>
 						</div>
 						<div className="source"><em>uploaded by {this.state.source}</em></div>
-					</summary>
 
-					<div className="body">
-						<div className="description">
-							<em>{this.state.meta.description != undefined &&
-							this.state.meta.description}</em>
-						</div>
-
-						<div className="info">
-							<a className="magnet"
-								onContextMenu={this.onContextMenu}
-								href={util.make_magnet(this.props.infohash)}>
-								<i className="material-icons">link</i>
-								<span> Magnet</span>
-							</a>
-
-							<RaisedButton
-								onClick={() => this.setState({showStream: !this.state.showStream})}>
-								Stream
-							</RaisedButton>
-						</div>
-					</div>
-
-				</details>
-
-				{ this.state.showStream && 
-					<Stream title={this.props.title}
+					<PostFocus title={this.props.title}
+								meta={this.props.meta}
+								open={this.state.showFocus}
 							magnet={util.make_magnet(this.props.infohash)}
-							onClose={()=>this.setState({ showStream: false })}/>
-				}
+							onClose={()=>this.setState({ showFocus: false })}
+							source={this.state.source}/>
 			</div>)
 	}
 }

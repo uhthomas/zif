@@ -4,6 +4,7 @@ package proto
 
 import (
 	"errors"
+	"fmt"
 	"net"
 
 	"golang.org/x/crypto/ed25519"
@@ -25,7 +26,8 @@ type StreamManager struct {
 	// Open yamux streams
 	clients []Client
 
-	Tor       bool
+	Socks     bool
+	SocksPort int
 	torDialer proxy.Dialer
 }
 
@@ -39,9 +41,9 @@ func (sm *StreamManager) Setup() {
 	sm.clients = make([]Client, 0, 10)
 }
 
-func (sm *StreamManager) OpenTor(addr string, lp ProtocolHandler) (*ConnHeader, error) {
+func (sm *StreamManager) OpenSocks(addr string, lp ProtocolHandler) (*ConnHeader, error) {
 	if sm.torDialer == nil {
-		dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:9050", nil, proxy.Direct)
+		dialer, err := proxy.SOCKS5("tcp", fmt.Sprintf("127.0.0.1:%d", sm.SocksPort), nil, proxy.Direct)
 
 		if err != nil {
 			return nil, err
@@ -69,8 +71,8 @@ func (sm *StreamManager) OpenTor(addr string, lp ProtocolHandler) (*ConnHeader, 
 }
 
 func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler) (*ConnHeader, error) {
-	if sm.Tor {
-		return sm.OpenTor(addr, lp)
+	if sm.Socks {
+		return sm.OpenSocks(addr, lp)
 	}
 
 	if sm.connection.Client.conn != nil {

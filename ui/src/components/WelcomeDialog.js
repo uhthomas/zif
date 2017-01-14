@@ -92,7 +92,8 @@ class Welcome extends Component
 		  actions={<FlatButton label="Go"
         						primary={true}
         						onTouchTap={this.handleClose}
-        						disabled={!(this.state.bootstrap.zif)}/>}>
+        						disabled={!(this.state.bootstrap.zif)}
+        	autoScrollBodyContent={true}/>}>
 
 			<p>Enter the details of your channel</p>
 			<TextField

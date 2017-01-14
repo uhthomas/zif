@@ -1,6 +1,7 @@
 "use babel";
 
 import React, { Component } from 'react';
+import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 import request from "superagent"
 
 import {List, ListItem} from 'material-ui/List';
@@ -53,6 +54,22 @@ class SearchResults extends Component{
 	}
 
 	render() {
+		const results = this.state.posts.map((post, index) => {
+
+						return (
+							<Post key={post.InfoHash}
+								  title={post.Title}
+								  infohash={post.InfoHash}
+								  seeders={post.Seeders}
+								  leechers={post.Leechers}
+								  meta={post.Meta}
+								  size={post.Size}
+								  fileCount={post.FileCount}
+								  tags={post.Tags}
+								  uploadDate={post.UploadDate}
+								  source={post.source}/>
+						)
+					});
 		return(
 
 			<div className="content">
@@ -66,24 +83,15 @@ class SearchResults extends Component{
 						})
 					}}/>
 
-				<div className="searchResults">
-					{this.state.posts.map((post, index) => {
+					<ReactCSSTransitionGroup
+						transitionName="postAnim"
+						transitionEnterTimeout={500}
+						transitionLeaveTimeout={500}
+						transitionAppear={true}
+						transitionAppearTimeout={500}>
 
-						return (
-							<Post key={index}
-								  title={post.Title}
-								  infohash={post.InfoHash}
-								  seeders={post.Seeders}
-								  leechers={post.Leechers}
-								  meta={post.Meta}
-								  size={post.Size}
-								  fileCount={post.FileCount}
-								  tags={post.Tags}
-								  uploadDate={post.UploadDate}
-								  source={post.source}/>
-						)
-					})}
-				</div>
+						{results}
+					</ReactCSSTransitionGroup>
 			</div>
 		)
 	}

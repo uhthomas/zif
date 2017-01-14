@@ -44,7 +44,8 @@ type LocalPeer struct {
 
 	privateKey ed25519.PrivateKey
 
-	Tor bool
+	Socks     bool
+	SocksPort int
 }
 
 func (lp *LocalPeer) Setup() {
@@ -131,8 +132,9 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 		return nil, err
 	}
 
-	if lp.Tor {
-		peer.streams.Tor = true
+	if lp.Socks {
+		peer.streams.Socks = true
+		peer.streams.SocksPort = lp.SocksPort
 	}
 
 	err = peer.Connect(addr, lp)
