@@ -4,6 +4,8 @@ A distributed torrent sharing and indexing network.
 
 **NOTE: I'd prefer if people please refrain from putting this on Hacker News/Reddit/lobste.rs/etc for the moment, it's still buggy and messy and not yet how I want it to be**
 
+Check out the ``develop`` branch for the latest work!
+
 # Why?
 
 I believe in anyone being able to share any information they wish, with anyone - without censorship getting in the way. Bittorrent is an excellent file-transfer protocol, though the torrent/magnet link discovery has been centralised and flawed since its inception.
