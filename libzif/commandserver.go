@@ -252,8 +252,6 @@ func (cs *CommandServer) Bootstrap(cb CommandBootstrap) CommandResult {
 	return CommandResult{err == nil, nil, err}
 }
 func (cs *CommandServer) SelfSuggest(css CommandSuggest) CommandResult {
-	log.Info("Command: Suggest request")
-
 	completions, err := cs.LocalPeer.SearchProvider.Suggest(cs.LocalPeer.Database, css.Query)
 
 	return CommandResult{err == nil, completions, err}
