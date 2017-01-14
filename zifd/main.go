@@ -65,6 +65,7 @@ func main() {
 			lp.PublicAddress = onion
 			lp.Entry.PublicAddress = onion
 			lp.Socks = true
+			lp.SocksPort = *socksPort
 			lp.Peer.Streams().Socks = true
 			lp.Peer.Streams().SocksPort = *socksPort
 		}
