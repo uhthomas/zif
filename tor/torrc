@@ -4,7 +4,8 @@ Log notice stderr
 ## things in $HOME/.tor on Unix, and in Application Data\tor on Windows.
 DataDirectory ./
 
-ControlPort 9051
+ControlPort 10051
+SocksPort 10050
 CookieAuthentication 1
 CookieAuthFileGroupReadable 1
 CookieAuthFile ./cookie
