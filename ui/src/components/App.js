@@ -13,6 +13,7 @@ import SearchResults from "./SearchResults"
 import Stream from "./Stream"
 import Welcome from "./WelcomeDialog"
 import Playback from "./Playback"
+import Subscriptions from "./Subscriptions"
 
 import NavBar from "./NavBar"
 
@@ -22,7 +23,8 @@ import hadouken from "../hadouken"
 var routes = [{ path: "/", component: Home },
 			  { path: "/search", component: SearchResults },
 			  { path: "/stream/:infohash", component: Stream },
-			  { path: "/downloads", component: Downloads }];
+			  { path: "/downloads", component: Downloads },
+			  { path: "/subscriptions", component: Subscriptions }];
 
 class App extends Component
 {

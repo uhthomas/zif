@@ -64,6 +64,7 @@ class NavBar extends Component{
 							onClick={() => this.setState({homeTooltip: false})}>Zif</a></li>
 
 					<li><a href="#downloads">Downloads</a></li>
+					<li><a href="#subscriptions">Subscriptions</a></li>
 
 					<li style={{float: "right"}}>
 						<a id="channel"
