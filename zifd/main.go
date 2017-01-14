@@ -57,6 +57,7 @@ func main() {
 	port, _ := strconv.Atoi(strings.Split(*addr, ":")[1])
 
 	lp := SetupLocalPeer(fmt.Sprintf("%s:%v", *addr), *newAddr)
+	lp.LoadEntry()
 
 	if *tor {
 		_, onion, err := zif.SetupZifTorService(5050, *torPort, fmt.Sprintf("%s/cookie", *torpath))
@@ -68,24 +69,21 @@ func main() {
 			lp.SocksPort = *socksPort
 			lp.Peer.Streams().Socks = true
 			lp.Peer.Streams().SocksPort = *socksPort
+		} else {
+			panic(err)
 		}
 	}
 
 	lp.Entry.Port = port
 	lp.Entry.SetLocalPeer(lp)
 	lp.SignEntry()
-
-	lp.LoadEntry()
+	lp.SaveEntry()
 
 	err := lp.SaveEntry()
 
 	if err != nil {
 		panic(err)
 	}
-
-	post := data.Post{}
-	post.InfoHash = "foo"
-	post.Title = "Foo"
 
 	lp.Database = data.NewDatabase(*db_path)
 
