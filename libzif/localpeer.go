@@ -249,6 +249,17 @@ func (lp *LocalPeer) ReadKey() error {
 	return nil
 }
 
+// At the moment just query for the closest known peer
+// This takes a Zif address as a string and attempts to resolve it to an entry.
+// This may be fast, may be a little slower. Will recurse its way through as
+// many Queries as needed, getting closer to the target until either it cannot
+// be found or is found.
+// Cannot be found if a Query returns nothing, in this case the address does not
+// exist on the DHT. Otherwise we should get to a peer that either has the entry,
+// or one that IS the peer we are hunting.
+// Takes a string as the API will just be passing a Zif address as a string.
+// May well change, I'm unsure really. Pretty happy with it at the moment though.
+// TODO: Somehow move this to the DHT package.
 func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	log.Debug("Resolving ", addr)
 
@@ -258,11 +269,14 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 
 	address := dht.DecodeAddress(addr)
 
-	// If we have the entry stored, then just return it!
-	if kv, err := lp.DHT.Query(address); err == nil {
-		entry, err := JsonToEntry(kv.Value)
+	kv, err := lp.DHT.Query(address)
 
-		return entry, err
+	if err != nil {
+		return nil, err
+	}
+
+	if kv != nil {
+		return JsonToEntry(kv.Value)
 	}
 
 	closest, err := lp.DHT.FindClosest(address)
@@ -271,131 +285,71 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		return nil, err
 	}
 
-	if len(closest) < 1 {
-		return nil, errors.New("Routing table is empty")
-	}
-
-	current := make(map[string]bool)
-
 	for _, i := range closest {
-		entry, err := JsonToEntry(i.Value)
+		e, err := JsonToEntry(i.Value)
 
 		if err != nil {
-			continue
-		}
-
-		if i.Key.Equals(&address) {
-			return entry, nil
-		}
-
-		current[i.Key.String()] = true
-	}
-
-	// Create a worker pool of goroutines working on resolving an address, then
-	// proceed to block on a result.
-
-	workers := 3
-	addresses := make(chan string, dht.BucketSize)
-	results := make(chan workResult, dht.BucketSize*workers)
-
-	defer close(results)
-	defer close(addresses)
-
-	// Setup the workers
-	for i := 0; i < workers; i++ {
-		go lp.worker(i, addr, addresses, results)
-	}
-
-	// Feed in the initial addresses
-	for _, i := range closest {
-		entry, err := JsonToEntry(i.Value)
-
-		if err != nil {
-			log.Error(err.Error())
-			log.Info(string(i.Value))
-			continue
-		}
-
-		log.Info("Working on ", entry.Address.String())
-		addresses <- fmt.Sprintf("%s:%s", entry.PublicAddress, entry.Port)
-	}
-
-	// Listen for results from workers, feeding addresses we have not seen before
-	// back into the system to be queried. Terminates when we have found what we
-	// are looking for. If all workers return no new results then the search
-	// is terminated.
-	for i := range results {
-		for _, j := range i.pairs {
-			// If this is a new address we have not yet seen
-			if _, ok := current[j.Key.String()]; !ok {
-				entry, err := JsonToEntry(j.Value)
-
-				if err != nil {
-					continue
-				}
-
-				if j.Key.Equals(&address) {
-					return entry, nil
-				}
-
-				log.Info("Working on ", entry.Address.String())
-				addresses <- fmt.Sprintf("%s:%s", entry.PublicAddress, entry.Port)
-
-				closest = append(closest, j)
-				current[j.Key.String()] = true
-			}
-		}
-	}
-
-	return nil, errors.New("Failed to resolve entry")
-}
-
-type workResult struct {
-	id    int
-	pairs dht.Pairs
-}
-
-// Pass this the id of the worker, the address we are looking for, a channel
-// that will be sending peers to attempt to query, and a channel to send query
-// results on. Note that the addresses being passed in via channel are those
-// of public internet addresses and not Zif addresses. They should have
-// already been resolved :)
-func (lp *LocalPeer) worker(id int, address string, addresses <-chan string, results chan<- workResult) {
-
-	// If any errors occur, just skip that peer and attempt to work with the
-	// next. No point terminating if we meet one dodgy peer.
-	seen := make(map[string]bool)
-
-	for i := range addresses {
-		if seen[i] == true {
-			continue
-		}
-
-		p := lp.GetPeer(i)
-		seen[i] = true
-
-		if p == nil {
-			p = &Peer{}
-
-			err := p.Connect(i, lp)
+			// TODO: Goroutine this.
+			entry, err := lp.resolveStep(e, address)
 
 			if err != nil {
 				continue
 			}
 
-			client, kv, err := p.Query(address)
-
-			if err == nil {
-				results <- workResult{id, dht.Pairs{kv}}
-				client.Close()
-				return
+			if entry.Address.Equals(&address) {
+				return entry, nil
 			}
-
-			client, res, err := p.FindClosest(address)
-
-			results <- workResult{id, res}
 		}
 	}
+
+	return nil, errors.New("Address could not be resolved")
+}
+
+// Will return the entry itself, or an error.
+func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
+	// connect to the peer
+	peer, err := lp.ConnectPeerDirect(fmt.Sprintf("%s:%d", e.PublicAddress, e.Port))
+
+	client, kv, err := peer.Query(addr.String())
+
+	if err != nil {
+		return nil, err
+	}
+	client.Close()
+
+	if kv.Key.Equals(&addr) {
+		entry, err := JsonToEntry(kv.Value)
+		return entry, err
+	}
+
+	client, closest, err := peer.FindClosest(addr.String())
+
+	if err != nil {
+		return nil, err
+	}
+	client.Close()
+
+	thisDistance := peer.Address().Xor(&addr).LeadingZeroes()
+
+	for _, i := range closest {
+		if i.Key.Xor(&addr).LeadingZeroes() < thisDistance {
+			entry, err := JsonToEntry(i.Value)
+
+			if err != nil {
+				continue
+			}
+
+			result, err := lp.resolveStep(entry, addr)
+
+			if result != nil {
+				ret, _ := JsonToEntry(i.Value)
+
+				return ret, nil
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func (lp *LocalPeer) SaveEntry() error {

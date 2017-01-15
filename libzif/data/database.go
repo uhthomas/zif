@@ -2,7 +2,6 @@ package data
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
@@ -89,7 +88,6 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 
 	defer func() {
 		err = tx.Commit()
-		fmt.Println("commited")
 
 		if err != nil {
 			tx.Rollback()
@@ -127,7 +125,6 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 				log.Error(err.Error())
 				return
 			}
-			fmt.Println("inserted")
 		}
 
 		n += 1
