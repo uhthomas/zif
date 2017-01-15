@@ -10,7 +10,7 @@ for arg; do
         -h)
             echo "$(echo $0): install all Zif components."
             echo "Usage flags:"
-            echo "	-v	Show this help text."
+            echo "	-h	Show this help text."
             echo "	-v	Be verbose."
             echo "	-n	Do not install the GUI part."
             echo "	-p	Do not change PaX flags of the executable (when PaX is detected)."
