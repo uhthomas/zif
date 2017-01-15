@@ -330,8 +330,6 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	}
 	client.Close()
 
-	thisDistance := peer.Address().Xor(&addr).LeadingZeroes()
-
 	for _, i := range closest {
 		entry, err := JsonToEntry(i.Value)
 
