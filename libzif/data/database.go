@@ -271,12 +271,13 @@ func (db *Database) QueryPostId(id uint) (Post, error) {
 
 // Return a single piece given it's id. Optionally store the posts as well,
 // otherwise we just get a hash.
-func (db *Database) QueryPiece(id int, store bool) (*Piece, error) {
+func (db *Database) QueryPiece(id uint, store bool) (*Piece, error) {
 	page_size := PieceSize // TODO: Configure this elsewhere
 	var piece Piece
 	piece.Setup()
+	piece.Id = id
 
-	rows, err := db.conn.Query(sql_query_paged_post, id*page_size,
+	rows, err := db.conn.Query(sql_query_paged_post, id*uint(page_size),
 		page_size)
 
 	if err != nil {

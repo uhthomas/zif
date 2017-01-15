@@ -41,7 +41,7 @@ func CreateCollection(db *Database, start, pieceSize int) (*Collection, error) {
 	log.Info("Piece count ", pieceCount)
 
 	for i := 0; i < pieceCount; i++ {
-		piece, err := db.QueryPiece(i, false)
+		piece, err := db.QueryPiece(uint(i), false)
 
 		if err != nil {
 			return nil, err
@@ -84,8 +84,11 @@ func (c *Collection) Save(path string) {
 // Add a piece to the collection, storing it in c.Pieces and appending it's hash
 // to the hash list.
 func (c *Collection) Add(piece *Piece) {
-	c.Pieces = append(c.Pieces, piece)
-	c.HashList = append(c.HashList, piece.Hash()...)
+	if uint(len(c.HashList)) < piece.Id+1 {
+		c.HashList = append(c.HashList, piece.Hash()...)
+	} else {
+		copy(c.HashList[piece.Id*32:piece.Id*32+32], piece.Hash())
+	}
 
 	c.RootHash.Write(piece.Hash())
 }

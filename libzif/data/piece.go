@@ -11,6 +11,7 @@ import (
 const PieceSize = 1000
 
 type Piece struct {
+	Id    uint
 	Posts []Post
 	hash  hash.Hash
 }
