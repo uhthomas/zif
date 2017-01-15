@@ -507,7 +507,6 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 
 				piece.Add(post, true)
 				count++
-				log.Info("post read")
 			}
 			ret <- &piece
 		}

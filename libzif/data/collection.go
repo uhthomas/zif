@@ -90,25 +90,6 @@ func (c *Collection) Add(piece *Piece) {
 	c.RootHash.Write(piece.Hash())
 }
 
-// Add a post to the collection. Automatically assigns to the correct piece,
-// allocates a new piece if needed! Optional whether or not the actual post is
-// stored, if not just it's hash is.
-func (c *Collection) AddPost(post Post, store bool) {
-	if len(c.Pieces) == 0 || len(c.Pieces[len(c.Pieces)-1].Posts) == PieceSize {
-		piece := &Piece{}
-		piece.Setup()
-		c.Add(piece)
-
-		c.HashList = append(c.HashList, piece.Hash()...)
-	}
-
-	lastIndex := len(c.Pieces) - 1
-	last := c.Pieces[lastIndex]
-	last.Add(post, store)
-
-	copy(c.HashList[lastIndex*32:lastIndex*32+32], last.Hash())
-}
-
 // Return the hash of the hash list, which can then go on to be signed by the
 // LocalPeer. This allows proper validation of an entire collection, but the
 // localpeer only needs to sign a single hash.

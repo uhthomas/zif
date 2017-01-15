@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"time"
 
@@ -314,9 +315,19 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 		return nil, err
 	}
 
-	log.Info("Downloading collection, size ", mcol.Size)
+	if int(db.PostCount()) == p.entry.PostCount {
+		return &stream, nil
+	}
 
-	piece_stream := stream.Pieces(entry.Address, 0, mcol.Size)
+	currentStore := int(math.Ceil(float64(db.PostCount()) / float64(data.PieceSize)))
+
+	since := 0
+	if currentStore != 0 {
+		since = currentStore - 1
+	}
+
+	log.Info("Downloading collection, size ", mcol.Size)
+	piece_stream := stream.Pieces(entry.Address, since, mcol.Size)
 
 	i := 0
 	for piece := range piece_stream {
@@ -338,7 +349,6 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 	}
 
 	log.Info("Mirror complete")
-	db.Close()
 
 	p.RequestAddPeer(p.Address().String())
 

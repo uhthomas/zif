@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -442,9 +443,13 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 
 	lp.Entry.PostCount += 1
 
-	lp.Collection.AddPost(p, store)
-	lp.Collection.Save("./data/collection.dat")
 	id, err := lp.Database.InsertPost(p)
+
+	pieceIndex := int(math.Floor(float64(id) / float64(data.PieceSize)))
+	piece, err := lp.Database.QueryPiece(pieceIndex, false)
+
+	lp.Collection.Add(piece)
+	lp.Collection.Save("./data/collection.dat")
 
 	if err != nil {
 		return id, err

@@ -3,7 +3,7 @@ package data
 const sql_create_post_table string = `CREATE TABLE IF NOT EXISTS 
 										post(
 											id INTEGER PRIMARY KEY NOT NULL,
-											info_hash STRING,
+											info_hash STRING UNIQUE,
 											title STRING NOT NULL,
 											size INTEGER NOT NULL,
 											file_count INTEGER NOT NULL,
