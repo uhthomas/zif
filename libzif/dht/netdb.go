@@ -143,7 +143,7 @@ func (ndb *NetDB) FindClosest(addr Address) (Pairs, error) {
 
 	// Start with bucket, copy all across, then move left outwards checking all
 	// other buckets.
-	for i := 1; (index-i >= 0 || index+i <= len(addr.Raw)*8) &&
+	for i := 0; (index-i >= 0 || index+i <= len(addr.Raw)*8) &&
 		len(ret) < BucketSize; i++ {
 
 		if index-i >= 0 {
