@@ -28,3 +28,11 @@ func (dht *DHT) Query(addr Address) (*KeyValue, error) {
 func (dht *DHT) FindClosest(addr Address) (Pairs, error) {
 	return dht.db.FindClosest(addr)
 }
+
+func (dht *DHT) SaveTable(path string) {
+	dht.db.SaveTable(path)
+}
+
+func (dht *DHT) LoadTable(path string) {
+	dht.db.LoadTable(path)
+}

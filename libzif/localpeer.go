@@ -63,6 +63,7 @@ func (lp *LocalPeer) Setup() {
 	lp.Address().Generate(lp.PublicKey())
 
 	lp.DHT = dht.NewDHT(lp.address, "./data/dht")
+	lp.DHT.LoadTable("./data/dht/table.dat")
 
 	if err != nil {
 		panic(err)
@@ -382,6 +383,7 @@ func (lp *LocalPeer) LoadEntry() error {
 
 func (lp *LocalPeer) Close() {
 	lp.CloseStreams()
+	lp.DHT.SaveTable("./data/dht/table.dat")
 	lp.Server.Close()
 	lp.Database.Close()
 }

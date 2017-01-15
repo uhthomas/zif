@@ -1,6 +1,12 @@
 package dht
 
-import "github.com/peterbourgon/diskv"
+import (
+	"encoding/json"
+	"io/ioutil"
+
+	"github.com/peterbourgon/diskv"
+	log "github.com/sirupsen/logrus"
+)
 
 const (
 	BucketSize = 20
@@ -179,4 +185,21 @@ func (ndb *NetDB) FindClosest(addr Address) (Pairs, error) {
 	}
 
 	return ret, nil
+}
+
+func (ndb *NetDB) SaveTable(path string) {
+	data, err := json.Marshal(ndb.table)
+
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	ioutil.WriteFile(path, data, 0644)
+
+}
+
+func (ndb *NetDB) LoadTable(path string) {
+	raw, _ := ioutil.ReadFile(path)
+
+	json.Unmarshal(raw, &ndb.table)
 }
