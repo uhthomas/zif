@@ -303,6 +303,10 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 
 	mcol, err := stream.Collection(entry.Address, entry.PublicKey)
 
+	if err != nil {
+		return nil, err
+	}
+
 	collection := data.Collection{HashList: mcol.HashList}
 	collection.Save(fmt.Sprintf("./data/%s/collection.dat", entry.Address.String()))
 
@@ -316,7 +320,10 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 
 	i := 0
 	for piece := range piece_stream {
-		if !bytes.Equal(mcol.HashList[32*i:32*i+32], piece.Hash()) {
+		log.Info(len(mcol.HashList))
+		hash := piece.Hash()
+
+		if !bytes.Equal(mcol.HashList[32*i:32*i+32], hash) {
 			return nil, errors.New("Piece hash mismatch")
 		}
 
@@ -331,6 +338,7 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 	}
 
 	log.Info("Mirror complete")
+	db.Close()
 
 	p.RequestAddPeer(p.Address().String())
 

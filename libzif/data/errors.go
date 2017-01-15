@@ -3,6 +3,8 @@ package data
 import (
 	"bufio"
 	"io"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type ErrorReader struct {
@@ -20,6 +22,7 @@ func (er *ErrorReader) ReadString(delim byte) string {
 	ret, er.Err = er.reader.ReadString(delim)
 
 	if er.Err != nil {
+		log.Error(er.Err.Error())
 		return ""
 	}
 
