@@ -98,10 +98,9 @@ func main() {
 	log.Info("My name: ", lp.Entry.Name)
 	log.Info("My address: ", lp.Address().String())
 
-	var commandServer zif.CommandServer
-	commandServer.LocalPeer = lp
+	commandServer := zif.NewCommandServer(lp)
 	var httpServer zif.HttpServer
-	httpServer.CommandServer = &commandServer
+	httpServer.CommandServer = commandServer
 	go httpServer.ListenHttp(*http)
 
 	// Listen for SIGINT

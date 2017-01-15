@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/streamrail/concurrent-map"
 	data "github.com/wjh/zif/libzif/data"
 )
 
@@ -15,6 +16,18 @@ import (
 
 type CommandServer struct {
 	LocalPeer *LocalPeer
+
+	// Piece count for ongoing mirrors
+	MirrorProgress cmap.ConcurrentMap
+}
+
+func NewCommandServer(lp *LocalPeer) *CommandServer {
+	ret := &CommandServer{
+		LocalPeer:      lp,
+		MirrorProgress: cmap.New(),
+	}
+
+	return ret
 }
 
 // Command functions
@@ -173,7 +186,16 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 	cs.LocalPeer.Databases.Set(peer.Address().String(), db)
 
-	_, err = peer.Mirror(db)
+	progressChan := make(chan int)
+
+	go func() {
+		for i := range progressChan {
+			log.Debug("Piece, id ", i)
+			cs.MirrorProgress.Set(cm.Address, i)
+		}
+	}()
+
+	_, err = peer.Mirror(db, progressChan)
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}
@@ -183,6 +205,17 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 	return CommandResult{true, nil, nil}
 }
+
+func (cs *CommandServer) GetMirrorProgress(cmp CommandMirrorProgress) CommandResult {
+	if !cs.MirrorProgress.Has(cmp.Address) {
+		return CommandResult{false, nil, errors.New("Mirror not in progress")}
+	}
+
+	progress, _ := cs.MirrorProgress.Get(cmp.Address)
+
+	return CommandResult{true, progress.(int), nil}
+}
+
 func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 	var err error
 

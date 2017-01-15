@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
-	"gopkg.in/cheggaaa/pb.v1"
 
 	data "github.com/wjh/zif/libzif/data"
 	"github.com/wjh/zif/libzif/dht"
@@ -276,9 +275,10 @@ func (p *Peer) Popular(page int) ([]*data.Post, *proto.Client, error) {
 
 }
 
-func (p *Peer) Mirror(db *data.Database) (*proto.Client, error) {
+func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error) {
 	pieces := make(chan *data.Piece, data.PieceSize)
 	defer close(pieces)
+	defer close(onPiece)
 
 	go db.InsertPieces(pieces, true)
 
@@ -311,8 +311,6 @@ func (p *Peer) Mirror(db *data.Database) (*proto.Client, error) {
 	}
 
 	log.Info("Downloading collection, size ", mcol.Size)
-	bar := pb.StartNew(mcol.Size)
-	bar.ShowSpeed = true
 
 	piece_stream := stream.Pieces(entry.Address, 0, mcol.Size)
 
@@ -322,7 +320,7 @@ func (p *Peer) Mirror(db *data.Database) (*proto.Client, error) {
 			return nil, errors.New("Piece hash mismatch")
 		}
 
-		bar.Increment()
+		onPiece <- i
 
 		if len(pieces) == 100 {
 			log.Info("Piece buffer full, io is blocking")
@@ -332,7 +330,6 @@ func (p *Peer) Mirror(db *data.Database) (*proto.Client, error) {
 		i++
 	}
 
-	bar.Finish()
 	log.Info("Mirror complete")
 
 	p.RequestAddPeer(p.Address().String())

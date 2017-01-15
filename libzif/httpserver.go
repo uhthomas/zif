@@ -30,6 +30,7 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/peer/{address}/recent/{page}/", hs.Recent)
 	router.HandleFunc("/peer/{address}/popular/{page}/", hs.Popular)
 	router.HandleFunc("/peer/{address}/mirror/", hs.Mirror)
+	router.HandleFunc("/peer/{address}/mirrorprogress/", hs.MirrorProgress)
 	router.HandleFunc("/peer/{address}/index/{since}/", hs.PeerFtsIndex)
 
 	router.HandleFunc("/self/addpost/", hs.AddPost).Methods("POST")
@@ -151,6 +152,13 @@ func (hs *HttpServer) Mirror(w http.ResponseWriter, r *http.Request) {
 
 	write_http_response(w, hs.CommandServer.Mirror(CommandMirror{vars["address"]}))
 }
+
+func (hs *HttpServer) MirrorProgress(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	write_http_response(w, hs.CommandServer.GetMirrorProgress(CommandMirrorProgress{vars["address"]}))
+}
+
 func (hs *HttpServer) PeerFtsIndex(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 

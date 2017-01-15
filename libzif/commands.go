@@ -36,6 +36,7 @@ type CommandPeerRecent struct {
 }
 type CommandPeerPopular CommandPeerRecent
 type CommandMirror CommandPeer
+type CommandMirrorProgress CommandPeer
 type CommandPeerIndex struct {
 	CommandPeer
 	Since int `json:"since"`

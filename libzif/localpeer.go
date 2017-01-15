@@ -429,7 +429,6 @@ func (lp *LocalPeer) Close() {
 	lp.CloseStreams()
 	lp.Server.Close()
 	lp.Database.Close()
-	lp.Collection.Save("./data/collection.dat")
 }
 
 func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
@@ -444,6 +443,7 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 	lp.Entry.PostCount += 1
 
 	lp.Collection.AddPost(p, store)
+	lp.Collection.Save("./data/collection.dat")
 	id, err := lp.Database.InsertPost(p)
 
 	if err != nil {
