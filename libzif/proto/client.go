@@ -244,7 +244,17 @@ func (c *Client) Query(address string) (*dht.KeyValue, error) {
 	}
 
 	kv := &dht.KeyValue{}
-	err = c.Decode(kv)
+	kvr, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if kvr.Header == ProtoNo {
+		return nil, nil
+	}
+
+	kvr.Decode(kv)
 
 	return kv, err
 

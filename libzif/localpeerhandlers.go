@@ -60,7 +60,12 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 			return err
 		}
 
-		err = cl.WriteMessage(kv)
+		if kv == nil {
+			cl.WriteMessage(&proto.Message{Header: proto.ProtoNo})
+		}
+
+		encoded, _ := json.Marshal(kv)
+		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: encoded})
 	}
 
 	return err

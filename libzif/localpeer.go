@@ -294,6 +294,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 			entry, err := lp.resolveStep(e, address)
 
 			if err != nil {
+				log.Error(err.Error())
 				continue
 			}
 
@@ -309,7 +310,17 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 // Will return the entry itself, or an error.
 func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	// connect to the peer
-	peer, err := lp.ConnectPeerDirect(fmt.Sprintf("%s:%d", e.PublicAddress, e.Port))
+	var peer *Peer
+	var err error
+	peer = lp.GetPeer(e.Address.String())
+
+	if peer == nil {
+		peer, err = lp.ConnectPeerDirect(fmt.Sprintf("%s:%d", e.PublicAddress, e.Port))
+
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	client, kv, err := peer.Query(addr.String())
 
