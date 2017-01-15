@@ -446,7 +446,7 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 	id, err := lp.Database.InsertPost(p)
 
 	pieceIndex := int(math.Floor(float64(id) / float64(data.PieceSize)))
-	piece, err := lp.Database.QueryPiece(pieceIndex, false)
+	piece, err := lp.Database.QueryPiece(uint(pieceIndex), false)
 
 	lp.Collection.Add(piece)
 	lp.Collection.Save("./data/collection.dat")
