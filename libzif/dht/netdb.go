@@ -1,10 +1,6 @@
 package dht
 
-import (
-	"errors"
-
-	"github.com/peterbourgon/diskv"
-)
+import "github.com/peterbourgon/diskv"
 
 const (
 	BucketSize = 20
@@ -96,7 +92,7 @@ func (ndb *NetDB) Insert(kv *KeyValue) error {
 // Returns the KeyValue if this node has the address, nil and err otherwise.
 func (ndb *NetDB) Query(addr Address) (*KeyValue, error) {
 	if !ndb.database.Has(addr.String()) {
-		return nil, errors.New("Not found")
+		return nil, nil
 	}
 
 	value, err := ndb.database.Read(addr.String())

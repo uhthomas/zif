@@ -317,7 +317,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	}
 	client.Close()
 
-	if kv.Key.Equals(&addr) {
+	if kv != nil {
 		entry, err := JsonToEntry(kv.Value)
 		return entry, err
 	}

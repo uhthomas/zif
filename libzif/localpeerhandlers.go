@@ -155,59 +155,6 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 		return errors.New("Failed to save entry")
 	}
 
-	// next up, tell other people!
-	closest, err := lp.DHT.FindClosest(entry.Address)
-
-	if err != nil {
-		return err
-	}
-
-	for _, i := range closest {
-		go func() {
-			if i.Key.Equals(&entry.Address) || i.Key.Equals(msg.From) {
-				return
-			}
-
-			peer := lp.GetPeer(entry.Address.String())
-
-			if peer == nil {
-				log.Debug("Connecting to new peer")
-
-				decoded, err := JsonToEntry(i.Value)
-
-				if err != nil {
-					return
-				}
-
-				var p Peer
-				err = p.Connect(decoded.PublicAddress+":"+strconv.Itoa(decoded.Port), lp)
-
-				if err != nil {
-					log.Warn("Failed to connect to peer: ", err.Error())
-					return
-				}
-
-				p.ConnectClient(lp)
-
-				peer = &p
-			}
-
-			peer_stream, err := peer.OpenStream()
-			defer peer_stream.Close()
-
-			if err != nil {
-				log.Error(err.Error())
-				return
-			}
-
-			peer_announce := &proto.Message{
-				Header:  proto.ProtoDhtAnnounce,
-				Content: msg.Content,
-			}
-			peer_stream.WriteMessage(peer_announce)
-		}()
-	}
-
 	return nil
 
 }
