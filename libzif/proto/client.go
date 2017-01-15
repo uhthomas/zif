@@ -435,10 +435,10 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 
 	// Convert a string to an int, prevents endless error checks below.
 	convert := func(val string) int {
-		var ret int
 		ret, err := strconv.Atoi(val)
 
 		if err != nil {
+			log.Error(err.Error())
 			return 0
 		}
 
@@ -451,7 +451,6 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 		gzr, err := gzip.NewReader(c.conn)
 
 		if err != nil {
-			log.Error(err.Error())
 			return
 		}
 
@@ -467,7 +466,8 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 					break
 				}
 
-				id := convert(errReader.ReadString('|'))
+				id_s := errReader.ReadString('|')
+				id := convert(id_s)
 
 				if id == -1 {
 					break
@@ -507,6 +507,7 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 
 				piece.Add(post, true)
 				count++
+				log.Info("post read")
 			}
 			ret <- &piece
 		}

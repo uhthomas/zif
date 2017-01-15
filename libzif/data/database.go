@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
@@ -88,11 +89,11 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 
 	defer func() {
 		err = tx.Commit()
+		fmt.Println("commited")
 
 		if err != nil {
 			tx.Rollback()
 			log.Error(err.Error())
-			return
 		}
 	}()
 
@@ -120,11 +121,13 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 
 		for _, i := range piece.Posts {
 			_, err = tx.Exec(sql_insert_post, i.InfoHash, i.Title, i.Size, i.FileCount,
-				i.Seeders, i.Leechers, i.UploadDate, i.Tags)
+				i.Seeders, i.Leechers, i.UploadDate, i.Tags, i.Meta)
 
 			if err != nil {
+				log.Error(err.Error())
 				return
 			}
+			fmt.Println("inserted")
 		}
 
 		n += 1

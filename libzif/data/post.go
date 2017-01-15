@@ -69,6 +69,8 @@ func (p *Post) Write(sep, term string, w io.Writer) {
 	w.Write([]byte(sep))
 	w.Write([]byte(p.Tags))
 	w.Write([]byte(sep))
+	w.Write([]byte(p.Meta))
+	w.Write([]byte(sep))
 	w.Write([]byte(term))
 
 	/*
