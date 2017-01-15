@@ -357,7 +357,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, errors.New("No entries could be found")
 }
 
 func (lp *LocalPeer) SaveEntry() error {
