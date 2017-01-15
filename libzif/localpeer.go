@@ -289,7 +289,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	for _, i := range closest {
 		e, err := JsonToEntry(i.Value)
 
-		if err != nil {
+		if err == nil {
 			// TODO: Goroutine this.
 			entry, err := lp.resolveStep(e, address)
 
@@ -333,20 +333,18 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	thisDistance := peer.Address().Xor(&addr).LeadingZeroes()
 
 	for _, i := range closest {
-		if i.Key.Xor(&addr).LeadingZeroes() < thisDistance {
-			entry, err := JsonToEntry(i.Value)
+		entry, err := JsonToEntry(i.Value)
 
-			if err != nil {
-				continue
-			}
+		if err != nil {
+			continue
+		}
 
-			result, err := lp.resolveStep(entry, addr)
+		result, err := lp.resolveStep(entry, addr)
 
-			if result != nil {
-				ret, _ := JsonToEntry(i.Value)
+		if result != nil {
+			ret, _ := JsonToEntry(i.Value)
 
-				return ret, nil
-			}
+			return ret, nil
 		}
 	}
 
