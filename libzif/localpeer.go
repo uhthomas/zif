@@ -449,6 +449,7 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 	piece, err := lp.Database.QueryPiece(uint(pieceIndex), false)
 
 	lp.Collection.Add(piece)
+	lp.Collection.Rehash()
 	lp.Collection.Save("./data/collection.dat")
 
 	if err != nil {
