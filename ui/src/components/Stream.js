@@ -13,6 +13,7 @@ import util from "../util"
 
 import {ipcRenderer} from "electron";
 
+const spawn = require('child_process').spawn;
 
 class Stream extends Component
 {
@@ -77,11 +78,12 @@ class Stream extends Component
 
 	renderItem(index, key) {
 		return <ListItem key={key}
-						 onClick={()=> { this.setState({
-						 	 playback: true,
-						 	 streamFile: this.state.files[index],
-						 	 index: this.findIndex(this.state.files[index].path)
-						 }) }}>{
+						 onClick={()=> { 
+						 	 var i = this.findIndex(this.state.files[index].path);
+						 	 console.log(i)
+
+							 spawn(window.config.playerPath, ["http://localhost:" + this.state.port + "/" + i])
+						 }}>{
 			this.state.files[index].path
 		}</ListItem>;
 	}
