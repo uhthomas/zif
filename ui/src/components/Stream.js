@@ -52,14 +52,14 @@ class Stream extends Component
 	// find the index of a file in the original, non-sorted array (needed for
 	// the stream url
 	findIndex(path) {
-		for(var i = 0; i < this.state.torrent.files.length; i++) {
-			if (this.state.torrent.files[i].path == path)
+		for(var i = 0; i < this.state.files.length; i++) {
+			if (this.state.files[i].path == path)
 				return i;
 		}
 	}
 
 	onTorrent(e, arg){
-		this.setState({ files: arg.torrent.files, torrent: arg.torrent, port: arg.port });
+		this.setState({ files: arg.files, port: arg.port });
 		console.log(arg)
 	}
 
@@ -80,12 +80,13 @@ class Stream extends Component
 		return <ListItem key={key}
 						 onClick={()=> { 
 						 	 var i = this.findIndex(this.state.files[index].path);
-						 	 console.log(i)
 
 							 spawn(window.config.playerPath, ["http://localhost:" + this.state.port + "/" + i])
-						 }}>{
-			this.state.files[index].path
-		}</ListItem>;
+						 }}>
+
+						 	{this.state.files[index].path}
+
+		</ListItem>;
 	}
 
 	render() {
@@ -93,6 +94,8 @@ class Stream extends Component
 
 			<Dialog open={this.props.open} onRequestClose={() => this.props.onClose()}
 					autoScrollBodyContent={true}>
+
+					<h4>Select a file to play</h4>
 
 					{this.state.files.length == 0 &&
 						<div style={{textAlign: "center"}}>

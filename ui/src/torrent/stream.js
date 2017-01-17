@@ -17,7 +17,7 @@ function torrentStream(ipc){
 				ret.server = t.createServer();
 
 				ret.server.listen(0, () => {
-					e.sender.send("torrent", { torrent: t, port: ret.server.address().port });
+					e.sender.send("torrent", { files: t.files, port: ret.server.address().port });
 				});
 
 				return;
@@ -31,7 +31,7 @@ function torrentStream(ipc){
 				console.log("starting to listen")
 				ret.server.listen(0, () => {
 					console.log("listening")
-					e.sender.send("torrent", { torrent: torrent, port: ret.server.address().port });
+					e.sender.send("torrent", { files: torrent.files, port: ret.server.address().port });
 				});
 			});
 		}
