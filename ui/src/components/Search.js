@@ -89,7 +89,7 @@ class Search extends Component
 				}).bind(this)
 			})(i);
 
-			functions.push(fn);
+			functions.push(async.timeout(fn, 7000));
 		}
 
 		async.parallel(functions, ((err, res) => {

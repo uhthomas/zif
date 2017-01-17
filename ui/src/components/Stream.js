@@ -81,7 +81,8 @@ class Stream extends Component
 						 onClick={()=> { 
 						 	 var i = this.findIndex(this.state.files[index].path);
 
-							 spawn(window.config.playerPath, ["http://localhost:" + this.state.port + "/" + i])
+							 var player = spawn(window.config.playerPath, ["http://localhost:" + this.state.port + "/" + i], {detached: true, stdio: "ignore"});
+							 player.unref();
 						 }}>
 
 						 	{this.state.files[index].path}
