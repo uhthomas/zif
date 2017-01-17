@@ -19,9 +19,6 @@ for arg; do
         -v)
             VERBOSE="-v -x"
             ;;
-        -n)
-            NONPMINS=1
-            ;;
         -p)
             NOPAX=1
             ;;
@@ -49,15 +46,6 @@ popd
 pushd zifd
 go install $VERBOSE
 popd
-
-if [ $NONPMINS -eq 0 ]; then
-    which npm >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        pushd ui
-        npm install
-        popd
-    fi
-fi
 
 if [ $NOPAX -eq 0 ]; then
     if [ -d "/proc/sys/kernel/pax" ]; then
