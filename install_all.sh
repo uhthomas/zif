@@ -4,6 +4,7 @@ ZIF_BIN="$GOPATH/bin/zifd"
 VERBOSE=""
 NONPMINS=0
 NOPAX=0
+RACE=""
 
 for arg; do
     case $arg in
@@ -18,6 +19,9 @@ for arg; do
             ;;
         -v)
             VERBOSE="-v -x"
+            ;;
+        -r)
+            RACE="-race"
             ;;
         -p)
             NOPAX=1
