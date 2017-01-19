@@ -8,8 +8,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/wjh/zif/libzif/dht"
-	"github.com/wjh/zif/libzif/util"
+	"github.com/zif/zif/libzif/dht"
+	"github.com/zif/zif/libzif/util"
 )
 
 type Server struct {

@@ -15,9 +15,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
-	data "github.com/wjh/zif/libzif/data"
-	"github.com/wjh/zif/libzif/dht"
-	"github.com/wjh/zif/libzif/proto"
+	data "github.com/zif/zif/libzif/data"
+	"github.com/zif/zif/libzif/dht"
+	"github.com/zif/zif/libzif/proto"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -277,7 +277,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	}
 
 	if kv != nil {
-		return JsonToEntry(kv.Value)
+		return JsonToEntry(kv.Value())
 	}
 
 	closest, err := lp.DHT.FindClosest(address)
@@ -287,7 +287,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	}
 
 	for _, i := range closest {
-		e, err := JsonToEntry(i.Value)
+		e, err := JsonToEntry(i.Value())
 
 		if err == nil {
 			// TODO: Goroutine this.
@@ -330,7 +330,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	client.Close()
 
 	if kv != nil {
-		entry, err := JsonToEntry(kv.Value)
+		entry, err := JsonToEntry(kv.Value())
 		return entry, err
 	}
 
@@ -342,7 +342,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	client.Close()
 
 	for _, i := range closest {
-		entry, err := JsonToEntry(i.Value)
+		entry, err := JsonToEntry(i.Value())
 
 		if err != nil {
 			continue
@@ -351,7 +351,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 		result, err := lp.resolveStep(entry, addr)
 
 		if result != nil {
-			ret, _ := JsonToEntry(i.Value)
+			ret, _ := JsonToEntry(i.Value())
 
 			return ret, nil
 		}

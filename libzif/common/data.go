@@ -1,4 +1,4 @@
-package data
+package common
 
 type Encodable interface {
 	Bytes() ([]byte, error)

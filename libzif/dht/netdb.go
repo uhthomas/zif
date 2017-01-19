@@ -57,12 +57,12 @@ func (ndb *NetDB) TableLen() int {
 
 func (ndb *NetDB) Insert(kv *KeyValue) error {
 	if !kv.Valid() {
-		return &InvalidValue{kv.Key.String()}
+		return &InvalidValue{kv.Key().String()}
 	}
 
 	// Find the distance between the kv address and our own address, this is the
 	// index in the table
-	index := kv.Key.Xor(&ndb.addr).LeadingZeroes()
+	index := kv.Key().Xor(&ndb.addr).LeadingZeroes()
 	bucket := ndb.table[index]
 
 	// there is capacity, insert at the front
@@ -71,7 +71,7 @@ func (ndb *NetDB) Insert(kv *KeyValue) error {
 	found := -1
 
 	for n, i := range bucket {
-		if i.Equals(&kv.Key) {
+		if i.Equals(kv.Key()) {
 			found = n
 			break
 		}
@@ -85,12 +85,12 @@ func (ndb *NetDB) Insert(kv *KeyValue) error {
 		return &NoCapacity{BucketSize}
 	}
 
-	bucket = append([]Address{kv.Key}, bucket...)
+	bucket = append([]Address{*kv.Key()}, bucket...)
 
 	ndb.table[index] = bucket
 
 	// key has been added to the routing table, now store the entry!
-	ndb.database.Write(kv.Key.String(), kv.Value)
+	ndb.database.Write(kv.Key().String(), kv.Value())
 
 	return nil
 }

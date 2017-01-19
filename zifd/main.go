@@ -9,8 +9,8 @@ import (
 
 	"strings"
 
-	zif "github.com/wjh/zif/libzif"
-	data "github.com/wjh/zif/libzif/data"
+	zif "github.com/zif/zif/libzif"
+	data "github.com/zif/zif/libzif/data"
 
 	log "github.com/sirupsen/logrus"
 )

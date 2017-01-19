@@ -17,10 +17,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 
-	data "github.com/wjh/zif/libzif/data"
-	"github.com/wjh/zif/libzif/dht"
-	"github.com/wjh/zif/libzif/proto"
-	"github.com/wjh/zif/libzif/util"
+	data "github.com/zif/zif/libzif/data"
+	"github.com/zif/zif/libzif/dht"
+	"github.com/zif/zif/libzif/proto"
+	"github.com/zif/zif/libzif/util"
 )
 
 type Peer struct {
@@ -165,13 +165,13 @@ func (p *Peer) Entry() (*Entry, error) {
 
 	defer client.Close()
 
-	entry, err := JsonToEntry(kv.Value)
+	entry, err := JsonToEntry(kv.Value())
 
 	if err != nil {
 		return nil, err
 	}
 
-	log.WithField("addr", kv.Key.String()).Info("Recieved")
+	log.WithField("addr", kv.Key().String()).Info("Recieved")
 
 	if !entry.Address.Equals(p.Address()) {
 		return nil, errors.New("Failed to fetch entry")

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/wjh/zif/libzif/data"
+	"github.com/zif/zif/libzif/data"
 )
 
 // Command input types

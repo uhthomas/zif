@@ -4,12 +4,12 @@ import (
 	"net"
 
 	"github.com/hashicorp/yamux"
-	"github.com/wjh/zif/libzif/data"
-	"github.com/wjh/zif/libzif/dht"
+	"github.com/zif/zif/libzif/common"
+	"github.com/zif/zif/libzif/dht"
 )
 
 type ProtocolHandler interface {
-	data.Signer
+	common.Signer
 
 	HandleAnnounce(*Message) error
 	HandleQuery(*Message) error
@@ -33,4 +33,6 @@ type NetworkPeer interface {
 	AddStream(net.Conn)
 
 	Address() *dht.Address
+	Query(string) (*Client, *dht.KeyValue, error)
+	FindClosest(address string) (*Client, dht.Pairs, error)
 }

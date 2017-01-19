@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
-	data "github.com/wjh/zif/libzif/data"
-	"github.com/wjh/zif/libzif/dht"
-	"github.com/wjh/zif/libzif/proto"
+	data "github.com/zif/zif/libzif/data"
+	"github.com/zif/zif/libzif/dht"
+	"github.com/zif/zif/libzif/proto"
 )
 
 const MaxSearchLength = 256
@@ -383,7 +383,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 			return err
 		}
 
-		decoded, err := JsonToEntry(kv.Value)
+		decoded, err := JsonToEntry(kv.Value())
 
 		if err != nil {
 			return err

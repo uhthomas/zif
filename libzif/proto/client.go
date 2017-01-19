@@ -11,8 +11,9 @@ import (
 	"golang.org/x/crypto/ed25519"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/wjh/zif/libzif/data"
-	"github.com/wjh/zif/libzif/dht"
+	"github.com/zif/zif/libzif/common"
+	"github.com/zif/zif/libzif/data"
+	"github.com/zif/zif/libzif/dht"
 )
 
 const (
@@ -110,7 +111,7 @@ func (c *Client) Pong() {
 }
 
 // Sends a DHT entry to a peer.
-func (c *Client) SendStruct(e data.Encodable) error {
+func (c *Client) SendStruct(e common.Encodable) error {
 	json, err := e.Json()
 	msg := Message{Header: ProtoEntry, Content: json}
 
@@ -126,7 +127,7 @@ func (c *Client) SendStruct(e data.Encodable) error {
 
 // Announce the given DHT entry to a peer, passes on this peers details,
 // meaning that it can be reached by other peers on the network.
-func (c *Client) Announce(e data.Encodable) error {
+func (c *Client) Announce(e common.Encodable) error {
 	json, err := e.Json()
 
 	if err != nil {
@@ -272,7 +273,7 @@ func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 
 	// add them all to our routing table! :D
 	for _, e := range peers {
-		if len(e.Key.Raw) != dht.AddressBinarySize {
+		if len(e.Key().Raw) != dht.AddressBinarySize {
 			continue
 		}
 

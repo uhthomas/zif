@@ -6,13 +6,13 @@ import (
 	"golang.org/x/crypto/ed25519"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/wjh/zif/libzif/data"
-	"github.com/wjh/zif/libzif/dht"
-	"github.com/wjh/zif/libzif/util"
+	"github.com/zif/zif/libzif/common"
+	"github.com/zif/zif/libzif/dht"
+	"github.com/zif/zif/libzif/util"
 )
 
 // Perform a handshake operation given a peer. server.go does the other end of this.
-func handshake(cl Client, lp data.Signer) (ed25519.PublicKey, error) {
+func handshake(cl Client, lp common.Signer) (ed25519.PublicKey, error) {
 	header, err := handshake_recieve(cl)
 
 	if err != nil {
@@ -125,7 +125,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 }
 
 // Sends a handshake to a peer.
-func handshake_send(cl Client, lp data.Signer) error {
+func handshake_send(cl Client, lp common.Signer) error {
 	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
 
 	/*binary.Write(cl.conn, binary.BigEndian, ProtoZif)

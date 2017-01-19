@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/wjh/zif/libzif/dht"
+	"github.com/zif/zif/libzif/dht"
 	"golang.org/x/crypto/ed25519"
 )
 

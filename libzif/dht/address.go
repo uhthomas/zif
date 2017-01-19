@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"github.com/prettymuchbryce/hellobitcoin/base58check"
+	"github.com/zif/zif/libzif/util"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 )
@@ -43,6 +44,19 @@ func DecodeAddress(value string) Address {
 	addr.Raw = base58check.Decode(value)
 
 	return addr
+}
+
+func RandomAddress() (*Address, error) {
+	rand, err := util.CryptoRandBytes(32)
+
+	if err != nil {
+		return nil, err
+	}
+
+	addr := Address{}
+	_, err = addr.Generate(rand)
+
+	return &addr, err
 }
 
 // Generate a Zif address from a public key.

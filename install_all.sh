@@ -43,8 +43,20 @@ go install $VERBOSE
 
 pushd data
 go install $VERBOSE
-
 popd
+
+pushd dht
+go install $VERBOSE
+popd
+
+pushd proto
+go install $VERBOSE
+popd
+
+pushd common
+go install $VERBOSE
+popd
+
 popd
 
 pushd zifd

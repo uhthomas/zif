@@ -9,7 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
-	data "github.com/wjh/zif/libzif/data"
+	data "github.com/zif/zif/libzif/data"
 )
 
 // Command server type

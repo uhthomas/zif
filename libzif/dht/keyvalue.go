@@ -5,24 +5,32 @@ const (
 )
 
 type KeyValue struct {
-	Key   Address
-	Value []byte // Max size of 64kbs
+	key   Address
+	value []byte // Max size of 64kbs
 
 	distance Address
+}
+
+func (kv *KeyValue) Key() *Address {
+	return &kv.key
+}
+
+func (kv *KeyValue) Value() []byte {
+	return kv.value
 }
 
 func NewKeyValue(key Address, value []byte) *KeyValue {
 	ret := &KeyValue{}
 
-	ret.Key = key
-	ret.Value = make([]byte, len(value))
-	copy(ret.Value, value)
+	ret.key = key
+	ret.value = make([]byte, len(value))
+	copy(ret.value, value)
 
 	return ret
 }
 
 func (kv *KeyValue) Valid() bool {
-	return len(kv.Value) <= MaxValueSize && len(kv.Key.Raw) == AddressBinarySize
+	return len(kv.value) <= MaxValueSize && len(kv.key.Raw) == AddressBinarySize
 }
 
 type Pairs []*KeyValue

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net"
 
-	"github.com/wjh/zif/libzif/dht"
+	"github.com/zif/zif/libzif/dht"
 )
 
 type Message struct {
