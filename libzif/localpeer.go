@@ -17,6 +17,7 @@ import (
 	"github.com/streamrail/concurrent-map"
 	data "github.com/zif/zif/libzif/data"
 	"github.com/zif/zif/libzif/dht"
+	"github.com/zif/zif/libzif/jobs"
 	"github.com/zif/zif/libzif/proto"
 	"golang.org/x/crypto/ed25519"
 )
@@ -115,6 +116,8 @@ func (lp *LocalPeer) Setup() {
 	}*/
 
 	lp.SearchProvider = data.NewSearchProvider()
+
+	lp.StartExploring()
 }
 
 // Given a direct address, for instance an IP or domain, connect to the peer there.
@@ -423,4 +426,27 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 	err = lp.SaveEntry()
 
 	return id, err
+}
+
+func (lp *LocalPeer) StartExploring() {
+	in := make(chan interface{}, jobs.ExploreBufferSize)
+	in <- lp.address
+
+	ret := jobs.ExploreJob(in, lp.ConnectPeer, lp.address)
+
+	go func() {
+		for i := range ret {
+			kv := i.(dht.KeyValue)
+			has := lp.DHT.Has(*kv.Key())
+
+			// reinsert regardless of whether we have it or not. This helps
+			// keep more "active" things at the top, and also keeps us up to date.
+			lp.DHT.Insert(&kv)
+
+			if !has {
+				log.WithField("peer", kv.Key().String()).Info("Discovered new peer")
+				in <- *kv.Key()
+			}
+		}
+	}()
 }

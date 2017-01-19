@@ -3,6 +3,7 @@ package jobs
 import (
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/zif/zif/libzif/common"
 	"github.com/zif/zif/libzif/dht"
 )
@@ -12,13 +13,14 @@ const ExploreBufferSize = 100
 
 // This job runs every two minutes, and tries to build the netdb with as many
 // entries as it possibly can
-func ExploreJob(in <-chan interface{}, data ...interface{}) chan<- interface{} {
-	ret := make(chan<- interface{}, ExploreBufferSize)
+func ExploreJob(in <-chan interface{}, data ...interface{}) <-chan interface{} {
+	ret := make(chan interface{}, ExploreBufferSize)
 	connector := data[0].(common.ConnectPeer)
 	me := data[1].(dht.Address)
 
 	go func() {
 		for i := range in {
+			log.WithField("peer", i.(dht.Address).String()).Info("Exploring")
 			explorePeer(i.(dht.Address), me, ret, connector)
 
 			time.Sleep(ExploreSleepTime)

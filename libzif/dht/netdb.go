@@ -113,6 +113,10 @@ func (ndb *NetDB) Query(addr Address) (*KeyValue, error) {
 	return kv, ndb.Insert(kv)
 }
 
+func (ndb *NetDB) Has(addr Address) bool {
+	return ndb.database.Has(addr.String())
+}
+
 func (ndb *NetDB) queryAddresses(as []Address) Pairs {
 	ret := make(Pairs, 0, len(as))
 

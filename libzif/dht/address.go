@@ -30,7 +30,7 @@ func NewAddress(key []byte) (addr Address) {
 
 // Returns Address.Bytes Base58 encoded and prepended with a Z.
 // Base58 removes ambiguous characters, reducing the chances of address confusion.
-func (a *Address) String() string {
+func (a Address) String() string {
 	return base58check.Encode("51", a.Bytes())
 }
 

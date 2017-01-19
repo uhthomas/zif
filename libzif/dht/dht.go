@@ -36,3 +36,7 @@ func (dht *DHT) SaveTable(path string) {
 func (dht *DHT) LoadTable(path string) {
 	dht.db.LoadTable(path)
 }
+
+func (dht *DHT) Has(addr Address) bool {
+	return dht.db.Has(addr)
+}

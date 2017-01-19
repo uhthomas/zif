@@ -11,11 +11,11 @@ type KeyValue struct {
 	distance Address
 }
 
-func (kv *KeyValue) Key() *Address {
+func (kv KeyValue) Key() *Address {
 	return &kv.key
 }
 
-func (kv *KeyValue) Value() []byte {
+func (kv KeyValue) Value() []byte {
 	return kv.value
 }
 
