@@ -12,25 +12,25 @@ type KeyValue struct {
 }
 
 func (kv KeyValue) Key() *Address {
-	return &kv.key
+	return &kv.Key_
 }
 
 func (kv KeyValue) Value() []byte {
-	return kv.value
+	return kv.Value_
 }
 
 func NewKeyValue(key Address, value []byte) *KeyValue {
 	ret := &KeyValue{}
 
-	ret.key = key
-	ret.value = make([]byte, len(value))
-	copy(ret.value, value)
+	ret.Key_ = key
+	ret.Value_ = make([]byte, len(value))
+	copy(ret.Value_, value)
 
 	return ret
 }
 
 func (kv *KeyValue) Valid() bool {
-	return len(kv.value) <= MaxValueSize && len(kv.key.Raw) == AddressBinarySize
+	return len(kv.Value_) <= MaxValueSize && len(kv.Key_.Raw) == AddressBinarySize
 }
 
 type Pairs []*KeyValue
