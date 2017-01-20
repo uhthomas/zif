@@ -433,28 +433,38 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 }
 
 func (lp *LocalPeer) StartExploring() {
-	in := make(chan interface{}, jobs.ExploreBufferSize)
-	in <- lp.address
+	in := make(chan dht.KeyValue, jobs.ExploreBufferSize)
+
+	closest, err := lp.DHT.FindClosest(*lp.Address())
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, i := range closest {
+		if !i.Key().Equals(lp.Address()) {
+			in <- *i
+		}
+	}
 
 	ret := jobs.ExploreJob(in, func(addr string) (interface{}, error) { return lp.ConnectPeer(addr) }, lp.address)
 
 	go func() {
 		for i := range ret {
-			kv := i.(*dht.KeyValue)
-			has := lp.DHT.Has(*kv.Key())
+			has := lp.DHT.Has(*i.Key())
 
-			if kv.Key().Equals(lp.Address()) {
+			if i.Key().Equals(lp.Address()) {
 				continue
 			}
 
 			// reinsert regardless of whether we have it or not. This helps
 			// keep more "active" things at the top, and also keeps us up to date.
-			lp.DHT.Insert(kv)
+			lp.DHT.Insert(&i)
 
 			if !has {
-				ps, _ := kv.Key().String()
+				ps, _ := i.Key().String()
 				log.WithField("peer", ps).Info("Discovered new peer")
-				in <- *kv.Key()
+				in <- i
 			}
 		}
 	}()

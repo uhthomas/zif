@@ -13,16 +13,16 @@ const ExploreBufferSize = 100
 
 // This job runs every two minutes, and tries to build the netdb with as many
 // entries as it possibly can
-func ExploreJob(in <-chan interface{}, data ...interface{}) <-chan interface{} {
-	ret := make(chan interface{}, ExploreBufferSize)
+func ExploreJob(in <-chan dht.KeyValue, data ...interface{}) <-chan dht.KeyValue {
+	ret := make(chan dht.KeyValue, ExploreBufferSize)
 	connector := data[0].(func(string) (interface{}, error))
 	me := data[1].(dht.Address)
 
 	go func() {
 		for i := range in {
-			s, _ := i.(dht.Address).String()
+			s, _ := i.Key().String()
 			log.WithField("peer", s).Info("Exploring")
-			explorePeer(i.(dht.Address), me, ret, connector)
+			explorePeer(*i.Key(), me, ret, connector)
 
 			time.Sleep(ExploreSleepTime)
 		}
@@ -32,7 +32,7 @@ func ExploreJob(in <-chan interface{}, data ...interface{}) <-chan interface{} {
 	return ret
 }
 
-func explorePeer(addr dht.Address, me dht.Address, ret chan<- interface{}, connectPeer common.ConnectPeer) error {
+func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.KeyValue, connectPeer common.ConnectPeer) error {
 	s, _ := addr.String()
 	peer, err := connectPeer(s)
 	p := peer.(common.Peer)
@@ -50,7 +50,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- interface{}, conne
 	client.Close()
 
 	for _, i := range closestToMe {
-		ret <- i
+		ret <- *i
 	}
 
 	randAddr, err := dht.RandomAddress()
@@ -69,7 +69,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- interface{}, conne
 
 	for _, i := range closest {
 		if !i.Key().Equals(&me) {
-			ret <- i
+			ret <- *i
 		}
 	}
 
