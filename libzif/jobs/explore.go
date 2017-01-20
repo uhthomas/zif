@@ -68,7 +68,9 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- interface{}, conne
 	client.Close()
 
 	for _, i := range closest {
-		ret <- i
+		if !i.Key().Equals(&me) {
+			ret <- i
+		}
 	}
 
 	return nil
