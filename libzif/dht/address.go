@@ -6,6 +6,7 @@ package dht
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 
 	"github.com/prettymuchbryce/hellobitcoin/base58check"
@@ -30,12 +31,23 @@ func NewAddress(key []byte) (addr Address) {
 
 // Returns Address.Bytes Base58 encoded and prepended with a Z.
 // Base58 removes ambiguous characters, reducing the chances of address confusion.
-func (a Address) String() string {
-	return base58check.Encode("51", a.Bytes())
+func (a Address) String() (string, error) {
+	b, _ := a.Bytes()
+	return base58check.Encode("51", b), nil
 }
 
-func (a *Address) Bytes() []byte {
-	return a.Raw
+func (a *Address) Bytes() ([]byte, error) {
+	return a.Raw, nil
+}
+
+func (a *Address) Json() ([]byte, error) {
+	return json.Marshal(a)
+}
+
+func (a *Address) JsonString() (string, error) {
+	dat, err := a.Json()
+
+	return string(dat), err
 }
 
 // Decodes a string address into address bytes.
@@ -80,7 +92,8 @@ func (a *Address) Generate(key []byte) (string, error) {
 
 	a.Raw = secondHash
 
-	return a.String(), nil
+	s, _ := a.String()
+	return s, nil
 }
 
 func (a *Address) Less(other *Address) bool {

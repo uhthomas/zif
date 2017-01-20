@@ -1,20 +1,15 @@
 package common
 
-type ConnectPeer func(string) (Peer, error)
+import "github.com/zif/zif/libzif/dht"
+
+type ConnectPeer func(string) (interface{}, error)
 
 type Peer interface {
-	Address() *Encodable
-	Query(string) (Client, KeyValue, error)
-	FindClosest(address string) (Client, Pairs, error)
+	EAddress() Encodable
+	Query(string) (Closable, *dht.KeyValue, error)
+	FindClosest(address string) (Closable, dht.Pairs, error)
 }
 
-type Client interface {
+type Closable interface {
 	Close() error
 }
-
-type KeyValue interface {
-	Key() *Encodable
-	Value() []byte
-}
-
-type Pairs []*KeyValue

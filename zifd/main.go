@@ -96,12 +96,15 @@ func main() {
 	lp.Listen(*addr)
 
 	log.Info("My name: ", lp.Entry.Name)
-	log.Info("My address: ", lp.Address().String())
+	s, _ := lp.Address().String()
+	log.Info("My address: ", s)
 
 	commandServer := zif.NewCommandServer(lp)
 	var httpServer zif.HttpServer
 	httpServer.CommandServer = commandServer
 	go httpServer.ListenHttp(*http)
+
+	lp.StartExploring()
 
 	// Listen for SIGINT
 	sigchan := make(chan os.Signal, 1)

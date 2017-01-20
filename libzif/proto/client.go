@@ -265,7 +265,8 @@ func (c *Client) Query(address string) (*dht.KeyValue, error) {
 // both it's own and the peers address, storing the result. This means that after
 // a bootstrap, it should be possible to connect to *any* peer!
 func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
-	peers, err := c.FindClosest(address.String())
+	s, _ := address.String()
+	peers, err := c.FindClosest(s)
 
 	if err != nil {
 		return err
@@ -387,11 +388,13 @@ func (c *Client) Popular(page int) ([]*data.Post, error) {
 // Download a hash list for a peer. Expects said hash list to be valid and
 // signed.
 func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*MessageCollection, error) {
-	log.WithField("for", address.String()).Info("Sending request for a collection")
+	s, _ := address.String()
+	log.WithField("for", s).Info("Sending request for a collection")
 
+	b, _ := address.Bytes()
 	msg := &Message{
 		Header:  ProtoRequestHashList,
-		Content: address.Bytes(),
+		Content: b,
 	}
 
 	c.WriteMessage(msg)
@@ -422,15 +425,16 @@ func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*Message
 
 // Download a piece from a peer, given the address and id of the piece we want.
 func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
+	s, _ := address.String()
 	log.WithFields(log.Fields{
-		"address": address.String(),
+		"address": s,
 		"id":      id,
 		"length":  length,
 	}).Info("Sending request for piece")
 
 	ret := make(chan *data.Piece, 100)
 
-	mrp := MessageRequestPiece{address.String(), id, length}
+	mrp := MessageRequestPiece{s, id, length}
 	dat, err := mrp.Encode()
 
 	if err != nil {

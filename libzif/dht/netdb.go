@@ -57,7 +57,8 @@ func (ndb *NetDB) TableLen() int {
 
 func (ndb *NetDB) Insert(kv *KeyValue) error {
 	if !kv.Valid() {
-		return &InvalidValue{kv.Key().String()}
+		s, _ := kv.Key().String()
+		return &InvalidValue{s}
 	}
 
 	// Find the distance between the kv address and our own address, this is the
@@ -90,18 +91,20 @@ func (ndb *NetDB) Insert(kv *KeyValue) error {
 	ndb.table[index] = bucket
 
 	// key has been added to the routing table, now store the entry!
-	ndb.database.Write(kv.Key().String(), kv.Value())
+	s, _ := kv.Key().String()
+	ndb.database.Write(s, kv.Value())
 
 	return nil
 }
 
 // Returns the KeyValue if this node has the address, nil and err otherwise.
 func (ndb *NetDB) Query(addr Address) (*KeyValue, error) {
-	if !ndb.database.Has(addr.String()) {
+	s, _ := addr.String()
+	if !ndb.database.Has(s) {
 		return nil, nil
 	}
 
-	value, err := ndb.database.Read(addr.String())
+	value, err := ndb.database.Read(s)
 
 	if err != nil {
 		return nil, err
@@ -114,7 +117,8 @@ func (ndb *NetDB) Query(addr Address) (*KeyValue, error) {
 }
 
 func (ndb *NetDB) Has(addr Address) bool {
-	return ndb.database.Has(addr.String())
+	s, _ := addr.String()
+	return ndb.database.Has(s)
 }
 
 func (ndb *NetDB) queryAddresses(as []Address) Pairs {

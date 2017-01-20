@@ -85,7 +85,8 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	address := dht.Address{}
 	address.Generate(header.Content)
 
-	log.WithFields(log.Fields{"peer": address.String()}).Info("Incoming connection")
+	s, _ := address.String()
+	log.WithFields(log.Fields{"peer": s}).Info("Incoming connection")
 
 	// Send the client a cookie for them to sign, this proves they have the
 	// private key, and it is highly unlikely an attacker has a signed cookie
@@ -111,7 +112,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	verified := ed25519.Verify(header.Content, cookie, sig.Content)
 
 	if !verified {
-		log.Error("Failed to verify peer ", address.String())
+		log.Error("Failed to verify peer ", s)
 		cl.WriteMessage(Message{Header: ProtoNo})
 		cl.Close()
 		return nil, errors.New("Signature not verified")
@@ -119,7 +120,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 
 	cl.WriteMessage(Message{Header: ProtoOk})
 
-	log.WithFields(log.Fields{"peer": address.String()}).Info("Verified")
+	log.WithFields(log.Fields{"peer": s}).Info("Verified")
 
 	return header.Content, nil
 }

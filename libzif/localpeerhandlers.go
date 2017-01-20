@@ -30,7 +30,8 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	//msg.From.limiter.queryLimiter.Wait()
 
 	address := dht.DecodeAddress(string(msg.Content))
-	log.WithField("target", address.String()).Info("Recieved query")
+	s, _ := address.String()
+	log.WithField("target", s).Info("Recieved query")
 
 	ok := &proto.Message{Header: proto.ProtoOk}
 	err := cl.WriteMessage(ok)
@@ -75,7 +76,8 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 	cl := msg.Client
 
 	address := dht.DecodeAddress(string(msg.Content))
-	log.WithField("target", address.String()).Info("Recieved find closest")
+	s, _ := address.String()
+	log.WithField("target", s).Info("Recieved find closest")
 
 	ok := &proto.Message{Header: proto.ProtoOk}
 	err := cl.WriteMessage(ok)
@@ -142,7 +144,8 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 	entry := Entry{}
 	err := msg.Decode(&entry)
 
-	log.WithField("address", entry.Address.String()).Info("Announce")
+	es, _ := entry.Address.String()
+	log.WithField("address", es).Info("Announce")
 
 	if err != nil {
 		return err
@@ -153,7 +156,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 
 	if err == nil {
 		cl.WriteMessage(&proto.Message{Header: proto.ProtoOk})
-		log.WithField("peer", entry.Address.String()).Info("Saved new peer")
+		log.WithField("peer", es).Info("Saved new peer")
 
 	} else {
 		cl.WriteMessage(&proto.Message{Header: proto.ProtoNo})
@@ -266,7 +269,8 @@ func (lp *LocalPeer) HandlePopular(msg *proto.Message) error {
 func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 	address := dht.Address{msg.Content}
 
-	log.WithField("address", address.String()).Info("Collection request recieved")
+	s, _ := address.String()
+	log.WithField("address", s).Info("Collection request recieved")
 
 	var sig []byte
 
@@ -310,7 +314,8 @@ func (lp *LocalPeer) HandlePiece(msg *proto.Message) error {
 
 	var posts chan *data.Post
 
-	if mrp.Address == lp.Entry.Address.String() {
+	lps, _ := lp.Entry.Address.String()
+	if mrp.Address == lps {
 		posts = lp.Database.QueryPiecePosts(mrp.Id, mrp.Length, true)
 
 	} else if lp.Databases.Has(mrp.Address) {
@@ -354,6 +359,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 
 	// First up, we need the address in binary form
 	address := dht.DecodeAddress(peerFor)
+	s, _ := address.String()
 
 	if len(address.Raw) != dht.AddressBinarySize {
 		msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoNo})
@@ -361,7 +367,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 	}
 
 	if address.Equals(lp.Address()) {
-		log.WithField("peer", address.String()).Info("New seed peer")
+		log.WithField("peer", s).Info("New seed peer")
 
 		add := true
 
@@ -372,7 +378,8 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 		}
 
 		if add {
-			lp.Entry.Seeds = append(lp.Entry.Seeds, address.Bytes())
+			b, _ := address.Bytes()
+			lp.Entry.Seeds = append(lp.Entry.Seeds, b)
 		}
 
 	} else {
@@ -392,7 +399,8 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 		// if the routing table contains the address we are looking for,
 		// register a new seed.
 		if decoded.Address.Equals(&address) {
-			decoded.Seeds = append(decoded.Seeds, address.Bytes())
+			b, _ := address.Bytes()
+			decoded.Seeds = append(decoded.Seeds, b)
 		}
 
 		json, err := decoded.Json()
@@ -409,13 +417,15 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 }
 
 func (lp *LocalPeer) HandlePing(msg *proto.Message) error {
-	log.WithField("peer", msg.From.String()).Info("Ping")
+	s, _ := msg.From.String()
+	log.WithField("peer", s).Info("Ping")
 
 	return msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoPong})
 }
 
 func (lp *LocalPeer) HandleCloseConnection(addr *dht.Address) {
-	lp.Peers.Remove(addr.String())
+	s, _ := addr.String()
+	lp.Peers.Remove(s)
 }
 
 func (lp *LocalPeer) HandleHandshake(header proto.ConnHeader) (proto.NetworkPeer, error) {
@@ -427,7 +437,8 @@ func (lp *LocalPeer) HandleHandshake(header proto.ConnHeader) (proto.NetworkPeer
 		return nil, err
 	}
 
-	lp.Peers.Set(peer.Address().String(), peer)
+	s, _ := peer.Address().String()
+	lp.Peers.Set(s, peer)
 
 	return peer, nil
 }

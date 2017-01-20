@@ -75,7 +75,8 @@ func (e Entry) String() (string, error) {
 	str += string(e.PublicKey)
 	str += string(e.Port)
 	str += string(e.PublicAddress)
-	str += string(e.Address.String())
+	s, _ := e.Address.String()
+	str += s
 	str += string(e.PostCount)
 
 	return str, nil

@@ -116,8 +116,6 @@ func (lp *LocalPeer) Setup() {
 	}*/
 
 	lp.SearchProvider = data.NewSearchProvider()
-
-	lp.StartExploring()
 }
 
 // Given a direct address, for instance an IP or domain, connect to the peer there.
@@ -150,8 +148,9 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 
 	peer.ConnectClient(lp)
 
-	lp.Peers.Set(peer.Address().String(), peer)
-	lp.PublicToZif.Set(addr, peer.Address().String())
+	s, _ := peer.Address().String()
+	lp.Peers.Set(s, peer)
+	lp.PublicToZif.Set(addr, s)
 
 	return peer, nil
 }
@@ -183,7 +182,8 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 	}
 
 	// now should have an entry for the peer, connect to it!
-	log.Debug("Connecting to ", entry.Address.String())
+	s, _ := entry.Address.String()
+	log.Debug("Connecting to ", s)
 
 	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
 
@@ -267,7 +267,8 @@ func (lp *LocalPeer) ReadKey() error {
 func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	log.Debug("Resolving ", addr)
 
-	if addr == lp.Address().String() {
+	lps, _ := lp.Address().String()
+	if addr == lps {
 		return lp.Entry, nil
 	}
 
@@ -315,7 +316,9 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	// connect to the peer
 	var peer *Peer
 	var err error
-	peer = lp.GetPeer(e.Address.String())
+
+	es, _ := e.Address.String()
+	peer = lp.GetPeer(es)
 
 	if peer == nil {
 		peer, err = lp.ConnectPeerDirect(fmt.Sprintf("%s:%d", e.PublicAddress, e.Port))
@@ -325,7 +328,8 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 		}
 	}
 
-	client, kv, err := peer.Query(addr.String())
+	s, _ := addr.String()
+	client, kv, err := peer.Query(s)
 
 	if err != nil {
 		return nil, err
@@ -337,7 +341,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 		return entry, err
 	}
 
-	client, closest, err := peer.FindClosest(addr.String())
+	client, closest, err := peer.FindClosest(s)
 
 	if err != nil {
 		return nil, err
@@ -432,7 +436,7 @@ func (lp *LocalPeer) StartExploring() {
 	in := make(chan interface{}, jobs.ExploreBufferSize)
 	in <- lp.address
 
-	ret := jobs.ExploreJob(in, lp.ConnectPeer, lp.address)
+	ret := jobs.ExploreJob(in, func(addr string) (interface{}, error) { return lp.ConnectPeer(addr) }, lp.address)
 
 	go func() {
 		for i := range ret {
@@ -444,7 +448,8 @@ func (lp *LocalPeer) StartExploring() {
 			lp.DHT.Insert(&kv)
 
 			if !has {
-				log.WithField("peer", kv.Key().String()).Info("Discovered new peer")
+				ps, _ := kv.Key().String()
+				log.WithField("peer", ps).Info("Discovered new peer")
 				in <- *kv.Key()
 			}
 		}

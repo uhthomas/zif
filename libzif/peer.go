@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 
+	"github.com/zif/zif/libzif/common"
 	data "github.com/zif/zif/libzif/data"
 	"github.com/zif/zif/libzif/dht"
 	"github.com/zif/zif/libzif/proto"
@@ -38,6 +39,10 @@ type Peer struct {
 	seedFor *Entry
 }
 
+func (p *Peer) EAddress() common.Encodable {
+	return &p.address
+}
+
 func (p *Peer) Address() *dht.Address {
 	return &p.address
 }
@@ -51,7 +56,8 @@ func (p *Peer) Streams() *proto.StreamManager {
 }
 
 func (p *Peer) Announce(lp *LocalPeer) error {
-	log.Debug("Sending announce to ", p.Address().String())
+	s, _ := p.Address().String()
+	log.Debug("Sending announce to ", s)
 
 	if lp.Entry.PublicAddress == "" {
 		log.Debug("Local peer public address is nil, attempting to fetch")
@@ -157,7 +163,8 @@ func (p *Peer) Entry() (*Entry, error) {
 		return p.entry, nil
 	}
 
-	client, kv, err := p.Query(p.Address().String())
+	s, _ := p.Address().String()
+	client, kv, err := p.Query(s)
 
 	if err != nil {
 		return nil, err
@@ -171,7 +178,7 @@ func (p *Peer) Entry() (*Entry, error) {
 		return nil, err
 	}
 
-	log.WithField("addr", kv.Key().String()).Info("Recieved")
+	log.WithField("addr", s).Info("Recieved")
 
 	if !entry.Address.Equals(p.Address()) {
 		return nil, errors.New("Failed to fetch entry")
@@ -191,7 +198,8 @@ func (p *Peer) Ping() (time.Duration, error) {
 		log.Error(err.Error())
 	}
 
-	log.Info("Pinging ", p.Address().String())
+	s, _ := p.Address().String()
+	log.Info("Pinging ", s)
 
 	return stream.Ping(time.Second * 10)
 }
@@ -212,7 +220,7 @@ func (p *Peer) Bootstrap(d *dht.DHT) (*proto.Client, error) {
 	return &stream, stream.Bootstrap(d, d.Address())
 }
 
-func (p *Peer) Query(address string) (*proto.Client, *dht.KeyValue, error) {
+func (p *Peer) Query(address string) (common.Closable, *dht.KeyValue, error) {
 	log.WithField("target", address).Info("Querying")
 
 	stream, _ := p.OpenStream()
@@ -220,7 +228,7 @@ func (p *Peer) Query(address string) (*proto.Client, *dht.KeyValue, error) {
 	return &stream, entry, err
 }
 
-func (p *Peer) FindClosest(address string) (*proto.Client, dht.Pairs, error) {
+func (p *Peer) FindClosest(address string) (common.Closable, dht.Pairs, error) {
 	log.WithField("target", address).Info("Finding closest")
 
 	stream, _ := p.OpenStream()
@@ -230,7 +238,8 @@ func (p *Peer) FindClosest(address string) (*proto.Client, dht.Pairs, error) {
 
 // asks a peer to query its database and return the results
 func (p *Peer) Search(search string, page int) (*data.SearchResult, *proto.Client, error) {
-	log.Info("Searching ", p.Address().String())
+	s, _ := p.Address().String()
+	log.Info("Searching ", s)
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -240,7 +249,7 @@ func (p *Peer) Search(search string, page int) (*data.SearchResult, *proto.Clien
 	posts, err := stream.Search(search, page)
 	res := &data.SearchResult{
 		Posts:  posts,
-		Source: p.Address().String(),
+		Source: s,
 	}
 
 	if err != nil {
@@ -283,7 +292,8 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 
 	go db.InsertPieces(pieces, true)
 
-	log.WithField("peer", p.Address().String()).Info("Mirroring")
+	s, _ := p.Address().String()
+	log.WithField("peer", s).Info("Mirroring")
 
 	stream, err := p.OpenStream()
 
@@ -309,7 +319,8 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 	}
 
 	collection := data.Collection{HashList: mcol.HashList}
-	collection.Save(fmt.Sprintf("./data/%s/collection.dat", entry.Address.String()))
+	es, _ := entry.Address.String()
+	collection.Save(fmt.Sprintf("./data/%s/collection.dat", es))
 
 	if err != nil {
 		return nil, err
@@ -350,7 +361,7 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 
 	log.Info("Mirror complete")
 
-	p.RequestAddPeer(p.Address().String())
+	p.RequestAddPeer(s)
 
 	return &stream, err
 }

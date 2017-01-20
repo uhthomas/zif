@@ -113,7 +113,8 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 
 	log.Info("Command: Peer Recent request")
 
-	if pr.CommandPeer.Address == cs.LocalPeer.Entry.Address.String() {
+	lps, _ := cs.LocalPeer.Address().String()
+	if pr.CommandPeer.Address == lps {
 		posts, err = cs.LocalPeer.Database.QueryRecent(pr.Page)
 
 		return CommandResult{err == nil, posts, err}
@@ -141,7 +142,8 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 
 	log.Info("Command: Peer Popular request")
 
-	if pp.CommandPeer.Address == cs.LocalPeer.Entry.Address.String() {
+	lps, _ := cs.LocalPeer.Address().String()
+	if pp.CommandPeer.Address == lps {
 		posts, err = cs.LocalPeer.Database.QueryPopular(pp.Page)
 
 		return CommandResult{err == nil, posts, err}
@@ -179,12 +181,13 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	}
 
 	// TODO: make this configurable
-	d := fmt.Sprintf("./data/%s", peer.Address().String())
+	s, _ := peer.Address().String()
+	d := fmt.Sprintf("./data/%s", s)
 	os.Mkdir(fmt.Sprintf("./data/%s", d), 0777)
 	db := data.NewDatabase(d)
 	db.Connect()
 
-	cs.LocalPeer.Databases.Set(peer.Address().String(), db)
+	cs.LocalPeer.Databases.Set(s, db)
 
 	progressChan := make(chan int)
 
@@ -201,7 +204,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	}
 
 	// TODO: wjh: is this needed? -poro
-	cs.LocalPeer.Databases.Set(peer.Address().String(), db)
+	cs.LocalPeer.Databases.Set(s, db)
 
 	return CommandResult{true, nil, nil}
 }
@@ -292,7 +295,8 @@ func (cs *CommandServer) SelfSuggest(css CommandSuggest) CommandResult {
 func (cs *CommandServer) SelfSearch(css CommandSelfSearch) CommandResult {
 	log.Info("Command: Search request")
 
-	posts, err := cs.LocalPeer.SearchProvider.Search(cs.LocalPeer.Address().String(), cs.LocalPeer.Database, css.Query, css.Page)
+	s, _ := cs.LocalPeer.Address().String()
+	posts, err := cs.LocalPeer.SearchProvider.Search(s, cs.LocalPeer.Database, css.Query, css.Page)
 
 	return CommandResult{err == nil, posts, err}
 }
@@ -396,7 +400,7 @@ func (cs *CommandServer) LocalGet(clg CommandLocalGet) CommandResult {
 	case "public":
 		value = cs.LocalPeer.Entry.PublicAddress
 	case "zif":
-		value = cs.LocalPeer.Entry.Address.String()
+		value, _ = cs.LocalPeer.Entry.Address.String()
 	case "postcount":
 		value = strconv.Itoa(cs.LocalPeer.Entry.PostCount)
 	case "entry":
