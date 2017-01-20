@@ -22,7 +22,11 @@ func ExploreJob(in <-chan dht.KeyValue, data ...interface{}) <-chan dht.KeyValue
 		for i := range in {
 			s, _ := i.Key().String()
 			log.WithField("peer", s).Info("Exploring")
-			explorePeer(*i.Key(), me, ret, connector)
+
+			if err := explorePeer(*i.Key(), me, ret, connector); err != nil {
+				log.Info(err.Error())
+				continue
+			}
 
 			time.Sleep(ExploreSleepTime)
 		}
