@@ -5,8 +5,8 @@ const (
 )
 
 type KeyValue struct {
-	key   Address
-	value []byte // Max size of 64kbs
+	Key_   Address `json:"key"`
+	Value_ []byte  `json:"value"`
 
 	distance Address
 }

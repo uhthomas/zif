@@ -116,8 +116,6 @@ func (lp *LocalPeer) Setup() {
 	}*/
 
 	lp.SearchProvider = data.NewSearchProvider()
-
-	lp.StartExploring()
 }
 
 // Given a direct address, for instance an IP or domain, connect to the peer there.
