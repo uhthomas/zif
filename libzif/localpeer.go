@@ -440,12 +440,16 @@ func (lp *LocalPeer) StartExploring() {
 
 	go func() {
 		for i := range ret {
-			kv := i.(dht.KeyValue)
+			kv := i.(*dht.KeyValue)
 			has := lp.DHT.Has(*kv.Key())
+
+			if kv.Key().Equals(lp.Address()) {
+				continue
+			}
 
 			// reinsert regardless of whether we have it or not. This helps
 			// keep more "active" things at the top, and also keeps us up to date.
-			lp.DHT.Insert(&kv)
+			lp.DHT.Insert(kv)
 
 			if !has {
 				ps, _ := kv.Key().String()
