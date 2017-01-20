@@ -43,15 +43,16 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	if address.Equals(lp.Address()) {
 		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
 
-		var json []byte
-		json, err = lp.Entry.Json()
+		var dat []byte
+		dat, err = lp.Entry.Json()
 
 		if err != nil {
 			return err
 		}
-		kv := dht.NewKeyValue(lp.Entry.Address, json)
 
-		err = cl.WriteMessage(kv)
+		kv := dht.NewKeyValue(lp.Entry.Address, dat)
+		encoded, _ := json.Marshal(kv)
+		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: encoded})
 
 	} else {
 		kv := &dht.KeyValue{}

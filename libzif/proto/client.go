@@ -255,6 +255,8 @@ func (c *Client) Query(address string) (*dht.KeyValue, error) {
 		return nil, nil
 	}
 
+	log.Info("data: ", string(kvr.Content))
+
 	kvr.Decode(kv)
 
 	return kv, err
