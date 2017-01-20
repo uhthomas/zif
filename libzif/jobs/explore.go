@@ -15,6 +15,7 @@ const ExploreBufferSize = 100
 // entries as it possibly can
 func ExploreJob(in <-chan dht.KeyValue, data ...interface{}) <-chan dht.KeyValue {
 	ret := make(chan dht.KeyValue, ExploreBufferSize)
+
 	connector := data[0].(func(string) (interface{}, error))
 	me := data[1].(dht.Address)
 
@@ -25,7 +26,6 @@ func ExploreJob(in <-chan dht.KeyValue, data ...interface{}) <-chan dht.KeyValue
 
 			if err := explorePeer(*i.Key(), me, ret, connector); err != nil {
 				log.Info(err.Error())
-				continue
 			}
 
 			time.Sleep(ExploreSleepTime)

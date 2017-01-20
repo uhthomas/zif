@@ -170,6 +170,10 @@ func (lp *LocalPeer) GetPeer(addr string) *Peer {
 func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 	var peer *Peer
 
+	if peer = lp.GetPeer(addr); peer != nil {
+		return peer, nil
+	}
+
 	entry, err := lp.Resolve(addr)
 
 	if err != nil {
@@ -435,19 +439,11 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 func (lp *LocalPeer) StartExploring() {
 	in := make(chan dht.KeyValue, jobs.ExploreBufferSize)
 
-	closest, err := lp.DHT.FindClosest(*lp.Address())
+	lp.seedExplore(in)
 
-	if err != nil {
-		panic(err)
-	}
-
-	for _, i := range closest {
-		if !i.Key().Equals(lp.Address()) {
-			in <- *i
-		}
-	}
-
-	ret := jobs.ExploreJob(in, func(addr string) (interface{}, error) { return lp.ConnectPeer(addr) }, lp.address)
+	ret := jobs.ExploreJob(in,
+		func(addr string) (interface{}, error) { return lp.ConnectPeer(addr) },
+		lp.address)
 
 	go func() {
 		for i := range ret {
@@ -466,6 +462,30 @@ func (lp *LocalPeer) StartExploring() {
 				log.WithField("peer", ps).Info("Discovered new peer")
 				in <- i
 			}
+
+			if len(in) == 0 {
+				// reseed if we have had nothing new
+				lp.seedExplore(in)
+			}
 		}
 	}()
+}
+
+func (lp *LocalPeer) seedExplore(in chan dht.KeyValue) {
+	closest, err := lp.DHT.FindClosest(*lp.Address())
+
+	if err != nil {
+		panic(err)
+	}
+
+	addr, _ := dht.RandomAddress()
+	closestRand, err := lp.DHT.FindClosest(*addr)
+
+	closest = append(closest, closestRand...)
+
+	for _, i := range closest {
+		if !i.Key().Equals(lp.Address()) {
+			in <- *i
+		}
+	}
 }
