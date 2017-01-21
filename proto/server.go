@@ -37,7 +37,7 @@ func (s *Server) Listen(addr string, handler ProtocolHandler) {
 
 		log.Info("New TCP connection")
 
-		var zif int16
+		var zif int
 		binary.Read(conn, binary.LittleEndian, &zif)
 
 		if zif != ProtoZif {
@@ -47,7 +47,7 @@ func (s *Server) Listen(addr string, handler ProtocolHandler) {
 
 		log.Debug("Zif connection")
 
-		var version int16
+		var version int
 		binary.Read(conn, binary.LittleEndian, &version)
 
 		if version != ProtoVersion {

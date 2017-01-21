@@ -87,8 +87,17 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler) (*C
 		return nil, err
 	}
 
-	binary.Write(conn, binary.BigEndian, ProtoZif)
-	binary.Write(conn, binary.BigEndian, ProtoVersion)
+	err = binary.Write(conn, binary.LittleEndian, ProtoZif)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = binary.Write(conn, binary.LittleEndian, ProtoVersion)
+
+	if err != nil {
+		return nil, err
+	}
 
 	pair := ConnHeader{*NewClient(conn), header}
 	sm.connection = pair

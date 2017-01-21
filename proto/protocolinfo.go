@@ -5,8 +5,8 @@ package proto
 var (
 	// Protocol header, so we know this is a zif client.
 	// Version should follow.
-	ProtoZif     int16 = 0x7a66
-	ProtoVersion int16 = 0x0000
+	ProtoZif     = 0x7a66
+	ProtoVersion = 0x0000
 
 	ProtoHeader = 0x0000
 
