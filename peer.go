@@ -56,7 +56,43 @@ func (p *Peer) Streams() *proto.StreamManager {
 	return &p.streams
 }
 
+func (p *Peer) CheckConnection(timeOut time.Duration) error {
+	session := p.streams.GetSession()
+
+	if session == nil {
+		return errors.New("No session")
+	}
+
+	if session.IsClosed() {
+		return errors.New("Session closed")
+	}
+
+	timer := time.NewTimer(timeOut)
+
+	ret := make(chan error)
+
+	go func() {
+		_, err := session.Ping()
+		ret <- err
+	}()
+
+	select {
+	case ping := <-ret:
+		return ping
+
+	case _ = <-timer.C:
+		return errors.New("Timeout")
+	}
+
+	return nil
+}
+
 func (p *Peer) Announce(lp *LocalPeer) error {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return err
+	}
+
 	s, _ := p.Address().String()
 	log.Debug("Sending announce to ", s)
 
@@ -136,15 +172,14 @@ func (p *Peer) Terminate() {
 	p.streams.Close()
 }
 
-func (p *Peer) OpenStream() (proto.Client, error) {
-	if p.Session() == nil {
-		return proto.Client{}, errors.New("Peer session nil")
+func (p *Peer) OpenStream() (*proto.Client, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, err
 	}
 
-	if p.Session().IsClosed() {
-		return proto.Client{}, errors.New("Peer session closed")
-	}
-	return p.streams.OpenStream()
+	s, err := p.streams.OpenStream()
+	return &s, err
 }
 
 func (p *Peer) AddStream(conn net.Conn) {
@@ -164,6 +199,11 @@ func (p *Peer) CloseStreams() {
 }
 
 func (p *Peer) Entry() (*proto.Entry, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, err
+	}
+
 	if p.entry != nil {
 		return p.entry, nil
 	}
@@ -195,6 +235,10 @@ func (p *Peer) Entry() (*proto.Entry, error) {
 }
 
 func (p *Peer) Ping() (time.Duration, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return 0, err
+	}
 
 	stream, err := p.OpenStream()
 	defer stream.Close()
@@ -210,6 +254,11 @@ func (p *Peer) Ping() (time.Duration, error) {
 }
 
 func (p *Peer) Bootstrap(d *dht.DHT) (*proto.Client, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, err
+	}
+
 	initial, err := p.Entry()
 
 	if err != nil {
@@ -222,27 +271,42 @@ func (p *Peer) Bootstrap(d *dht.DHT) (*proto.Client, error) {
 
 	stream, _ := p.OpenStream()
 
-	return &stream, stream.Bootstrap(d, d.Address())
+	return stream, stream.Bootstrap(d, d.Address())
 }
 
 func (p *Peer) Query(address string) (common.Closable, *dht.KeyValue, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	log.WithField("target", address).Info("Querying")
 
 	stream, _ := p.OpenStream()
 	entry, err := stream.Query(address)
-	return &stream, entry, err
+	return stream, entry, err
 }
 
 func (p *Peer) FindClosest(address string) (common.Closable, dht.Pairs, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	log.WithField("target", address).Info("Finding closest")
 
 	stream, _ := p.OpenStream()
 	res, err := stream.FindClosest(address)
-	return &stream, res, err
+	return stream, res, err
 }
 
 // asks a peer to query its database and return the results
 func (p *Peer) Search(search string, page int) (*data.SearchResult, *proto.Client, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	s, _ := p.Address().String()
 	log.Info("Searching ", s)
 	stream, err := p.OpenStream()
@@ -261,10 +325,15 @@ func (p *Peer) Search(search string, page int) (*data.SearchResult, *proto.Clien
 		return nil, nil, err
 	}
 
-	return res, &stream, nil
+	return res, stream, nil
 }
 
 func (p *Peer) Recent(page int) ([]*data.Post, *proto.Client, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -273,11 +342,16 @@ func (p *Peer) Recent(page int) ([]*data.Post, *proto.Client, error) {
 
 	posts, err := stream.Recent(page)
 
-	return posts, &stream, err
+	return posts, stream, err
 
 }
 
 func (p *Peer) Popular(page int) ([]*data.Post, *proto.Client, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -286,11 +360,16 @@ func (p *Peer) Popular(page int) ([]*data.Post, *proto.Client, error) {
 
 	posts, err := stream.Popular(page)
 
-	return posts, &stream, err
+	return posts, stream, err
 
 }
 
 func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, err
+	}
+
 	pieces := make(chan *data.Piece, data.PieceSize)
 	defer close(pieces)
 	defer close(onPiece)
@@ -332,7 +411,7 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 	}
 
 	if int(db.PostCount()) == p.entry.PostCount {
-		return &stream, nil
+		return stream, nil
 	}
 
 	currentStore := int(math.Ceil(float64(db.PostCount()) / float64(data.PieceSize)))
@@ -368,15 +447,20 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 
 	p.RequestAddPeer(s)
 
-	return &stream, err
+	return stream, err
 }
 
 func (p *Peer) RequestAddPeer(addr string) (*proto.Client, error) {
+	err := p.CheckConnection(time.Second * 10)
+	if err != nil {
+		return nil, err
+	}
+
 	stream, err := p.OpenStream()
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &stream, stream.RequestAddPeer(addr)
+	return stream, stream.RequestAddPeer(addr)
 }

@@ -126,8 +126,8 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 	var peer *Peer
 	var err error
 
-	if lp.PublicToZif.Has(addr) {
-		return nil, errors.New("Already connected")
+	if peer = lp.GetPeer(addr); peer != nil {
+		return peer, nil
 	}
 
 	peer = &Peer{}
