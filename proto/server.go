@@ -3,6 +3,7 @@ package proto
 // tcp server
 
 import (
+	"encoding/binary"
 	"io"
 	"net"
 	"time"
@@ -33,6 +34,27 @@ func (s *Server) Listen(addr string, handler ProtocolHandler) {
 		if err != nil {
 			log.Error(err.Error())
 		}
+
+		log.Info("New TCP connection")
+
+		var short int16 = 0x0000
+		binary.Read(conn, binary.BigEndian, &short)
+
+		if short != ProtoZif {
+			log.Error("This is not a Zif connection")
+			continue
+		}
+
+		log.Debug("Zif connection")
+
+		binary.Read(conn, binary.BigEndian, &short)
+
+		if short != ProtoVersion {
+			log.Error("Incorrect protocol version")
+			continue
+		}
+
+		log.Debug("Correct version")
 
 		log.Debug("Handshaking new connection")
 		go s.Handshake(conn, handler)

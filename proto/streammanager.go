@@ -3,6 +3,7 @@
 package proto
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -58,16 +59,7 @@ func (sm *StreamManager) OpenSocks(addr string, lp ProtocolHandler) (*ConnHeader
 		return nil, err
 	}
 
-	header, err := sm.Handshake(conn, lp)
-
-	if err != nil {
-		return nil, err
-	}
-
-	pair := ConnHeader{Client{conn, nil, nil}, header}
-	sm.connection = pair
-
-	return &pair, nil
+	return sm.handleConnection(conn, lp)
 }
 
 func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler) (*ConnHeader, error) {
@@ -85,13 +77,20 @@ func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler) (*ConnHeader, 
 		return nil, err
 	}
 
+	return sm.handleConnection(conn, lp)
+}
+
+func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler) (*ConnHeader, error) {
 	header, err := sm.Handshake(conn, lp)
 
 	if err != nil {
 		return nil, err
 	}
 
-	pair := ConnHeader{Client{conn, nil, nil}, header}
+	binary.Write(conn, binary.BigEndian, ProtoZif)
+	binary.Write(conn, binary.BigEndian, ProtoVersion)
+
+	pair := ConnHeader{*NewClient(conn), header}
 	sm.connection = pair
 
 	return &pair, nil
