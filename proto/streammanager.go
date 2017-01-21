@@ -81,19 +81,21 @@ func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler) (*ConnHeader, 
 }
 
 func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler) (*ConnHeader, error) {
-	header, err := sm.Handshake(conn, lp)
+	log.Info("Sending Zif: ", ProtoZif)
+	err := binary.Write(conn, binary.LittleEndian, ProtoZif)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = binary.Write(conn, binary.LittleEndian, ProtoZif)
-
-	if err != nil {
-		return nil, err
-	}
-
+	log.Info("Sending version: ", ProtoVersion)
 	err = binary.Write(conn, binary.LittleEndian, ProtoVersion)
+
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := sm.Handshake(conn, lp)
 
 	if err != nil {
 		return nil, err
