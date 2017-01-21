@@ -82,9 +82,9 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 }
 
 func (p *Peer) Connect(addr string, lp *LocalPeer) error {
-	log.Debug("Peer connecting to ", addr)
+	log.Debug("Connecting to ", addr)
 
-	pair, err := p.streams.OpenTCP(addr, lp, nil)
+	pair, err := p.streams.OpenTCP(addr, lp, lp.Entry)
 
 	if err != nil {
 		return err
@@ -95,6 +95,9 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 
 	p.limiter = &util.PeerLimiter{}
 	p.limiter.Setup()
+
+	encoded, _ := pair.Entry.Json()
+	lp.DHT.Insert(dht.NewKeyValue(pair.Entry.Address, encoded))
 
 	return nil
 }
