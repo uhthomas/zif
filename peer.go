@@ -179,7 +179,7 @@ func (p *Peer) OpenStream() (*proto.Client, error) {
 	}
 
 	s, err := p.streams.OpenStream()
-	return &s, err
+	return s, err
 }
 
 func (p *Peer) AddStream(conn net.Conn) {

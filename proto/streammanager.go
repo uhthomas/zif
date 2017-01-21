@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	"golang.org/x/net/proxy"
 
@@ -203,23 +204,29 @@ func (sm *StreamManager) GetSession() *yamux.Session {
 	return nil
 }
 
-func (sm *StreamManager) OpenStream() (Client, error) {
+func (sm *StreamManager) OpenStream() (*Client, error) {
 	var ret Client
 	var err error
 	session := sm.GetSession()
 
 	if session == nil {
-		return ret, errors.New("Cannot open stream, no session")
+		return nil, errors.New("Cannot open stream, no session")
 	}
 
-	ret.conn, err = session.OpenStream()
+	ret.conn, err = session.Open()
 
 	if err != nil {
-		return ret, err
+		return nil, err
+	}
+
+	err = ret.conn.SetDeadline(time.Now().Add(time.Second * 10))
+
+	if err != nil {
+		return nil, err
 	}
 
 	log.Debug("Opened stream (", session.NumStreams(), " total)")
-	return ret, nil
+	return &ret, nil
 }
 
 // These streams should be coming from Server.ListenStream, as they will be started
