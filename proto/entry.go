@@ -1,4 +1,4 @@
-package libzif
+package proto
 
 import (
 	"encoding/json"
@@ -97,7 +97,7 @@ func (e Entry) JsonString() (string, error) {
 	return string(json), err
 }
 
-func (e *Entry) SetLocalPeer(lp *LocalPeer) {
+func (e *Entry) SetLocalPeer(lp ProtocolHandler) {
 	e.Address = *lp.Address()
 
 	e.PublicKey = make([]byte, len(lp.PublicKey()))
@@ -122,7 +122,7 @@ func (e Entries) Less(i, j int) bool {
 // Ensures that all the members of an entry struct fit the requirements for the
 // Zif libzifcol. If an entry passes this, then we should be able to perform
 // most operations on it.
-func (entry *Entry) Validate() error {
+func (entry *Entry) Verify() error {
 	if len(entry.PublicKey) < ed25519.PublicKeySize {
 		return errors.New(fmt.Sprintf("Public key too small: %d", len(entry.PublicKey)))
 	}

@@ -33,11 +33,11 @@ type Peer struct {
 
 	limiter *util.PeerLimiter
 
-	entry *Entry
+	entry *proto.Entry
 
 	// If this peer is acting as a seed for another
 	seed    bool
-	seedFor *Entry
+	seedFor *proto.Entry
 }
 
 func (p *Peer) EAddress() common.Encodable {
@@ -83,14 +83,15 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 
 func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 	log.Debug("Peer connecting to ", addr)
-	pair, err := p.streams.OpenTCP(addr, lp)
+
+	pair, err := p.streams.OpenTCP(addr, lp, nil)
 
 	if err != nil {
 		return err
 	}
 
-	p.publicKey = pair.PublicKey
-	p.address = dht.NewAddress(pair.PublicKey)
+	p.publicKey = pair.Entry.PublicKey
+	p.address = pair.Entry.Address
 
 	p.limiter = &util.PeerLimiter{}
 	p.limiter.Setup()
@@ -101,8 +102,8 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 func (p *Peer) SetTCP(header proto.ConnHeader) {
 	p.streams.SetConnection(header)
 
-	p.publicKey = header.PublicKey
-	p.address = dht.NewAddress(header.PublicKey)
+	p.publicKey = header.Entry.PublicKey
+	p.address = header.Entry.Address
 
 	p.limiter = &util.PeerLimiter{}
 	p.limiter.Setup()
@@ -159,7 +160,7 @@ func (p *Peer) CloseStreams() {
 	p.streams.Close()
 }
 
-func (p *Peer) Entry() (*Entry, error) {
+func (p *Peer) Entry() (*proto.Entry, error) {
 	if p.entry != nil {
 		return p.entry, nil
 	}
@@ -173,7 +174,7 @@ func (p *Peer) Entry() (*Entry, error) {
 
 	defer client.Close()
 
-	entry, err := JsonToEntry(kv.Value())
+	entry, err := proto.JsonToEntry(kv.Value())
 
 	if err != nil {
 		return nil, err
@@ -302,7 +303,7 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 		return nil, err
 	}
 
-	var entry *Entry
+	var entry *proto.Entry
 	if p.seed {
 		entry = p.seedFor
 	} else {

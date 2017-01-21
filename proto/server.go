@@ -9,7 +9,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/zif/zif/dht"
+	"github.com/zif/zif/common"
 	"github.com/zif/zif/util"
 )
 
@@ -17,7 +17,7 @@ type Server struct {
 	listener net.Listener
 }
 
-func (s *Server) Listen(addr string, handler ProtocolHandler) {
+func (s *Server) Listen(addr string, handler ProtocolHandler, data common.Encodable) {
 	var err error
 
 	s.listener, err = net.Listen("tcp", addr)
@@ -58,7 +58,7 @@ func (s *Server) Listen(addr string, handler ProtocolHandler) {
 		log.Debug("Correct version")
 
 		log.Debug("Handshaking new connection")
-		go s.Handshake(conn, handler)
+		go s.Handshake(conn, handler, data)
 	}
 }
 
@@ -149,25 +149,17 @@ func (s *Server) RouteMessage(msg *Message, handler ProtocolHandler) {
 
 }
 
-func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler) {
+func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encodable) {
 	cl := Client{conn, nil, nil}
 
-	header, err := handshake(cl, lp)
-	addr := dht.Address{}
+	header, err := handshake(cl, lp, data)
 
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
-	_, err = addr.Generate(header)
-
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-
-	peer, err := lp.HandleHandshake(ConnHeader{cl, header})
+	peer, err := lp.HandleHandshake(ConnHeader{cl, *header})
 
 	if err != nil {
 		log.Error(err.Error())

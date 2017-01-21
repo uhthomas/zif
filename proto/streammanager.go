@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"net"
 
-	"golang.org/x/crypto/ed25519"
 	"golang.org/x/net/proxy"
 
 	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
+	"github.com/zif/zif/common"
 )
 
 type StreamManager struct {
@@ -42,7 +42,7 @@ func (sm *StreamManager) Setup() {
 	sm.clients = make([]Client, 0, 10)
 }
 
-func (sm *StreamManager) OpenSocks(addr string, lp ProtocolHandler) (*ConnHeader, error) {
+func (sm *StreamManager) OpenSocks(addr string, lp ProtocolHandler, data common.Encodable) (*ConnHeader, error) {
 	if sm.torDialer == nil {
 		dialer, err := proxy.SOCKS5("tcp", fmt.Sprintf("127.0.0.1:%d", sm.SocksPort), nil, proxy.Direct)
 
@@ -59,12 +59,12 @@ func (sm *StreamManager) OpenSocks(addr string, lp ProtocolHandler) (*ConnHeader
 		return nil, err
 	}
 
-	return sm.handleConnection(conn, lp)
+	return sm.handleConnection(conn, lp, data)
 }
 
-func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler) (*ConnHeader, error) {
+func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler, data common.Encodable) (*ConnHeader, error) {
 	if sm.Socks {
-		return sm.OpenSocks(addr, lp)
+		return sm.OpenSocks(addr, lp, data)
 	}
 
 	if sm.connection.Client.conn != nil {
@@ -77,10 +77,10 @@ func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler) (*ConnHeader, 
 		return nil, err
 	}
 
-	return sm.handleConnection(conn, lp)
+	return sm.handleConnection(conn, lp, data)
 }
 
-func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler) (*ConnHeader, error) {
+func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, data common.Encodable) (*ConnHeader, error) {
 	log.Info("Sending Zif: ", ProtoZif)
 	err := binary.Write(conn, binary.LittleEndian, ProtoZif)
 
@@ -95,22 +95,22 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler) (*C
 		return nil, err
 	}
 
-	header, err := sm.Handshake(conn, lp)
+	header, err := sm.Handshake(conn, lp, data)
 
 	if err != nil {
 		return nil, err
 	}
 
-	pair := ConnHeader{*NewClient(conn), header}
+	pair := ConnHeader{*NewClient(conn), *header}
 	sm.connection = pair
 
 	return &pair, nil
 }
 
-func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler) (ed25519.PublicKey, error) {
+func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encodable) (*Entry, error) {
 	cl := NewClient(conn)
 	log.Debug("Sending handshake")
-	err := handshake_send(*cl, lp)
+	err := handshake_send(*cl, lp, data)
 
 	msg, err := cl.ReadMessage()
 

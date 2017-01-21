@@ -7,12 +7,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zif/zif/common"
-	"github.com/zif/zif/dht"
 	"github.com/zif/zif/util"
 )
 
 // Perform a handshake operation given a peer. server.go does the other end of this.
-func handshake(cl Client, lp common.Signer) (ed25519.PublicKey, error) {
+func handshake(cl Client, lp common.Signer, data common.Encodable) (*Entry, error) {
 	header, err := handshake_recieve(cl)
 
 	if err != nil {
@@ -26,7 +25,7 @@ func handshake(cl Client, lp common.Signer) (ed25519.PublicKey, error) {
 	}
 
 	cl.WriteMessage(Message{Header: ProtoOk})
-	err = handshake_send(cl, lp)
+	err = handshake_send(cl, lp, data)
 
 	if err != nil {
 		return header, err
@@ -36,7 +35,7 @@ func handshake(cl Client, lp common.Signer) (ed25519.PublicKey, error) {
 }
 
 // Just recieves a handshake from a peer.
-func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
+func handshake_recieve(cl Client) (*Entry, error) {
 	check := func(e error) bool {
 		if e != nil {
 			log.Error(e.Error())
@@ -65,10 +64,15 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 		return nil, err
 	}
 
-	address := dht.Address{}
-	address.Generate(header.Content)
+	var entry Entry
+	header.Decode(&entry)
 
-	s, _ := address.String()
+	err = entry.Verify()
+	if err != nil {
+		return nil, err
+	}
+
+	s, _ := entry.Address.String()
 	log.WithFields(log.Fields{"peer": s}).Info("Incoming connection")
 
 	// Send the client a cookie for them to sign, this proves they have the
@@ -92,7 +96,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 		return nil, err
 	}
 
-	verified := ed25519.Verify(header.Content, cookie, sig.Content)
+	verified := ed25519.Verify(entry.PublicKey, cookie, sig.Content)
 
 	if !verified {
 		log.Error("Failed to verify peer ", s)
@@ -105,22 +109,28 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 
 	log.WithFields(log.Fields{"peer": s}).Info("Verified")
 
-	return header.Content, nil
+	return &entry, nil
 }
 
 // Sends a handshake to a peer.
-func handshake_send(cl Client, lp common.Signer) error {
+func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
 	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
 
 	/*binary.Write(cl.conn, binary.BigEndian, ProtoZif)
 	binary.Write(cl.conn, binary.BigEndian, ProtoVersion)*/
 
-	header := Message{
-		Header:  ProtoHeader,
-		Content: lp.PublicKey(),
+	entryJson, err := data.Json()
+
+	if err != nil {
+		return err
 	}
 
-	err := cl.WriteMessage(header)
+	header := Message{
+		Header:  ProtoHeader,
+		Content: entryJson,
+	}
+
+	err = cl.WriteMessage(header)
 
 	if err != nil {
 		return err

@@ -27,7 +27,7 @@ const ResolveListSize = 1
 
 type LocalPeer struct {
 	Peer
-	Entry         *Entry
+	Entry         *proto.Entry
 	DHT           *dht.DHT
 	Server        proto.Server
 	Collection    *data.Collection
@@ -54,7 +54,7 @@ type LocalPeer struct {
 func (lp *LocalPeer) Setup() {
 	var err error
 
-	lp.Entry = &Entry{}
+	lp.Entry = &proto.Entry{}
 	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
 
 	lp.Databases = cmap.New()
@@ -215,7 +215,8 @@ func (lp *LocalPeer) Sign(msg []byte) []byte {
 
 // Pass the address to listen on. This is for the Zif connection.
 func (lp *LocalPeer) Listen(addr string) {
-	go lp.Server.Listen(addr, lp)
+	lp.SignEntry()
+	go lp.Server.Listen(addr, lp, lp.Entry)
 }
 
 // Generate a ed25519 keypair.
@@ -269,7 +270,7 @@ func (lp *LocalPeer) ReadKey() error {
 // Takes a string as the API will just be passing a Zif address as a string.
 // May well change, I'm unsure really. Pretty happy with it at the moment though.
 // TODO: Somehow move this to the DHT package.
-func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
+func (lp *LocalPeer) Resolve(addr string) (*proto.Entry, error) {
 	log.Debug("Resolving ", addr)
 
 	lps, _ := lp.Address().String()
@@ -286,7 +287,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	}
 
 	if kv != nil {
-		return JsonToEntry(kv.Value())
+		return proto.JsonToEntry(kv.Value())
 	}
 
 	closest, err := lp.DHT.FindClosest(address)
@@ -296,7 +297,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	}
 
 	for _, i := range closest {
-		e, err := JsonToEntry(i.Value())
+		e, err := proto.JsonToEntry(i.Value())
 
 		if err == nil {
 			// TODO: Goroutine this.
@@ -317,7 +318,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 }
 
 // Will return the entry itself, or an error.
-func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
+func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry, error) {
 	// connect to the peer
 	var peer *Peer
 	var err error
@@ -342,7 +343,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	client.Close()
 
 	if kv != nil {
-		entry, err := JsonToEntry(kv.Value())
+		entry, err := proto.JsonToEntry(kv.Value())
 		return entry, err
 	}
 
@@ -354,7 +355,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 	client.Close()
 
 	for _, i := range closest {
-		entry, err := JsonToEntry(i.Value())
+		entry, err := proto.JsonToEntry(i.Value())
 
 		if err != nil {
 			continue
@@ -363,7 +364,7 @@ func (lp *LocalPeer) resolveStep(e *Entry, addr dht.Address) (*Entry, error) {
 		result, err := lp.resolveStep(entry, addr)
 
 		if result != nil {
-			ret, _ := JsonToEntry(i.Value())
+			ret, _ := proto.JsonToEntry(i.Value())
 
 			return ret, nil
 		}
@@ -389,7 +390,7 @@ func (lp *LocalPeer) LoadEntry() error {
 		return err
 	}
 
-	entry, err := JsonToEntry(dat)
+	entry, err := proto.JsonToEntry(dat)
 
 	if err != nil {
 		return err

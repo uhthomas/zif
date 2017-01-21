@@ -143,7 +143,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 
 	defer msg.Stream.Close()
 
-	entry := Entry{}
+	entry := proto.Entry{}
 	err := msg.Decode(&entry)
 
 	es, _ := entry.Address.String()
@@ -392,7 +392,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 			return err
 		}
 
-		decoded, err := JsonToEntry(kv.Value())
+		decoded, err := proto.JsonToEntry(kv.Value())
 
 		if err != nil {
 			return err

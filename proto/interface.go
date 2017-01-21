@@ -10,6 +10,7 @@ import (
 
 type ProtocolHandler interface {
 	common.Signer
+	NetworkPeer
 
 	HandleAnnounce(*Message) error
 	HandleQuery(*Message) error
