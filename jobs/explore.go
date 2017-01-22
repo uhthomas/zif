@@ -20,26 +20,35 @@ func ExploreJob(in chan dht.KeyValue, data ...interface{}) <-chan dht.KeyValue {
 	me := data[1].(dht.Address)
 	seed := data[2].(func(ret chan dht.KeyValue))
 
+	ticker := time.NewTicker(ExploreSleepTime)
+
+	go exploreTick(in, ret, me, connector, seed)
+
 	go func() {
-		for i := range in {
-			s, _ := i.Key().String()
-			log.WithField("peer", s).Info("Exploring")
-
-			if err := explorePeer(*i.Key(), me, ret, connector); err != nil {
-				log.Info(err.Error())
-			}
-
-			time.Sleep(ExploreSleepTime)
-
-			if len(in) == 0 {
-				seed(in)
-				log.Info("Seeding peer explore")
-			}
+		for _ = range ticker.C {
+			go exploreTick(in, ret, me, connector, seed)
 		}
 
 	}()
 
 	return ret
+}
+
+func exploreTick(in chan dht.KeyValue, ret chan dht.KeyValue, me dht.Address, connector common.ConnectPeer, seed func(chan dht.KeyValue)) {
+	i := <-in
+	s, _ := i.Key().String()
+	log.WithField("peer", s).Info("Exploring")
+
+	if err := explorePeer(*i.Key(), me, ret, connector); err != nil {
+		log.Info(err.Error())
+	}
+
+	time.Sleep(ExploreSleepTime)
+
+	if len(in) == 0 {
+		seed(in)
+		log.Info("Seeding peer explore")
+	}
 }
 
 func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.KeyValue, connectPeer common.ConnectPeer) error {

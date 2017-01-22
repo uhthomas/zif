@@ -115,6 +115,8 @@ func (s *Server) HandleStream(peer NetworkPeer, handler ProtocolHandler, stream 
 func (s *Server) RouteMessage(msg *Message, handler ProtocolHandler) {
 	var err error
 
+	defer msg.Client.Close()
+
 	switch msg.Header {
 
 	case ProtoDhtAnnounce:
