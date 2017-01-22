@@ -409,7 +409,7 @@ func (lp *LocalPeer) Close() {
 }
 
 func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
-	log.Info("Adding post with title ", p.Title)
+	log.WithField("Title", p.Title).Info("Adding post")
 
 	valid := p.Valid()
 

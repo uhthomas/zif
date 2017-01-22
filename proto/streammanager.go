@@ -82,14 +82,14 @@ func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler, data common.En
 }
 
 func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, data common.Encodable) (*ConnHeader, error) {
-	log.Info("Sending Zif: ", ProtoZif)
+	log.WithField("zif", ProtoZif).Info("Sending")
 	err := binary.Write(conn, binary.LittleEndian, ProtoZif)
 
 	if err != nil {
 		return nil, err
 	}
 
-	log.Info("Sending version: ", ProtoVersion)
+	log.WithField("Version", ProtoVersion).Info("Sending")
 	err = binary.Write(conn, binary.LittleEndian, ProtoVersion)
 
 	if err != nil {
