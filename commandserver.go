@@ -187,7 +187,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 		}
 	}()
 
-	err = peer.Mirror(db, progressChan)
+	err = peer.Mirror(db, *cs.LocalPeer.Address(), progressChan)
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}

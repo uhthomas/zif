@@ -374,7 +374,7 @@ func (p *Peer) Popular(page int) ([]*data.Post, error) {
 
 }
 
-func (p *Peer) Mirror(db *data.Database, onPiece chan int) error {
+func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return err
@@ -386,6 +386,7 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) error {
 
 	go db.InsertPieces(pieces, true)
 
+	lps, _ := lp.String()
 	s, _ := p.Address().String()
 	log.WithField("peer", s).Info("Mirroring")
 
@@ -457,7 +458,7 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) error {
 
 	log.Info("Mirror complete")
 
-	p.RequestAddPeer(s)
+	p.RequestAddPeer(lps)
 
 	return err
 }
