@@ -222,8 +222,6 @@ func (c *Client) Query(address string) (*dht.KeyValue, error) {
 		return nil, nil
 	}
 
-	log.Info("data: ", string(kvr.Content))
-
 	kvr.Decode(kv)
 
 	return kv, err
@@ -261,7 +259,7 @@ func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 
 // TODO: Paginate searches
 func (c *Client) Search(search string, page int) ([]*data.Post, error) {
-	log.Info("Querying for ", search)
+	log.WithField("Query", search).Info("Querying")
 
 	sq := MessageSearchQuery{search, page}
 	dat, err := sq.Encode()
