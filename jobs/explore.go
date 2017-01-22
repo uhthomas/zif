@@ -64,13 +64,11 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.KeyValue, conn
 		return err
 	}
 
-	client, closestToMe, err := p.FindClosest(me_s)
+	closestToMe, err := p.FindClosest(me_s)
 
 	if err != nil {
 		return err
 	}
-
-	client.Close()
 
 	for _, i := range closestToMe {
 		ret <- *i
@@ -83,12 +81,11 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.KeyValue, conn
 	}
 
 	rs, _ := randAddr.String()
-	client, closest, err := p.FindClosest(rs)
+	closest, err := p.FindClosest(rs)
 
 	if err != nil {
 		return err
 	}
-	client.Close()
 
 	for _, i := range closest {
 		if !i.Key().Equals(&me) {

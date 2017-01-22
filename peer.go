@@ -212,13 +212,11 @@ func (p *Peer) Entry() (*proto.Entry, error) {
 	}
 
 	s, _ := p.Address().String()
-	client, kv, err := p.Query(s)
+	kv, err := p.Query(s)
 
 	if err != nil {
 		return nil, err
 	}
-
-	defer client.Close()
 
 	entry, err := proto.JsonToEntry(kv.Value())
 
@@ -237,58 +235,80 @@ func (p *Peer) Entry() (*proto.Entry, error) {
 	return p.entry, nil
 }
 
-func (p *Peer) Bootstrap(d *dht.DHT) (*proto.Client, error) {
+func (p *Peer) Bootstrap(d *dht.DHT) error {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	initial, err := p.Entry()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	dat, _ := initial.Json()
 
 	d.Insert(dht.NewKeyValue(initial.Address, dat))
 
-	stream, _ := p.OpenStream()
+	stream, err := p.OpenStream()
 
-	return stream, stream.Bootstrap(d, d.Address())
+	if err != nil {
+		return err
+	}
+
+	defer stream.Close()
+
+	return stream.Bootstrap(d, d.Address())
 }
 
-func (p *Peer) Query(address string) (common.Closable, *dht.KeyValue, error) {
+func (p *Peer) Query(address string) (*dht.KeyValue, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	log.WithField("target", address).Info("Querying")
 
-	stream, _ := p.OpenStream()
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stream.Close()
+
 	entry, err := stream.Query(address)
-	return stream, entry, err
+
+	return entry, err
 }
 
-func (p *Peer) FindClosest(address string) (common.Closable, dht.Pairs, error) {
+func (p *Peer) FindClosest(address string) (dht.Pairs, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	log.WithField("target", address).Info("Finding closest")
 
-	stream, _ := p.OpenStream()
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stream.Close()
+
 	res, err := stream.FindClosest(address)
-	return stream, res, err
+
+	return res, err
 }
 
 // asks a peer to query its database and return the results
-func (p *Peer) Search(search string, page int) (*data.SearchResult, *proto.Client, error) {
+func (p *Peer) Search(search string, page int) (*data.SearchResult, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	s, _ := p.Address().String()
@@ -296,8 +316,10 @@ func (p *Peer) Search(search string, page int) (*data.SearchResult, *proto.Clien
 	stream, err := p.OpenStream()
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+
+	defer stream.Close()
 
 	posts, err := stream.Search(search, page)
 	res := &data.SearchResult{
@@ -306,52 +328,56 @@ func (p *Peer) Search(search string, page int) (*data.SearchResult, *proto.Clien
 	}
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return res, stream, nil
+	return res, nil
 }
 
-func (p *Peer) Recent(page int) ([]*data.Post, *proto.Client, error) {
-	_, err := p.Ping(time.Second * 10)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	stream, err := p.OpenStream()
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	posts, err := stream.Recent(page)
-
-	return posts, stream, err
-
-}
-
-func (p *Peer) Popular(page int) ([]*data.Post, *proto.Client, error) {
-	_, err := p.Ping(time.Second * 10)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	stream, err := p.OpenStream()
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	posts, err := stream.Popular(page)
-
-	return posts, stream, err
-
-}
-
-func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error) {
+func (p *Peer) Recent(page int) ([]*data.Post, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err
+	}
+
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stream.Close()
+
+	posts, err := stream.Recent(page)
+
+	return posts, err
+
+}
+
+func (p *Peer) Popular(page int) ([]*data.Post, error) {
+	_, err := p.Ping(time.Second * 10)
+	if err != nil {
+		return nil, err
+	}
+
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stream.Close()
+
+	posts, err := stream.Popular(page)
+
+	return posts, err
+
+}
+
+func (p *Peer) Mirror(db *data.Database, onPiece chan int) error {
+	_, err := p.Ping(time.Second * 10)
+	if err != nil {
+		return err
 	}
 
 	pieces := make(chan *data.Piece, data.PieceSize)
@@ -366,8 +392,10 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 	stream, err := p.OpenStream()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
+
+	defer stream.Close()
 
 	var entry *proto.Entry
 	if p.seed {
@@ -377,13 +405,13 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 	}
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	mcol, err := stream.Collection(entry.Address, entry.PublicKey)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	collection := data.Collection{HashList: mcol.HashList}
@@ -391,11 +419,11 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 	collection.Save(fmt.Sprintf("./data/%s/collection.dat", es))
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if int(db.PostCount()) == p.entry.PostCount {
-		return stream, nil
+		return nil
 	}
 
 	currentStore := int(math.Ceil(float64(db.PostCount()) / float64(data.PieceSize)))
@@ -414,7 +442,7 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 		hash := piece.Hash()
 
 		if !bytes.Equal(mcol.HashList[32*i:32*i+32], hash) {
-			return nil, errors.New("Piece hash mismatch")
+			return errors.New("Piece hash mismatch")
 		}
 
 		onPiece <- i
@@ -431,20 +459,22 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) (*proto.Client, error
 
 	p.RequestAddPeer(s)
 
-	return stream, err
+	return err
 }
 
-func (p *Peer) RequestAddPeer(addr string) (*proto.Client, error) {
+func (p *Peer) RequestAddPeer(addr string) error {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	stream, err := p.OpenStream()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return stream, stream.RequestAddPeer(addr)
+	defer stream.Close()
+
+	return stream.RequestAddPeer(addr)
 }

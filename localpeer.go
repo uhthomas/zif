@@ -335,24 +335,22 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 	}
 
 	s, _ := addr.String()
-	client, kv, err := peer.Query(s)
+	kv, err := peer.Query(s)
 
 	if err != nil {
 		return nil, err
 	}
-	client.Close()
 
 	if kv != nil {
 		entry, err := proto.JsonToEntry(kv.Value())
 		return entry, err
 	}
 
-	client, closest, err := peer.FindClosest(s)
+	closest, err := peer.FindClosest(s)
 
 	if err != nil {
 		return nil, err
 	}
-	client.Close()
 
 	for _, i := range closest {
 		entry, err := proto.JsonToEntry(i.Value())

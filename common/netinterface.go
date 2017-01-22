@@ -6,8 +6,8 @@ type ConnectPeer func(string) (interface{}, error)
 
 type Peer interface {
 	EAddress() Encodable
-	Query(string) (Closable, *dht.KeyValue, error)
-	FindClosest(address string) (Closable, dht.Pairs, error)
+	Query(string) (*dht.KeyValue, error)
+	FindClosest(address string) (dht.Pairs, error)
 }
 
 type Closable interface {

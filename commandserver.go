@@ -86,11 +86,7 @@ func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 		}
 	}
 
-	posts, stream, err := peer.Search(rs.Query, rs.Page)
-
-	if stream != nil {
-		defer stream.Close()
-	}
+	posts, err := peer.Search(rs.Query, rs.Page)
 
 	return CommandResult{err == nil, posts, err}
 }
@@ -130,11 +126,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 		}
 	}
 
-	posts, stream, err := peer.Recent(pr.Page)
-
-	if stream != nil {
-		defer stream.Close()
-	}
+	posts, err = peer.Recent(pr.Page)
 
 	return CommandResult{err == nil, posts, err}
 }
@@ -159,11 +151,7 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 		}
 	}
 
-	posts, stream, err := peer.Popular(pp.Page)
-
-	if stream != nil {
-		defer stream.Close()
-	}
+	posts, err = peer.Popular(pp.Page)
 
 	return CommandResult{err == nil, posts, err}
 }
@@ -200,7 +188,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 		}
 	}()
 
-	_, err = peer.Mirror(db, progressChan)
+	err = peer.Mirror(db, progressChan)
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}
@@ -285,7 +273,7 @@ func (cs *CommandServer) Bootstrap(cb CommandBootstrap) CommandResult {
 		return CommandResult{false, nil, err}
 	}
 
-	_, err = peer.Bootstrap(cs.LocalPeer.DHT)
+	err = peer.Bootstrap(cs.LocalPeer.DHT)
 
 	return CommandResult{err == nil, nil, err}
 }
@@ -364,7 +352,7 @@ func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResul
 		return CommandResult{true, nil, err}
 	}
 
-	_, err = peer.RequestAddPeer(crap.Peer)
+	err = peer.RequestAddPeer(crap.Peer)
 
 	return CommandResult{err == nil, nil, err}
 }

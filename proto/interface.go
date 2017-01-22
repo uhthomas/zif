@@ -34,6 +34,6 @@ type NetworkPeer interface {
 	AddStream(net.Conn)
 
 	Address() *dht.Address
-	Query(string) (common.Closable, *dht.KeyValue, error)
-	FindClosest(address string) (common.Closable, dht.Pairs, error)
+	Query(string) (*dht.KeyValue, error)
+	FindClosest(address string) (dht.Pairs, error)
 }
