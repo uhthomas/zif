@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/zif/zif/data"
 
@@ -42,7 +43,7 @@ func (cs *CommandServer) Ping(p CommandPing) CommandResult {
 		return CommandResult{false, nil, err}
 	}
 
-	time, err := peer.Ping()
+	time, err := peer.Ping(time.Second * 10)
 
 	return CommandResult{err == nil, time.Seconds(), err}
 }

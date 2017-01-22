@@ -37,13 +37,16 @@ func ExploreJob(in chan dht.KeyValue, data ...interface{}) <-chan dht.KeyValue {
 func exploreTick(in chan dht.KeyValue, ret chan dht.KeyValue, me dht.Address, connector common.ConnectPeer, seed func(chan dht.KeyValue)) {
 	i := <-in
 	s, _ := i.Key().String()
+
+	if i.Key().Equals(&me) {
+		return
+	}
+
 	log.WithField("peer", s).Info("Exploring")
 
 	if err := explorePeer(*i.Key(), me, ret, connector); err != nil {
 		log.Info(err.Error())
 	}
-
-	time.Sleep(ExploreSleepTime)
 
 	if len(in) == 0 {
 		seed(in)
@@ -52,7 +55,8 @@ func exploreTick(in chan dht.KeyValue, ret chan dht.KeyValue, me dht.Address, co
 }
 
 func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.KeyValue, connectPeer common.ConnectPeer) error {
-	s, _ := me.String()
+	s, _ := addr.String()
+	me_s, _ := me.String()
 	peer, err := connectPeer(s)
 	p := peer.(common.Peer)
 
@@ -60,7 +64,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.KeyValue, conn
 		return err
 	}
 
-	client, closestToMe, err := p.FindClosest(s)
+	client, closestToMe, err := p.FindClosest(me_s)
 
 	if err != nil {
 		return err
