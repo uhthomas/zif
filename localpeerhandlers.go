@@ -357,7 +357,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 
 	peerFor := string(msg.Content)
 
-	log.Info("Handling add peer request for ", peerFor)
+	log.WithField("peer", peerFor).Info("Handling add peer request")
 
 	// First up, we need the address in binary form
 	address := dht.DecodeAddress(peerFor)

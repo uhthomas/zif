@@ -38,8 +38,6 @@ func CreateCollection(db *Database, start, pieceSize int) (*Collection, error) {
 	postCount := db.PostCount()
 	pieceCount := int(math.Ceil(float64(postCount) / float64(pieceSize)))
 
-	log.Info("Piece count ", pieceCount)
-
 	for i := 0; i < pieceCount; i++ {
 		piece, err := db.QueryPiece(uint(i), false)
 
