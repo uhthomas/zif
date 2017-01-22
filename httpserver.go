@@ -49,7 +49,7 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/self/set/{key}/", hs.SelfSet).Methods("POST")
 	router.HandleFunc("/self/get/{key}/", hs.SelfGet)
 
-	log.Info("Starting HTTP server on ", addr)
+	log.WithField("Address", addr).Info("Starting HTTP server")
 
 	err := http.ListenAndServe(addr, router)
 

@@ -312,7 +312,7 @@ func (p *Peer) Search(search string, page int) (*data.SearchResult, error) {
 	}
 
 	s, _ := p.Address().String()
-	log.Info("Searching ", s)
+	log.WithField("Query", s).Info("Searching")
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -433,7 +433,7 @@ func (p *Peer) Mirror(db *data.Database, onPiece chan int) error {
 		since = currentStore - 1
 	}
 
-	log.Info("Downloading collection, size ", mcol.Size)
+	log.WithField("Size", mcol.Size).Info("Downloading collection")
 	piece_stream := stream.Pieces(entry.Address, since, mcol.Size)
 
 	i := 0

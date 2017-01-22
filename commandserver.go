@@ -183,7 +183,6 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 	go func() {
 		for i := range progressChan {
-			log.Debug("Piece, id ", i)
 			cs.MirrorProgress.Set(cm.Address, i)
 		}
 	}()
