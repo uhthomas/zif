@@ -66,6 +66,7 @@ func (s *Server) ListenStream(peer NetworkPeer, handler ProtocolHandler) {
 	// Allowed to open 4 streams per second, bursting to three.
 	limiter := util.NewLimiter(time.Second/4, 3, true)
 	defer limiter.Stop()
+	defer handler.HandleCloseConnection(peer.Address())
 
 	session := peer.Session()
 
@@ -76,12 +77,18 @@ func (s *Server) ListenStream(peer NetworkPeer, handler ProtocolHandler) {
 		if err != nil {
 			if err == io.EOF {
 				log.Info("Peer closed connection")
-				handler.HandleCloseConnection(peer.Address())
 
 			} else {
 				log.Error(err.Error())
 			}
 
+			return
+		}
+
+		err = stream.SetDeadline(time.Now().Add(time.Second * 10))
+
+		if err != nil {
+			log.Error(err.Error())
 			return
 		}
 
