@@ -102,7 +102,9 @@ func (s *Server) HandleStream(peer NetworkPeer, handler ProtocolHandler, stream 
 		msg, err := cl.ReadMessage()
 
 		if err != nil {
-			log.Error(err.Error())
+			if err != io.EOF {
+				log.Error(err.Error())
+			}
 			return
 		}
 		msg.Client = &cl
