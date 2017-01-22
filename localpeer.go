@@ -385,8 +385,13 @@ func (lp *LocalPeer) seedExplore(in chan dht.KeyValue) {
 	closestRand, err := lp.DHT.FindClosest(*addr)
 
 	closest = append(closest, closestRand...)
+	log.WithField("seeds", len(closest)).Info("Seeding peer explore")
 
 	for _, i := range closest {
+		if i == nil {
+			continue
+		}
+
 		if !i.Key().Equals(lp.Address()) {
 			in <- *i
 		}
