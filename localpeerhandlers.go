@@ -425,11 +425,6 @@ func (lp *LocalPeer) HandlePing(msg *proto.Message) error {
 	return msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoPong})
 }
 
-func (lp *LocalPeer) HandleCloseConnection(addr *dht.Address) {
-	s, _ := addr.String()
-	lp.Peers.Remove(s)
-}
-
 func (lp *LocalPeer) HandleHandshake(header proto.ConnHeader) (proto.NetworkPeer, error) {
 	peer := &Peer{}
 	peer.SetTCP(header)
@@ -438,9 +433,6 @@ func (lp *LocalPeer) HandleHandshake(header proto.ConnHeader) (proto.NetworkPeer
 	if err != nil {
 		return nil, err
 	}
-
-	s, _ := peer.Address().String()
-	lp.Peers.Set(s, peer)
 
 	return peer, nil
 }

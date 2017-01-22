@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
@@ -39,16 +38,8 @@ type LocalPeer struct {
 
 	SearchProvider *data.SearchProvider
 
-	// a map of currently connected peers
-	// also use to cancel reconnects :)
-	Peers cmap.ConcurrentMap
-	// A map of public address to Zif address
-	PublicToZif cmap.ConcurrentMap
-
-	privateKey ed25519.PrivateKey
-
-	Socks     bool
-	SocksPort int
+	privateKey  ed25519.PrivateKey
+	peerManager *PeerManager
 }
 
 func (lp *LocalPeer) Setup() {
@@ -59,8 +50,8 @@ func (lp *LocalPeer) Setup() {
 
 	lp.Databases = cmap.New()
 	lp.Collections = cmap.New()
-	lp.Peers = cmap.New()
-	lp.PublicToZif = cmap.New()
+
+	lp.peerManager = NewPeerManager(lp)
 
 	lp.Address().Generate(lp.PublicKey())
 
@@ -117,90 +108,6 @@ func (lp *LocalPeer) Setup() {
 	}*/
 
 	lp.SearchProvider = data.NewSearchProvider()
-}
-
-// Given a direct address, for instance an IP or domain, connect to the peer there.
-// This can be used for something like bootstrapping, or for something like
-// connecting to a peer whose Zif address we have just resolved.
-func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
-	var peer *Peer
-	var err error
-
-	if peer = lp.GetPeer(addr); peer != nil {
-		return peer, nil
-	}
-
-	peer = &Peer{}
-
-	if err != nil {
-		return nil, err
-	}
-
-	if lp.Socks {
-		peer.streams.Socks = true
-		peer.streams.SocksPort = lp.SocksPort
-	}
-
-	err = peer.Connect(addr, lp)
-
-	if err != nil {
-		return nil, err
-	}
-
-	peer.ConnectClient(lp)
-
-	s, _ := peer.Address().String()
-	lp.Peers.Set(s, peer)
-	lp.PublicToZif.Set(addr, s)
-
-	return peer, nil
-}
-
-func (lp *LocalPeer) GetPeer(addr string) *Peer {
-	peer, has := lp.Peers.Get(addr)
-
-	if !has {
-		return nil
-	}
-
-	return peer.(*Peer)
-}
-
-// Resolved a Zif address into an entry, connects to the peer at the
-// PublicAddress in the Entry, then return it. The peer is also stored in a map.
-func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
-	var peer *Peer
-
-	if peer = lp.GetPeer(addr); peer != nil {
-		return peer, nil
-	}
-
-	entry, err := lp.Resolve(addr)
-
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
-	}
-
-	if entry == nil {
-		return nil, data.AddressResolutionError{addr}
-	}
-
-	// now should have an entry for the peer, connect to it!
-	s, _ := entry.Address.String()
-	log.Debug("Connecting to ", s)
-
-	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
-
-	// Caller can go on to choose a seed to connect to, not quite the end of the
-	// world :P
-	if err != nil {
-		log.WithField("peer", addr).Info("Failed to connect")
-
-		return nil, err
-	}
-
-	return peer, nil
 }
 
 func (lp *LocalPeer) SignEntry() {
@@ -484,4 +391,41 @@ func (lp *LocalPeer) seedExplore(in chan dht.KeyValue) {
 			in <- *i
 		}
 	}
+}
+
+// convenience methods
+func (lp *LocalPeer) PeerCount() int {
+	return lp.peerManager.Count()
+}
+
+func (lp *LocalPeer) Peers() map[string]*Peer {
+	return lp.peerManager.Peers()
+}
+
+func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
+	return lp.peerManager.ConnectPeerDirect(addr)
+}
+
+func (lp *LocalPeer) HandleCloseConnection(addr *dht.Address) {
+	lp.peerManager.HandleCloseConnection(addr)
+}
+
+func (lp *LocalPeer) SetPeer(p *Peer) {
+	lp.peerManager.SetPeer(p)
+}
+
+func (lp *LocalPeer) GetPeer(addr string) *Peer {
+	return lp.peerManager.GetPeer(addr)
+}
+
+func (lp *LocalPeer) SetSocks(on bool) {
+	lp.peerManager.socks = on
+}
+
+func (lp *LocalPeer) SetSocksPort(port int) {
+	lp.peerManager.socksPort = port
+}
+
+func (lp *LocalPeer) GetSocksPort() int {
+	return lp.peerManager.socksPort
 }

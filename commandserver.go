@@ -330,13 +330,13 @@ func (cs *CommandServer) RebuildCollection(crc CommandRebuildCollection) Command
 func (cs *CommandServer) Peers(cp CommandPeers) CommandResult {
 	log.Info("Command: Peers request")
 
-	ps := make([]*Peer, cs.LocalPeer.Peers.Count()+1)
+	ps := make([]*Peer, cs.LocalPeer.PeerCount()+1)
 
 	ps[0] = &cs.LocalPeer.Peer
 
 	i := 1
-	for _, p := range cs.LocalPeer.Peers.Items() {
-		ps[i] = p.(*Peer)
+	for _, p := range cs.LocalPeer.Peers() {
+		ps[i] = p
 		i = i + 1
 	}
 

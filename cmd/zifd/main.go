@@ -65,8 +65,8 @@ func main() {
 		if err == nil {
 			lp.PublicAddress = onion
 			lp.Entry.PublicAddress = onion
-			lp.Socks = true
-			lp.SocksPort = *socksPort
+			lp.SetSocks(true)
+			lp.SetSocksPort(*socksPort)
 			lp.Peer.Streams().Socks = true
 			lp.Peer.Streams().SocksPort = *socksPort
 		} else {
