@@ -52,7 +52,7 @@ func exploreTick(in chan dht.KeyValue, ret chan dht.KeyValue, me dht.Address, co
 }
 
 func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.KeyValue, connectPeer common.ConnectPeer) error {
-	s, _ := addr.String()
+	s, _ := me.String()
 	peer, err := connectPeer(s)
 	p := peer.(common.Peer)
 
