@@ -8,7 +8,7 @@ import (
 	"github.com/zif/zif/dht"
 )
 
-const ExploreSleepTime = time.Minute * 2
+const ExploreFrequency = time.Minute * 5
 const ExploreBufferSize = 100
 
 // This job runs every two minutes, and tries to build the netdb with as many
@@ -20,7 +20,7 @@ func ExploreJob(in chan dht.KeyValue, data ...interface{}) <-chan dht.KeyValue {
 	me := data[1].(dht.Address)
 	seed := data[2].(func(ret chan dht.KeyValue))
 
-	ticker := time.NewTicker(ExploreSleepTime)
+	ticker := time.NewTicker(ExploreFrequency)
 
 	go exploreTick(in, ret, me, connector, seed)
 

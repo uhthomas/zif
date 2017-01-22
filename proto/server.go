@@ -146,8 +146,6 @@ func (s *Server) RouteMessage(msg *Message, handler ProtocolHandler) {
 		err = handler.HandlePiece(msg)
 	case ProtoRequestAddPeer:
 		err = handler.HandleAddPeer(msg)
-	case ProtoPing:
-		err = handler.HandlePing(msg)
 
 	default:
 		log.Error("Unknown message type")

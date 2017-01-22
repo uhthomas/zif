@@ -21,7 +21,6 @@ type ProtocolHandler interface {
 	HandleHashList(*Message) error
 	HandlePiece(*Message) error
 	HandleAddPeer(*Message) error
-	HandlePing(*Message) error
 
 	HandleHandshake(ConnHeader) (NetworkPeer, error)
 	HandleCloseConnection(*dht.Address)

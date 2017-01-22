@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/net/proxy"
 
-	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
+	"github.com/hashicorp/yamux"
 	"github.com/zif/zif/common"
 )
 
@@ -100,6 +100,10 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, dat
 
 	if err != nil {
 		return nil, err
+	}
+
+	if header == nil {
+		return nil, errors.New("Failed to handshake, nil entry")
 	}
 
 	pair := ConnHeader{*NewClient(conn), *header}

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net"
 	"strconv"
-	"time"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -76,38 +75,6 @@ func (c *Client) ReadMessage() (*Message, error) {
 
 func (c *Client) Decode(i interface{}) error {
 	return c.decoder.Decode(i)
-}
-
-// Pings a client with a specified timeout, returns true/false depending on
-// if it recieves a reply.
-func (c *Client) Ping(timeout time.Duration) (time.Duration, error) {
-	start := time.Now()
-
-	c.WriteMessage(&Message{Header: ProtoPing})
-
-	tchan := make(chan bool)
-
-	go func() {
-		rep, err := c.ReadMessage()
-
-		if err != nil || rep.Header != ProtoPong {
-			tchan <- false
-		}
-
-		tchan <- true
-	}()
-
-	select {
-	case <-tchan:
-		return time.Since(start), nil
-	case <-time.After(timeout):
-		return time.Since(start), errors.New("Ping timeout")
-	}
-}
-
-// Replies to a Ping request.
-func (c *Client) Pong() {
-	//c.conn.Write(proto_pong)
 }
 
 // Sends a DHT entry to a peer.

@@ -8,7 +8,7 @@ import (
 )
 
 type Message struct {
-	Header  int
+	Header  string
 	Content []byte
 
 	Stream net.Conn

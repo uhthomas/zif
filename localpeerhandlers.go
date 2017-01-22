@@ -418,13 +418,6 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandlePing(msg *proto.Message) error {
-	s, _ := msg.From.String()
-	log.WithField("peer", s).Info("Ping")
-
-	return msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoPong})
-}
-
 func (lp *LocalPeer) HandleHandshake(header proto.ConnHeader) (proto.NetworkPeer, error) {
 	peer := &Peer{}
 	peer.SetTCP(header)

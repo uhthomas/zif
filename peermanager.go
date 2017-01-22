@@ -2,6 +2,7 @@ package libzif
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/streamrail/concurrent-map"
 	"github.com/zif/zif/data"
@@ -9,6 +10,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+const HeartbeatFrequency = time.Second * 30
+const HandshakeFrequency = time.Minute * 30
 
 // handles peer connections
 type PeerManager struct {
@@ -141,9 +145,43 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 	}
 
 	pm.publicToZif.Set(e.PublicAddress, s)
+
+	go pm.heartbeatPeer(p)
 }
 
 func (pm *PeerManager) HandleCloseConnection(addr *dht.Address) {
 	s, _ := addr.String()
 	pm.peers.Remove(s)
+}
+
+// Pings the peer regularly to check the connection
+func (pm *PeerManager) heartbeatPeer(p *Peer) {
+	ticker := time.NewTicker(HeartbeatFrequency)
+	defer pm.HandleCloseConnection(p.Address())
+
+	for _ = range ticker.C {
+		// just in case
+		if p == nil {
+			return
+		}
+
+		s, _ := p.Address().String()
+
+		// If the peer has already been removed, don't bother
+		if has := pm.peers.Has(s); !has {
+			return
+		}
+
+		log.WithField("peer", s).Debug("Sending heartbeat")
+		// allows for a suddenly slower connection, most requests have a lower timeout
+		_, err := p.Ping(HeartbeatFrequency)
+
+		if err != nil {
+			log.WithField("peer", s).Info("Peer has no heartbeat, terminating")
+
+			pm.HandleCloseConnection(p.Address())
+
+			return
+		}
+	}
 }
