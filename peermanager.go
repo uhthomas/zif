@@ -1,6 +1,7 @@
 package libzif
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 const HeartbeatFrequency = time.Second * 30
-const HandshakeFrequency = time.Minute * 30
+const AnnounceFrequency = time.Minute * 30
 
 // handles peer connections
 type PeerManager struct {
@@ -153,6 +154,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 	pm.publicToZif.Set(e.PublicAddress, s)
 
 	go pm.heartbeatPeer(p)
+	go pm.announcePeer(p)
 }
 
 func (pm *PeerManager) HandleCloseConnection(addr *dht.Address) {
@@ -188,6 +190,47 @@ func (pm *PeerManager) heartbeatPeer(p *Peer) {
 			pm.HandleCloseConnection(p.Address())
 
 			return
+		}
+	}
+}
+
+func (pm *PeerManager) announcePeer(p *Peer) {
+	ticker := time.NewTicker(AnnounceFrequency)
+
+	announce := func() error {
+		// just in case
+		if p == nil {
+			return errors.New("Peer is nil")
+		}
+
+		s, _ := p.Address().String()
+
+		// If the peer has already been removed, don't bother
+		if has := pm.peers.Has(s); !has {
+			return errors.New("Peer has disconnected")
+		}
+
+		log.WithField("peer", s).Info("Announcing to peer")
+		err := p.Announce(pm.localPeer)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	err := announce()
+
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	for _ = range ticker.C {
+		err := announce()
+
+		if err != nil {
+			log.Error(err.Error())
 		}
 	}
 }

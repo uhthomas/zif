@@ -13,8 +13,8 @@ import (
 	"net"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/hashicorp/yamux"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 
 	"github.com/zif/zif/data"
