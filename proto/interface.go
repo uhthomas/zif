@@ -24,6 +24,9 @@ type ProtocolHandler interface {
 
 	HandleHandshake(ConnHeader) (NetworkPeer, error)
 	HandleCloseConnection(*dht.Address)
+
+	GetNetworkPeer(string) NetworkPeer
+	SetNetworkPeer(NetworkPeer)
 }
 
 // Allows the protocol stuff to work with Peers, while libzif/peer can interface

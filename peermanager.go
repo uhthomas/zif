@@ -134,7 +134,13 @@ func (pm *PeerManager) GetPeer(addr string) *Peer {
 }
 
 func (pm *PeerManager) SetPeer(p *Peer) {
+
 	s, _ := p.Address().String()
+
+	if pm.peers.Has(s) {
+		return
+	}
+
 	pm.peers.Set(s, p)
 
 	e, err := p.Entry()

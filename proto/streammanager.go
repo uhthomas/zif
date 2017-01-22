@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/net/proxy"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/hashicorp/yamux"
+	log "github.com/sirupsen/logrus"
 	"github.com/zif/zif/common"
 )
 

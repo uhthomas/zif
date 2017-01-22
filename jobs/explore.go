@@ -8,7 +8,7 @@ import (
 	"github.com/zif/zif/dht"
 )
 
-const ExploreFrequency = time.Minute * 5
+const ExploreFrequency = time.Minute * 2
 const ExploreBufferSize = 100
 
 // This job runs every two minutes, and tries to build the netdb with as many

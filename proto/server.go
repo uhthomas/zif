@@ -175,6 +175,8 @@ func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encoda
 		return
 	}
 
+	lp.SetNetworkPeer(peer)
+
 	go s.ListenStream(peer, lp)
 }
 

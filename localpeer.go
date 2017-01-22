@@ -414,7 +414,20 @@ func (lp *LocalPeer) SetPeer(p *Peer) {
 	lp.peerManager.SetPeer(p)
 }
 
+func (lp *LocalPeer) SetNetworkPeer(p proto.NetworkPeer) {
+	switch p.(type) {
+	case *Peer:
+		lp.peerManager.SetPeer(p.(*Peer))
+	default:
+		log.Error("NetworkPeer is not *Peer")
+	}
+}
+
 func (lp *LocalPeer) GetPeer(addr string) *Peer {
+	return lp.peerManager.GetPeer(addr)
+}
+
+func (lp *LocalPeer) GetNetworkPeer(addr string) proto.NetworkPeer {
 	return lp.peerManager.GetPeer(addr)
 }
 
