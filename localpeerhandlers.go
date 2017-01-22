@@ -355,16 +355,16 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 	// The AddPeer message contains the address of the peer that the client
 	// wishes to be registered for.
 
+	if len(msg.Content) != dht.AddressBinarySize {
+		msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoNo})
+		return errors.New("Invalid binary address size")
+	}
+
 	address := dht.Address{msg.Content}
 
 	from, _ := msg.From.String()
 	pfor, _ := address.String()
 	log.WithFields(log.Fields{"from": from, "for": pfor}).Info("Handling add peer request")
-
-	if len(msg.Content) != dht.AddressBinarySize {
-		msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoNo})
-		return errors.New("Invalid binary address size")
-	}
 
 	if address.Equals(lp.Address()) {
 		log.WithField("peer", from).Info("New seed peer")
@@ -372,13 +372,13 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 		add := true
 
 		for _, i := range lp.Entry.Seeds {
-			if address.Equals(&dht.Address{i}) {
+			if msg.From.Equals(&dht.Address{i}) {
 				add = false
 			}
 		}
 
 		if add {
-			b, _ := address.Bytes()
+			b, _ := msg.From.Bytes()
 			lp.Entry.Seeds = append(lp.Entry.Seeds, b)
 		}
 
@@ -405,19 +405,21 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 			return err
 		}
 
-		// if the routing table contains the address we are looking for,
-		// register a new seed.
-		if decoded.Address.Equals(&address) {
-			b, _ := address.Bytes()
-			decoded.Seeds = append(decoded.Seeds, b)
-		}
+		b, _ := msg.From.Bytes()
+		decoded.Seeds = append(decoded.Seeds, b)
 
-		json, err := decoded.Json()
+		log.WithFields(
+			log.Fields{
+				"for":  pfor,
+				"seed": from}).Info("Added seed")
+
+		newEntry, err := decoded.Json()
+
 		if err != nil {
 			return err
 		}
 
-		lp.DHT.Insert(dht.NewKeyValue(address, json))
+		lp.DHT.Insert(dht.NewKeyValue(address, newEntry))
 	}
 
 	msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoOk})
