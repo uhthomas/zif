@@ -89,7 +89,7 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, dat
 		return nil, err
 	}
 
-	log.WithField("Version", ProtoVersion).Info("Sending")
+	log.WithField("version", ProtoVersion).Info("Sending")
 	err = binary.Write(conn, binary.LittleEndian, ProtoVersion)
 
 	if err != nil {
@@ -229,7 +229,7 @@ func (sm *StreamManager) OpenStream() (*Client, error) {
 		return nil, err
 	}
 
-	log.Debug("Opened stream (", session.NumStreams(), " total)")
+	log.WithField("total", session.NumStreams()).Debug("Opened stream")
 	return &ret, nil
 }
 

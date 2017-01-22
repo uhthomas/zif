@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"math"
 
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 )
 

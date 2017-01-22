@@ -109,7 +109,7 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 
 	// now should have an entry for the peer, connect to it!
 	s, _ := entry.Address.String()
-	log.Debug("Connecting to ", s)
+	log.WithField("address", s).Debug("Connecting")
 
 	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
 

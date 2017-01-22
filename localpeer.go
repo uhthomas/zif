@@ -178,7 +178,7 @@ func (lp *LocalPeer) ReadKey() error {
 // May well change, I'm unsure really. Pretty happy with it at the moment though.
 // TODO: Somehow move this to the DHT package.
 func (lp *LocalPeer) Resolve(addr string) (*proto.Entry, error) {
-	log.Debug("Resolving ", addr)
+	log.WithField("address", addr).Debug("Resolving")
 
 	lps, _ := lp.Address().String()
 	if addr == lps {

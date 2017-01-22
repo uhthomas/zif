@@ -97,7 +97,7 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 	}
 
 	s, _ := p.Address().String()
-	log.Debug("Sending announce to ", s)
+	log.WithField("peer", s).Debug("Sending announce")
 
 	if lp.Entry.PublicAddress == "" {
 		log.Debug("Local peer public address is nil, attempting to fetch")
@@ -121,7 +121,7 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 }
 
 func (p *Peer) Connect(addr string, lp *LocalPeer) error {
-	log.Debug("Connecting to ", addr)
+	log.WithField("address", addr).Debug("Connecting")
 
 	pair, err := p.streams.OpenTCP(addr, lp, lp.Entry)
 

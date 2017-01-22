@@ -355,21 +355,19 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 	// The AddPeer message contains the address of the peer that the client
 	// wishes to be registered for.
 
-	peerFor := string(msg.Content)
+	address := dht.Address{msg.Content}
 
-	log.WithField("peer", peerFor).Info("Handling add peer request")
+	from, _ := msg.From.String()
+	pfor, _ := address.String()
+	log.WithFields(log.Fields{"from": from, "for": pfor}).Info("Handling add peer request")
 
-	// First up, we need the address in binary form
-	address := dht.DecodeAddress(peerFor)
-	s, _ := address.String()
-
-	if len(address.Raw) != dht.AddressBinarySize {
+	if len(msg.Content) != dht.AddressBinarySize {
 		msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoNo})
 		return errors.New("Invalid binary address size")
 	}
 
 	if address.Equals(lp.Address()) {
-		log.WithField("peer", s).Info("New seed peer")
+		log.WithField("peer", from).Info("New seed peer")
 
 		add := true
 
@@ -384,12 +382,21 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 			lp.Entry.Seeds = append(lp.Entry.Seeds, b)
 		}
 
+		err := lp.SaveEntry()
+		if err != nil {
+			return err
+		}
+
 	} else {
 		// then we need to see if we have the entry for that address
 		kv, err := lp.DHT.Query(address)
 
 		if err != nil {
 			return err
+		}
+
+		if kv == nil {
+			return errors.New("Cannot add peer, do not have entry")
 		}
 
 		decoded, err := proto.JsonToEntry(kv.Value())

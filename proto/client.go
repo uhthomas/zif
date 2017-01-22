@@ -498,9 +498,12 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 }
 
 func (c *Client) RequestAddPeer(addr string) error {
+	address := dht.DecodeAddress(addr)
+	log.WithField("for", addr).Info("Registering as seed")
+
 	msg := &Message{
 		Header:  ProtoRequestAddPeer,
-		Content: []byte(addr),
+		Content: address.Raw,
 	}
 
 	c.WriteMessage(msg)

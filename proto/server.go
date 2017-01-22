@@ -26,7 +26,7 @@ func (s *Server) Listen(addr string, handler ProtocolHandler, data common.Encoda
 		panic(err)
 	}
 
-	log.WithField("address").Info("Listening")
+	log.WithField("address", addr).Info("Listening")
 
 	for {
 		conn, err := s.listener.Accept()
