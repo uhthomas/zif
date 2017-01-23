@@ -8,12 +8,20 @@ import (
 	"github.com/streamrail/concurrent-map"
 	"github.com/zif/zif/data"
 	"github.com/zif/zif/dht"
+	"github.com/zif/zif/proto"
 
 	log "github.com/sirupsen/logrus"
 )
 
 const HeartbeatFrequency = time.Second * 30
 const AnnounceFrequency = time.Minute * 30
+
+// errors
+
+var (
+	PeerUnreachable  = errors.New("Peer could not be reached")
+	PeerDisconnected = errors.New("Peer has disconnected")
+)
 
 // handles peer connections
 type PeerManager struct {
@@ -65,10 +73,6 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 
 	peer = &Peer{}
 
-	if err != nil {
-		return nil, err
-	}
-
 	if pm.socks {
 		peer.streams.Socks = true
 		peer.streams.SocksPort = pm.socksPort
@@ -77,7 +81,7 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 	err = peer.Connect(addr, pm.localPeer)
 
 	if err != nil {
-		return nil, err
+		return nil, PeerUnreachable
 	}
 
 	peer.ConnectClient(pm.localPeer)
@@ -89,22 +93,22 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 
 // Resolved a Zif address into an entry, connects to the peer at the
 // PublicAddress in the Entry, then return it. The peer is also stored in a map.
-func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
+func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, *proto.Entry, error) {
 	var peer *Peer
-
-	if peer = lp.GetPeer(addr); peer != nil {
-		return peer, nil
-	}
 
 	entry, err := lp.Resolve(addr)
 
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
+	if entry == nil {
+		return nil, nil, data.AddressResolutionError{addr}
 	}
 
-	if entry == nil {
-		return nil, data.AddressResolutionError{addr}
+	if peer = lp.GetPeer(addr); peer != nil {
+		return peer, entry, nil
+	}
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil, entry, err
 	}
 
 	// now should have an entry for the peer, connect to it!
@@ -118,10 +122,10 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 	if err != nil {
 		log.WithField("peer", addr).Info("Failed to connect")
 
-		return nil, err
+		return nil, entry, err
 	}
 
-	return peer, nil
+	return peer, entry, nil
 }
 
 func (pm *PeerManager) GetPeer(addr string) *Peer {
@@ -207,7 +211,7 @@ func (pm *PeerManager) announcePeer(p *Peer) {
 
 		// If the peer has already been removed, don't bother
 		if has := pm.peers.Has(s); !has {
-			return errors.New("Peer has disconnected")
+			return PeerDisconnected
 		}
 
 		log.WithField("peer", s).Info("Announcing to peer")

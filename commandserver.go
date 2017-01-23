@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zif/zif/data"
+	"github.com/zif/zif/proto"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
@@ -37,7 +38,7 @@ func NewCommandServer(lp *LocalPeer) *CommandServer {
 func (cs *CommandServer) Ping(p CommandPing) CommandResult {
 	log.Info("Command: Ping request")
 
-	peer, err := cs.LocalPeer.ConnectPeer(p.Address)
+	peer, _, err := cs.LocalPeer.ConnectPeer(p.Address)
 
 	if err != nil {
 		return CommandResult{false, nil, err}
@@ -55,7 +56,7 @@ func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 	peer := cs.LocalPeer.GetPeer(a.Address)
 
 	if peer == nil {
-		peer, err = cs.LocalPeer.ConnectPeer(a.Address)
+		peer, _, err = cs.LocalPeer.ConnectPeer(a.Address)
 
 		if err != nil {
 			return CommandResult{false, nil, err}
@@ -80,7 +81,7 @@ func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 	if peer == nil {
 		// Remote searching is not allowed to be done on seeds, it has no
 		// verification so can be falsified easily. Mirror people, mirror!
-		peer, err = cs.LocalPeer.ConnectPeer(rs.CommandPeer.Address)
+		peer, _, err = cs.LocalPeer.ConnectPeer(rs.CommandPeer.Address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -120,7 +121,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 
 	peer := cs.LocalPeer.GetPeer(pr.CommandPeer.Address)
 	if peer == nil {
-		peer, err = cs.LocalPeer.ConnectPeer(pr.CommandPeer.Address)
+		peer, _, err = cs.LocalPeer.ConnectPeer(pr.CommandPeer.Address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -145,7 +146,7 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 
 	peer := cs.LocalPeer.GetPeer(pp.CommandPeer.Address)
 	if peer == nil {
-		peer, err = cs.LocalPeer.ConnectPeer(pp.CommandPeer.Address)
+		peer, _, err = cs.LocalPeer.ConnectPeer(pp.CommandPeer.Address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -163,10 +164,31 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	peer := cs.LocalPeer.GetPeer(cm.Address)
 
 	if peer == nil {
-		peer, err = cs.LocalPeer.ConnectPeer(cm.Address)
+		var entry *proto.Entry
+		peer, entry, err = cs.LocalPeer.ConnectPeer(cm.Address)
 
 		if err != nil {
-			return CommandResult{false, nil, err}
+			if err == PeerUnreachable {
+
+				// first up, check if we have an entry for the peer
+				if len(entry.Seeds) == 0 {
+					// if not, not much we can do :(
+					return CommandResult{false, nil, err}
+				}
+
+				// Keep picking seeds until one connects
+				for i := 0; i < len(entry.Seeds) i++ {
+
+					peer, _, err = cs.LocalPeer.ConnectPeer()
+
+					if err == nil {
+						continue
+					}
+				}
+
+			} else {
+				return CommandResult{false, nil, err}
+			}
 		}
 	}
 
@@ -345,7 +367,7 @@ func (cs *CommandServer) Peers(cp CommandPeers) CommandResult {
 func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResult {
 	log.Info("Command: Request Add Peer request")
 
-	peer, err := cs.LocalPeer.ConnectPeer(crap.Remote)
+	peer, _, err := cs.LocalPeer.ConnectPeer(crap.Remote)
 
 	if err != nil {
 		return CommandResult{true, nil, err}

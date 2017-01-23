@@ -46,6 +46,10 @@ func (c *Client) Close() (err error) {
 
 // Encodes v as json and writes it to c.conn.
 func (c *Client) WriteMessage(v interface{}) error {
+	if c == nil {
+		return errors.New("Client nil")
+	}
+
 	if c.encoder == nil {
 		c.encoder = json.NewEncoder(c.conn)
 	}

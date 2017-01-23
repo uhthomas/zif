@@ -349,7 +349,10 @@ func (lp *LocalPeer) StartExploring() {
 	lp.seedExplore(in)
 
 	ret := jobs.ExploreJob(in,
-		func(addr string) (interface{}, error) { return lp.ConnectPeer(addr) },
+		func(addr string) (interface{}, error) {
+			peer, _, err := lp.ConnectPeer(addr)
+			return peer, err
+		},
 		lp.address,
 		func(in chan dht.KeyValue) { lp.seedExplore(in) })
 
