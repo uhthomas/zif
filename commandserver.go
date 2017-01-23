@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zif/zif/data"
+	"github.com/zif/zif/dht"
 	"github.com/zif/zif/proto"
 
 	log "github.com/sirupsen/logrus"
@@ -177,9 +178,11 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 				}
 
 				// Keep picking seeds until one connects
-				for i := 0; i < len(entry.Seeds) i++ {
+				for _, i := range entry.Seeds {
 
-					peer, _, err = cs.LocalPeer.ConnectPeer()
+					addr := &dht.Address{i}
+					s, _ := addr.String()
+					peer, _, err = cs.LocalPeer.ConnectPeer(s)
 
 					if err == nil {
 						continue
