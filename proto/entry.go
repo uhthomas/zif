@@ -19,6 +19,7 @@ type Entry struct {
 	PublicAddress string      `json:"publicAddress"`
 	PublicKey     []byte      `json:"publicKey"`
 	PostCount     int         `json:"postCount"`
+	Updated       uint64      `json:"updated"`
 
 	// The owner of this entry should have signed it, we need to store the
 	// sigature. It's actually okay as we can verify that a peer owns a public

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
@@ -128,6 +129,7 @@ func (lp *LocalPeer) Setup() {
 }
 
 func (lp *LocalPeer) SignEntry() {
+	lp.Entry.Updated = uint64(time.Now().Unix())
 	data, _ := lp.Entry.Bytes()
 	copy(lp.Entry.Signature, ed25519.Sign(lp.privateKey, data))
 }
@@ -388,7 +390,7 @@ func (lp *LocalPeer) StartExploring() {
 
 	go func() {
 		for i := range ret {
-			has := lp.DHT.Has(*i.Key())
+			kv, err := lp.DHT.Query(*i.Key())
 
 			if i.Key().Equals(lp.Address()) {
 				continue
@@ -396,12 +398,27 @@ func (lp *LocalPeer) StartExploring() {
 
 			// reinsert regardless of whether we have it or not. This helps
 			// keep more "active" things at the top, and also keeps us up to date.
-			lp.DHT.Insert(&i)
+			// make sure it is newer!
+			entry, err := proto.JsonToEntry(i.Value())
+			if err != nil {
+				continue
+			}
 
-			if !has {
+			if kv == nil {
 				ps, _ := i.Key().String()
+				lp.DHT.Insert(&i)
 				log.WithField("peer", ps).Info("Discovered new peer")
+
 				in <- i
+			} else {
+				current, err := proto.JsonToEntry(kv.Value())
+				if err != nil {
+					continue
+				}
+
+				if entry.Updated >= current.Updated {
+					lp.DHT.Insert(&i)
+				}
 			}
 		}
 	}()
