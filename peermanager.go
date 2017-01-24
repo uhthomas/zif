@@ -29,7 +29,8 @@ type PeerManager struct {
 	// also use to cancel reconnects :)
 	peers cmap.ConcurrentMap
 	// A map of public address to Zif address
-	publicToZif cmap.ConcurrentMap
+	publicToZif  cmap.ConcurrentMap
+	SeedManagers cmap.ConcurrentMap
 
 	socks     bool
 	socksPort int
@@ -41,6 +42,7 @@ func NewPeerManager(lp *LocalPeer) *PeerManager {
 
 	ret.peers = cmap.New()
 	ret.publicToZif = cmap.New()
+	ret.SeedManagers = cmap.New()
 	ret.localPeer = lp
 
 	return ret
@@ -87,6 +89,7 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 	peer.ConnectClient(pm.localPeer)
 
 	pm.SetPeer(peer)
+	peer.addSeedManager = pm.AddSeedManager
 
 	return peer, nil
 }
@@ -237,4 +240,23 @@ func (pm *PeerManager) announcePeer(p *Peer) {
 			log.Error(err.Error())
 		}
 	}
+}
+
+func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
+	s, _ := addr.String()
+
+	if pm.SeedManagers.Has(s) {
+		return nil
+	}
+
+	sm, err := NewSeedManager(addr, pm.localPeer)
+
+	if err != nil {
+		return err
+	}
+
+	pm.SeedManagers.Set(s, pm.localPeer)
+	sm.Start()
+
+	return nil
 }

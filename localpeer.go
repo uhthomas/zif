@@ -416,7 +416,7 @@ func (lp *LocalPeer) StartExploring() {
 					continue
 				}
 
-				if entry.Updated >= current.Updated {
+				if entry.Updated >= current.Updated || (entry.Updated >= current.Updated && len(entry.Seeds) > len(current.Seeds)) {
 					lp.DHT.Insert(&i)
 				}
 			}
@@ -496,4 +496,14 @@ func (lp *LocalPeer) SetSocksPort(port int) {
 
 func (lp *LocalPeer) GetSocksPort() int {
 	return lp.peerManager.socksPort
+}
+
+func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
+	kv, err := lp.DHT.Query(addr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return proto.JsonToEntry(kv.Value())
 }

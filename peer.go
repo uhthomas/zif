@@ -38,6 +38,8 @@ type Peer struct {
 	// If this peer is acting as a seed for another
 	seed    bool
 	seedFor *proto.Entry
+
+	addSeedManager func(dht.Address) error
 }
 
 func (p *Peer) EAddress() common.Encodable {
@@ -483,5 +485,16 @@ func (p *Peer) RequestAddPeer(addr string) error {
 
 	defer stream.Close()
 
-	return stream.RequestAddPeer(addr)
+	address, err := dht.DecodeAddress(addr)
+	if err != nil {
+		return err
+	}
+
+	err = stream.RequestAddPeer(addr)
+	if err != nil {
+		return err
+	}
+
+	return p.addSeedManager(address)
+
 }
