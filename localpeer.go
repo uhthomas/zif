@@ -93,6 +93,23 @@ func (lp *LocalPeer) Setup() {
 			}
 
 			lp.Databases.Set(addr[1], db)
+
+		} else if path != "data/collection.dat" && info.Name() == "collection.dat" {
+			r, err := regexp.Compile("data/(\\w+)/.+")
+
+			if err != nil {
+				return err
+			}
+
+			addr := r.FindStringSubmatch(path)
+
+			dat, err := ioutil.ReadFile(path)
+
+			if err != nil {
+				return err
+			}
+
+			lp.Collections.Set(addr[1], dat)
 		}
 		return nil
 	}
@@ -338,8 +355,13 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 	lp.Collection.Save("./data/collection.dat")
 
 	hash := lp.Collection.Hash()
-	lp.Entry.CollectionSig = make([]byte, len(hash))
-	copy(lp.Entry.CollectionSig, hash)
+	sig := lp.Sign(lp.Collection.Hash())
+
+	lp.Entry.CollectionSig = make([]byte, len(sig))
+	copy(lp.Entry.CollectionSig, sig)
+
+	lp.Entry.CollectionHash = make([]byte, len(hash))
+	copy(lp.Entry.CollectionHash, hash)
 
 	if err != nil {
 		return id, err

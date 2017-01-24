@@ -27,8 +27,9 @@ type Entry struct {
 	Signature []byte `json:"signature"`
 	// Signature of the root hash of a hash list representing all of the posts
 	// a peer has.
-	CollectionSig []byte `json:"collectionSig"`
-	Port          int    `json:"port"`
+	CollectionSig  []byte `json:"collectionSig"`
+	CollectionHash []byte `json:"collectionHash"`
+	Port           int    `json:"port"`
 
 	// Essentially just a list of other peers who have this entry in their table.
 	// They may or may not actually have pieces, so mirror/piece requests may go

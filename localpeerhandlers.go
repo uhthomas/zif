@@ -5,6 +5,8 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -285,15 +287,52 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 	log.WithField("address", s).Info("Collection request recieved")
 
 	var sig []byte
+	var hash []byte
+	var hashList []byte
 
 	if address.Equals(lp.Address()) {
-		sig = lp.Sign(lp.Collection.HashList)
+		sig = lp.Entry.CollectionSig
+		hash = lp.Collection.Hash()
+		hashList = lp.Collection.HashList
+
+	} else if lp.DHT.Has(address) {
+		kv, err := lp.DHT.Query(address)
+
+		if err != nil {
+			return err
+		}
+
+		if kv == nil {
+			return errors.New("Cannot return collection hash list")
+		}
+
+		// load the hashlist from disk, if it exists. If not, err
+		hl, err := ioutil.ReadFile(fmt.Sprintf("./data/%s/collection.dat", s))
+
+		if err != nil {
+			return err
+		}
+
+		hashList = make([]byte, len(hl))
+		copy(hashList, hl)
+
+		entry, err := proto.JsonToEntry(kv.Value())
+
+		if err != nil {
+			return err
+		}
+
+		sig = make([]byte, len(entry.CollectionSig))
+		copy(sig, entry.CollectionSig)
+
+		hash = make([]byte, len(entry.CollectionHash))
+		copy(hash, entry.CollectionHash)
+
 	} else {
-		// this means that the hash list wanted does not belong to this peer
-		// TODO: sort out getting a hash list for a peer that has been mirrored
+		return errors.New("Cannot return collection hash list")
 	}
 
-	mhl := proto.MessageCollection{lp.Collection.Hash(), lp.Collection.HashList, len(lp.Collection.HashList) / 32, sig}
+	mhl := proto.MessageCollection{hash, hashList, len(hashList) / 32, sig}
 	data, err := mhl.Encode()
 
 	if err != nil {

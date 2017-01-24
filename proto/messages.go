@@ -50,7 +50,7 @@ func (mp *MessagePiece) Hash() ([]byte, error) {
 }
 
 func (mhl *MessageCollection) Verify(pk ed25519.PublicKey) error {
-	verified := ed25519.Verify(pk, mhl.HashList, mhl.Signature)
+	verified := ed25519.Verify(pk, mhl.Hash, mhl.Signature)
 
 	if !verified {
 		return errors.New("Invalid signature")
