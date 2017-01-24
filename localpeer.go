@@ -337,6 +337,10 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 	lp.Collection.Rehash()
 	lp.Collection.Save("./data/collection.dat")
 
+	hash := lp.Collection.Hash()
+	lp.Entry.CollectionSig = make([]byte, len(hash))
+	copy(lp.Entry.CollectionSig, hash)
+
 	if err != nil {
 		return id, err
 	}
