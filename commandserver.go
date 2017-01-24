@@ -185,14 +185,23 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 				// Keep picking seeds until one connects
 				for _, i := range entry.Seeds {
-
 					addr := &dht.Address{i}
+
+					if addr.Equals(cs.LocalPeer.Address()) {
+						continue
+					}
+
 					s, _ := addr.String()
 					peer, _, err = cs.LocalPeer.ConnectPeer(s)
 
 					if err != nil || peer == nil {
 						continue
 					}
+
+					// make sure the correct values are chosen when mirroring
+					// peers act a little differently when seeding for another
+					peer.seed = true
+					peer.seedFor = entry
 				}
 
 			} else {

@@ -84,6 +84,10 @@ func (db *Database) InsertPiece(piece *Piece) (err error) {
 func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 	tx, err := db.conn.Begin()
 
+	if err != nil {
+		return err
+	}
+
 	n := 0
 
 	defer func() {

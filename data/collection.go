@@ -74,8 +74,8 @@ func LoadCollection(path string) (col *Collection, err error) {
 }
 
 // Save the collection hash list to the given path, with permissions 0777.
-func (c *Collection) Save(path string) {
-	ioutil.WriteFile(path, c.HashList, 0777)
+func (c *Collection) Save(path string) error {
+	return ioutil.WriteFile(path, c.HashList, 0777)
 }
 
 // Add a piece to the collection, storing it in c.Pieces and appending it's hash

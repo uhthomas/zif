@@ -386,9 +386,6 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	go db.InsertPieces(pieces, true)
 
-	s, _ := p.Address().String()
-	log.WithField("peer", s).Info("Mirroring")
-
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -404,6 +401,9 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 		entry, err = p.Entry()
 	}
 
+	s, _ := entry.Address.String()
+	log.WithField("peer", s).Info("Mirroring")
+
 	if err != nil {
 		return err
 	}
@@ -416,7 +416,8 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	collection := data.Collection{HashList: mcol.HashList}
 	es, _ := entry.Address.String()
-	collection.Save(fmt.Sprintf("./data/%s/collection.dat", es))
+
+	err = collection.Save(fmt.Sprintf("./data/%s/collection.dat", es))
 
 	if err != nil {
 		return err
@@ -458,6 +459,12 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	log.Info("Mirror complete")
 
 	p.RequestAddPeer(s)
+
+	// we're done mirroring, so now we need to switch OFF the fact that this is
+	// a seed. If it becomes a seed again, it will be properly set by the
+	// commandserver
+	p.seed = false
+	p.seedFor = nil
 
 	return err
 }
