@@ -162,6 +162,12 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 	log.Info("Command: Peer Mirror request")
 
+	mirroring, err := cs.LocalPeer.Resolve(cm.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
 	peer := cs.LocalPeer.GetPeer(cm.Address)
 
 	if peer == nil {
@@ -202,9 +208,17 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	log.Debug("Peer ", peer)
 	// TODO: make this configurable
 	s, _ := peer.Address().String()
-	d := fmt.Sprintf("./data/%s", s)
-	os.Mkdir(fmt.Sprintf("./data/%s", d), 0777)
-	db := data.NewDatabase(d)
+
+	ms, _ := mirroring.Address.String()
+	d := fmt.Sprintf("./data/%s", ms)
+
+	err = os.Mkdir(d, 0777)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	db := data.NewDatabase(fmt.Sprintf("%s/posts.db", d))
 	db.Connect()
 
 	cs.LocalPeer.Databases.Set(s, db)
