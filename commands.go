@@ -112,7 +112,7 @@ func (cr *CommandResult) WriteJSON(w io.Writer) {
 		}
 	} else {
 		if cr.Error == nil {
-			cr.Error = errors.New("Something bad happened, but we don't know bad, which makes the fact much worse.")
+			cr.Error = errors.New("Something bad happened, but we don't know what, which makes the fact much worse.")
 		}
 
 		e.Encode(struct {
