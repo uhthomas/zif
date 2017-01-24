@@ -377,7 +377,6 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 	log.WithFields(log.Fields{"from": from, "for": pfor}).Info("Handling add peer request")
 
 	if address.Equals(lp.Address()) {
-		log.WithField("peer", from).Info("New seed peer")
 
 		add := true
 
@@ -396,6 +395,8 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 		if err != nil {
 			return err
 		}
+
+		log.WithField("peer", from).Info("New seed peer")
 
 	} else {
 		// then we need to see if we have the entry for that address

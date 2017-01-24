@@ -386,7 +386,6 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	go db.InsertPieces(pieces, true)
 
-	lps, _ := lp.String()
 	s, _ := p.Address().String()
 	log.WithField("peer", s).Info("Mirroring")
 
@@ -458,7 +457,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	log.Info("Mirror complete")
 
-	p.RequestAddPeer(lps)
+	p.RequestAddPeer(s)
 
 	return err
 }

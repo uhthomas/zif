@@ -184,7 +184,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 					s, _ := addr.String()
 					peer, _, err = cs.LocalPeer.ConnectPeer(s)
 
-					if err == nil {
+					if err != nil || peer == nil {
 						continue
 					}
 				}
@@ -195,6 +195,11 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 		}
 	}
 
+	if peer == nil {
+		return CommandResult{false, nil, PeerUnreachable}
+	}
+
+	log.Debug("Peer ", peer)
 	// TODO: make this configurable
 	s, _ := peer.Address().String()
 	d := fmt.Sprintf("./data/%s", s)
