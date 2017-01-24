@@ -187,6 +187,11 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 					if err != nil || peer == nil {
 						continue
 					}
+
+					// make sure the correct values are chosen when mirroring
+					// peers act a little differently when seeding for another
+					peer.seed = true
+					peer.seedFor = entry
 				}
 
 			} else {
@@ -202,9 +207,10 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	log.Debug("Peer ", peer)
 	// TODO: make this configurable
 	s, _ := peer.Address().String()
+
 	d := fmt.Sprintf("./data/%s", s)
-	os.Mkdir(fmt.Sprintf("./data/%s", d), 0777)
-	db := data.NewDatabase(d)
+	os.Mkdir(d, 0777)
+	db := data.NewDatabase(fmt.Sprintf("%s/posts.db", d))
 	db.Connect()
 
 	cs.LocalPeer.Databases.Set(s, db)
