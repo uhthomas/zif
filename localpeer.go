@@ -185,7 +185,11 @@ func (lp *LocalPeer) Resolve(addr string) (*proto.Entry, error) {
 		return lp.Entry, nil
 	}
 
-	address := dht.DecodeAddress(addr)
+	address, err := dht.DecodeAddress(addr)
+
+	if err != nil {
+		return nil, err
+	}
 
 	kv, err := lp.DHT.Query(address)
 

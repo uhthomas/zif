@@ -4,16 +4,15 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"log"
 	"math/big"
 
-	"github.com/prettymuchbryce/hellobitcoin/base58check/base58"
+	"github.com/wjh/hellobitcoin/base58check/base58"
 )
 
-func Encode(prefix string, byteData []byte) string {
+func Encode(prefix string, byteData []byte) (string, error) {
 	prefixBytes, err := hex.DecodeString(prefix)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	length := len(byteData) + 1
@@ -66,10 +65,10 @@ func Encode(prefix string, byteData []byte) string {
 
 	buffer.WriteString(base58EncodedChecksum)
 
-	return buffer.String()
+	return buffer.String(), nil
 }
 
-func Decode(value string) []byte {
+func Decode(value string) ([]byte, error) {
 	zeroBytes := 0
 	for i := 0; i < len(value); i++ {
 		if value[i] == 49 {
@@ -81,7 +80,7 @@ func Decode(value string) []byte {
 
 	publicKeyInt, err := base58.DecodeToBig([]byte(value))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	encodedChecksum := publicKeyInt.Bytes()
@@ -92,12 +91,12 @@ func Decode(value string) []byte {
 	for i := 0; i < zeroBytes; i++ {
 		zeroByte, err := hex.DecodeString("00")
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		buffer.WriteByte(zeroByte[0])
 	}
 
 	buffer.Write(encoded)
 
-	return buffer.Bytes()[1:len(buffer.Bytes())]
+	return buffer.Bytes()[1:len(buffer.Bytes())], nil
 }

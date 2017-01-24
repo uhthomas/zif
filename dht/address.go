@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/prettymuchbryce/hellobitcoin/base58check"
+	"github.com/wjh/hellobitcoin/base58check"
 	"github.com/zif/zif/util"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
@@ -33,7 +33,7 @@ func NewAddress(key []byte) (addr Address) {
 // Base58 removes ambiguous characters, reducing the chances of address confusion.
 func (a Address) String() (string, error) {
 	b, _ := a.Bytes()
-	return base58check.Encode("51", b), nil
+	return base58check.Encode("51", b)
 }
 
 func (a *Address) Bytes() ([]byte, error) {
@@ -51,11 +51,12 @@ func (a *Address) JsonString() (string, error) {
 }
 
 // Decodes a string address into address bytes.
-func DecodeAddress(value string) Address {
+func DecodeAddress(value string) (Address, error) {
 	var addr Address
-	addr.Raw = base58check.Decode(value)
+	var err error
+	addr.Raw, err = base58check.Decode(value)
 
-	return addr
+	return addr, err
 }
 
 func RandomAddress() (*Address, error) {

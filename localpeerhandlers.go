@@ -30,12 +30,17 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 
 	//msg.From.limiter.queryLimiter.Wait()
 
-	address := dht.DecodeAddress(string(msg.Content))
+	address, err := dht.DecodeAddress(string(msg.Content))
+
+	if err != nil {
+		return err
+	}
+
 	s, _ := address.String()
 	log.WithField("target", s).Info("Recieved query")
 
 	ok := &proto.Message{Header: proto.ProtoOk}
-	err := cl.WriteMessage(ok)
+	err = cl.WriteMessage(ok)
 
 	if err != nil {
 		return err
@@ -77,12 +82,17 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 	cl := msg.Client
 
-	address := dht.DecodeAddress(string(msg.Content))
+	address, err := dht.DecodeAddress(string(msg.Content))
+
+	if err != nil {
+		return err
+	}
+
 	s, _ := address.String()
 	log.WithField("target", s).Info("Recieved find closest")
 
 	ok := &proto.Message{Header: proto.ProtoOk}
-	err := cl.WriteMessage(ok)
+	err = cl.WriteMessage(ok)
 
 	if err != nil {
 		return err

@@ -502,7 +502,12 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 }
 
 func (c *Client) RequestAddPeer(addr string) error {
-	address := dht.DecodeAddress(addr)
+	address, err := dht.DecodeAddress(addr)
+
+	if err != nil {
+		return err
+	}
+
 	log.WithField("for", addr).Info("Registering as seed")
 
 	msg := &Message{

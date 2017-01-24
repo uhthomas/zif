@@ -124,6 +124,15 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/wjh/hellobitcoin/base58check",
+			"repository": "https://github.com/wjh/hellobitcoin",
+			"vcs": "git",
+			"revision": "3fb12de6e93ab180fdd11badbfd8ddcfd38dbe3e",
+			"branch": "master",
+			"path": "/base58check",
+			"notests": true
+		},
+		{
 			"importpath": "golang.org/x/crypto/ed25519",
 			"repository": "https://go.googlesource.com/crypto",
 			"vcs": "git",
