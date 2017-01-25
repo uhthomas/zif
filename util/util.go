@@ -33,3 +33,21 @@ func ReadPost(r io.Reader, delim byte) {
 
 	br.ReadString(delim)
 }
+
+func MergeSeeds(one [][]byte, two [][]byte) [][]byte {
+	temp := append(one, two...)
+
+	// make a map
+	encountered := make(map[string]bool)
+	result := make([][]byte, 0, len(one)+len(two))
+
+	for _, i := range temp {
+		encountered[string(i)] = true
+	}
+
+	for k, _ := range encountered {
+		result = append(result, []byte(k))
+	}
+
+	return result
+}

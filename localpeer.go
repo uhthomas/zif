@@ -21,6 +21,7 @@ import (
 	"github.com/zif/zif/dht"
 	"github.com/zif/zif/jobs"
 	"github.com/zif/zif/proto"
+	"github.com/zif/zif/util"
 )
 
 const ResolveListSize = 1
@@ -143,6 +144,7 @@ func (lp *LocalPeer) Sign(msg []byte) []byte {
 func (lp *LocalPeer) Listen(addr string) {
 	lp.SignEntry()
 	go lp.Server.Listen(addr, lp, lp.Entry)
+	go lp.QuerySelf()
 }
 
 // Generate a ed25519 keypair.
@@ -506,4 +508,54 @@ func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
 	}
 
 	return proto.JsonToEntry(kv.Value())
+}
+
+func (lp *LocalPeer) QuerySelf() {
+	log.Info("Querying for seeds")
+	seeds := lp.Entry.Seeds
+
+	lps, _ := lp.Address().String()
+
+	for {
+		for _, i := range seeds {
+
+			addr := dht.Address{i}
+
+			if addr.Equals(lp.Address()) {
+				continue
+			}
+
+			s, err := addr.String()
+
+			if err != nil {
+				continue
+			}
+
+			log.WithField("peer", s).Info("Querying for new feeds for self")
+
+			peer, _, err := lp.ConnectPeer(s)
+
+			if err != nil {
+				continue
+			}
+
+			entry, err := peer.Query(lps)
+
+			if err != nil {
+				continue
+			}
+
+			decoded, err := proto.JsonToEntry(entry.Value())
+
+			if err != nil {
+				continue
+			}
+
+			if len(decoded.Seeds) > len(lp.Entry.Seeds) {
+				lp.Entry.Seeds = util.MergeSeeds(lp.Entry.Seeds, decoded.Seeds)
+			}
+
+			time.Sleep(time.Minute * 5)
+		}
+	}
 }

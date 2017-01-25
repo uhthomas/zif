@@ -5,6 +5,7 @@ import (
 
 	"github.com/zif/zif/dht"
 	"github.com/zif/zif/proto"
+	"github.com/zif/zif/util"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -84,33 +85,18 @@ func (sm *SeedManager) findSeeds() {
 			}
 
 			if len(decoded.Seeds) != len(sm.entry.Seeds) {
-				temp := append(decoded.Seeds, sm.entry.Seeds...)
+				result := util.MergeSeeds(sm.entry.Seeds, decoded.Seeds)
 
-				// make a map
-				encountered := make(map[string]bool)
-				result := make([][]byte, 0, len(decoded.Seeds)+len(sm.entry.Seeds))
+				sm.entry.Seeds = result
+				encoded, err := sm.entry.Json()
 
-				for _, i := range temp {
-					encountered[string(i)] = true
+				if err != nil {
+					continue
 				}
 
-				for k, _ := range encountered {
-					result = append(result, []byte(k))
-				}
+				log.WithField("peer", s).Info("Found new seeds")
+				sm.lp.DHT.Insert(dht.NewKeyValue(sm.entry.Address, encoded))
 
-				if len(result) != len(sm.entry.Seeds) {
-					sm.entry.Seeds = result
-					encoded, err := sm.entry.Json()
-
-					if err != nil {
-						continue
-					}
-
-					log.WithField("peer", s).Info("Found new seeds")
-					sm.lp.DHT.Insert(dht.NewKeyValue(sm.entry.Address, encoded))
-
-					return
-				}
 			}
 		}
 	}
