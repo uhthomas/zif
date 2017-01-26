@@ -168,6 +168,7 @@ func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encoda
 
 	if err != nil {
 		log.Error(err.Error())
+		return
 	}
 
 	header, err := handshake(*cl, lp, data)
