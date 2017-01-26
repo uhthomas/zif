@@ -13,11 +13,11 @@ all: build zifd
 
 .PHONY: build
 build: .GOPATH/.ok zifd
-	$Q go install $(if $V,-v) $(VERSION_FLAGS) $(IMPORT_PATH)
+	$Q go install -v $(VERSION_FLAGS) $(IMPORT_PATH)
 	
 .PHONY: zifd
 zifd: .GOPATH/.ok
-	$Q go install $(if $V,-v) $(VERSION_FLAGS) $(IMPORT_PATH)/cmd/zifd
+	$Q go install -v $(VERSION_FLAGS) $(IMPORT_PATH)/cmd/zifd
 
 # .PHONY: otherbin
 # otherbin: .GOPATH/.ok

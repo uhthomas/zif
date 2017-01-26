@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"strconv"
 
@@ -16,6 +17,7 @@ import (
 )
 
 const (
+	ReadLimit      = 1024 * 1024 * 2 // 2MiB max for reads
 	EntryLengthMax = 1024
 	MaxPageSize    = 25
 )
@@ -23,13 +25,22 @@ const (
 type Client struct {
 	conn net.Conn
 
+	limiter *io.LimitedReader
 	decoder *json.Decoder
 	encoder *json.Encoder
 }
 
 // Creates a new client, automatically setting up the json encoder/decoder.
 func NewClient(conn net.Conn) *Client {
-	return &Client{conn, json.NewDecoder(conn), json.NewEncoder(conn)}
+	c := &Client{
+		conn:    conn,
+		limiter: &io.LimitedReader{conn, ReadLimit},
+		encoder: json.NewEncoder(conn),
+	}
+
+	c.decoder = json.NewDecoder(c.limiter)
+
+	return c
 }
 
 func (c *Client) Terminate() {
@@ -64,16 +75,22 @@ func (c *Client) WriteMessage(v interface{}) error {
 func (c *Client) ReadMessage() (*Message, error) {
 	var msg Message
 
+	if c.limiter == nil {
+		c.limiter = &io.LimitedReader{c.conn, ReadLimit}
+	}
+
 	if c.decoder == nil {
-		c.decoder = json.NewDecoder(c.conn)
+		c.decoder = json.NewDecoder(c.limiter)
 	}
 
 	if err := c.decoder.Decode(&msg); err != nil {
+		c.limiter.N = ReadLimit
 		return nil, err
 	}
 
 	msg.Stream = c.conn
 
+	c.limiter.N = ReadLimit
 	return &msg, nil
 }
 

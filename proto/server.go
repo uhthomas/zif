@@ -103,7 +103,7 @@ func (s *Server) ListenStream(peer NetworkPeer, handler ProtocolHandler) {
 func (s *Server) HandleStream(peer NetworkPeer, handler ProtocolHandler, stream net.Conn) {
 	log.Debug("Handling stream")
 
-	cl := Client{stream, nil, nil}
+	cl := NewClient(stream)
 
 	for {
 		msg, err := cl.ReadMessage()
@@ -114,7 +114,7 @@ func (s *Server) HandleStream(peer NetworkPeer, handler ProtocolHandler, stream 
 			}
 			return
 		}
-		msg.Client = &cl
+		msg.Client = cl
 		msg.From = peer.Address()
 
 		s.RouteMessage(msg, handler)
@@ -159,16 +159,16 @@ func (s *Server) RouteMessage(msg *Message, handler ProtocolHandler) {
 }
 
 func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encodable) {
-	cl := Client{conn, nil, nil}
+	cl := NewClient(conn)
 
-	header, err := handshake(cl, lp, data)
+	header, err := handshake(*cl, lp, data)
 
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
-	peer, err := lp.HandleHandshake(ConnHeader{cl, *header})
+	peer, err := lp.HandleHandshake(ConnHeader{*cl, *header})
 
 	if err != nil {
 		log.Error(err.Error())

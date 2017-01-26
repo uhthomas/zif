@@ -552,6 +552,7 @@ func (lp *LocalPeer) QuerySelf() {
 			}
 
 			if len(decoded.Seeds) > len(lp.Entry.Seeds) {
+				log.WithField("from", s).Info("Found new seeds for self")
 				lp.Entry.Seeds = util.MergeSeeds(lp.Entry.Seeds, decoded.Seeds)
 			}
 
