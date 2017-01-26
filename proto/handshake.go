@@ -119,7 +119,7 @@ func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
 	/*binary.Write(cl.conn, binary.BigEndian, ProtoZif)
 	binary.Write(cl.conn, binary.BigEndian, ProtoVersion)*/
 
-	entryJson, err := data.Json()
+	entryEnc, err := data.Encode()
 
 	if err != nil {
 		return err
@@ -127,7 +127,7 @@ func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
 
 	header := Message{
 		Header:  ProtoHeader,
-		Content: entryJson,
+		Content: entryEnc,
 	}
 
 	err = cl.WriteMessage(header)

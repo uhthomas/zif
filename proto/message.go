@@ -1,8 +1,9 @@
 package proto
 
 import (
-	"encoding/json"
 	"net"
+
+	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 
 	"github.com/zif/zif/dht"
 )
@@ -17,7 +18,7 @@ type Message struct {
 }
 
 func (m *Message) WriteInt(i int) {
-	j, _ := json.Marshal(i)
+	j, _ := msgpack.Marshal(i)
 	m.Content = make([]byte, len(j))
 
 	copy(m.Content, j)
@@ -25,17 +26,17 @@ func (m *Message) WriteInt(i int) {
 
 func (m *Message) ReadInt() (int, error) {
 	var ret int
-	err := json.Unmarshal(m.Content, &ret)
+	err := msgpack.Unmarshal(m.Content, &ret)
 
 	return ret, err
 }
 
 func (m *Message) Json() ([]byte, error) {
-	return json.Marshal(m)
+	return msgpack.Marshal(m)
 }
 
 func (m *Message) Decode(iface interface{}) error {
-	err := json.Unmarshal(m.Content, iface)
+	err := msgpack.Unmarshal(m.Content, iface)
 
 	return err
 }

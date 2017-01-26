@@ -138,7 +138,7 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 	p.limiter = &util.PeerLimiter{}
 	p.limiter.Setup()
 
-	encoded, _ := pair.Entry.Json()
+	encoded, _ := pair.Entry.Encode()
 	lp.DHT.Insert(dht.NewKeyValue(pair.Entry.Address, encoded))
 
 	return nil
@@ -221,7 +221,7 @@ func (p *Peer) Entry() (*proto.Entry, error) {
 		return nil, err
 	}
 
-	entry, err := proto.JsonToEntry(kv.Value())
+	entry, err := proto.DecodeEntry(kv.Value(), false)
 
 	if err != nil {
 		return nil, err
@@ -250,7 +250,7 @@ func (p *Peer) Bootstrap(d *dht.DHT) error {
 		return err
 	}
 
-	dat, _ := initial.Json()
+	dat, _ := initial.Encode()
 
 	d.Insert(dht.NewKeyValue(initial.Address, dat))
 

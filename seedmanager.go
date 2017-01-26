@@ -79,7 +79,7 @@ func (sm *SeedManager) findSeeds() {
 				continue
 			}
 
-			decoded, err := proto.JsonToEntry(kv.Value())
+			decoded, err := proto.DecodeEntry(kv.Value(), false)
 			if err != nil {
 				continue
 			}
@@ -88,7 +88,7 @@ func (sm *SeedManager) findSeeds() {
 				result := util.MergeSeeds(sm.entry.Seeds, decoded.Seeds)
 
 				sm.entry.Seeds = result
-				encoded, err := sm.entry.Json()
+				encoded, err := sm.entry.Encode()
 
 				if err != nil {
 					continue

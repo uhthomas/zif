@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 
+	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+
 	"github.com/wjh/hellobitcoin/base58check"
 	"github.com/zif/zif/util"
 	"golang.org/x/crypto/ripemd160"
@@ -40,12 +42,12 @@ func (a *Address) Bytes() ([]byte, error) {
 	return a.Raw, nil
 }
 
-func (a *Address) Json() ([]byte, error) {
-	return json.Marshal(a)
+func (a *Address) Encode() ([]byte, error) {
+	return msgpack.Marshal(a)
 }
 
-func (a *Address) JsonString() (string, error) {
-	dat, err := a.Json()
+func (a *Address) EncodeString() (string, error) {
+	dat, err := json.Marshal(a)
 
 	return string(dat), err
 }

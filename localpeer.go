@@ -220,7 +220,7 @@ func (lp *LocalPeer) Resolve(addr string) (*proto.Entry, error) {
 	}
 
 	if kv != nil {
-		return proto.JsonToEntry(kv.Value())
+		return proto.DecodeEntry(kv.Value(), false)
 	}
 
 	closest, err := lp.DHT.FindClosest(address)
@@ -230,7 +230,7 @@ func (lp *LocalPeer) Resolve(addr string) (*proto.Entry, error) {
 	}
 
 	for _, i := range closest {
-		e, err := proto.JsonToEntry(i.Value())
+		e, err := proto.DecodeEntry(i.Value(), false)
 
 		if err == nil {
 			// TODO: Goroutine this.
@@ -275,7 +275,7 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 	}
 
 	if kv != nil {
-		entry, err := proto.JsonToEntry(kv.Value())
+		entry, err := proto.DecodeEntry(kv.Value(), false)
 		return entry, err
 	}
 
@@ -286,7 +286,7 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 	}
 
 	for _, i := range closest {
-		entry, err := proto.JsonToEntry(i.Value())
+		entry, err := proto.DecodeEntry(i.Value(), false)
 
 		if err != nil {
 			continue
@@ -295,7 +295,7 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 		result, err := lp.resolveStep(entry, addr)
 
 		if result != nil {
-			ret, _ := proto.JsonToEntry(i.Value())
+			ret, _ := proto.DecodeEntry(i.Value(), false)
 
 			return ret, nil
 		}
@@ -305,13 +305,13 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 }
 
 func (lp *LocalPeer) SaveEntry() error {
-	dat, err := lp.Entry.Json()
+	dat, err := lp.Entry.EncodeString()
 
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile("./data/entry.json", dat, 0644)
+	return ioutil.WriteFile("./data/entry.json", []byte(dat), 0644)
 }
 
 func (lp *LocalPeer) LoadEntry() error {
@@ -321,7 +321,7 @@ func (lp *LocalPeer) LoadEntry() error {
 		return err
 	}
 
-	entry, err := proto.JsonToEntry(dat)
+	entry, err := proto.DecodeEntry(dat, true)
 
 	if err != nil {
 		return err
@@ -402,7 +402,7 @@ func (lp *LocalPeer) StartExploring() {
 			// reinsert regardless of whether we have it or not. This helps
 			// keep more "active" things at the top, and also keeps us up to date.
 			// make sure it is newer!
-			entry, err := proto.JsonToEntry(i.Value())
+			entry, err := proto.DecodeEntry(i.Value(), false)
 			if err != nil {
 				continue
 			}
@@ -414,7 +414,7 @@ func (lp *LocalPeer) StartExploring() {
 
 				in <- i
 			} else {
-				current, err := proto.JsonToEntry(kv.Value())
+				current, err := proto.DecodeEntry(kv.Value(), false)
 				if err != nil {
 					continue
 				}
@@ -508,7 +508,7 @@ func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
 		return nil, err
 	}
 
-	return proto.JsonToEntry(kv.Value())
+	return proto.DecodeEntry(kv.Value(), false)
 }
 
 func (lp *LocalPeer) QuerySelf() {
@@ -546,7 +546,7 @@ func (lp *LocalPeer) QuerySelf() {
 				continue
 			}
 
-			decoded, err := proto.JsonToEntry(entry.Value())
+			decoded, err := proto.DecodeEntry(entry.Value(), false)
 
 			if err != nil {
 				continue

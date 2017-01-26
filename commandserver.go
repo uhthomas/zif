@@ -442,7 +442,7 @@ func (cs *CommandServer) LocalGet(clg CommandLocalGet) CommandResult {
 	case "postcount":
 		value = strconv.Itoa(cs.LocalPeer.Entry.PostCount)
 	case "entry":
-		value, _ = cs.LocalPeer.Entry.JsonString()
+		value, _ = cs.LocalPeer.Entry.EncodeString()
 
 	default:
 		return CommandResult{false, nil, errors.New("Unknown key")}

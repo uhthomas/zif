@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+
 	"github.com/zif/zif/dht"
 
 	"golang.org/x/crypto/ed25519"
@@ -51,9 +53,16 @@ type Entry struct {
 	distance dht.Address
 }
 
-func JsonToEntry(j []byte) (*Entry, error) {
+// true if JSON, false if msgpack
+func DecodeEntry(data []byte, isJson bool) (*Entry, error) {
+	var err error
 	e := &Entry{}
-	err := json.Unmarshal(j, e)
+
+	if isJson {
+		err = json.Unmarshal(data, e)
+	} else {
+		err = msgpack.Unmarshal(data, e)
+	}
 
 	if err != nil {
 		return nil, err
@@ -85,18 +94,20 @@ func (e Entry) String() (string, error) {
 	return str, nil
 }
 
-func (e Entry) Json() ([]byte, error) {
-	return json.Marshal(e)
+func (e Entry) Encode() ([]byte, error) {
+	return msgpack.Marshal(e)
 }
 
-func (e Entry) JsonString() (string, error) {
-	json, err := json.Marshal(e)
+// Returns a JSON encoded string, not msgpack. This is because it is likely
+// going to be seen by a human, otherwise it would be bytes.
+func (e Entry) EncodeString() (string, error) {
+	enc, err := json.Marshal(e)
 
 	if err != nil {
 		return "", err
 	}
 
-	return string(json), err
+	return string(enc), err
 }
 
 func (e *Entry) SetLocalPeer(lp ProtocolHandler) {

@@ -2,13 +2,13 @@ package proto
 
 import (
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"io"
 	"net"
 	"strconv"
 
 	"golang.org/x/crypto/ed25519"
+	"gopkg.in/vmihailenco/msgpack.v2"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zif/zif/common"
@@ -26,8 +26,8 @@ type Client struct {
 	conn net.Conn
 
 	limiter *io.LimitedReader
-	decoder *json.Decoder
-	encoder *json.Encoder
+	decoder *msgpack.Decoder
+	encoder *msgpack.Encoder
 }
 
 // Creates a new client, automatically setting up the json encoder/decoder.
@@ -35,8 +35,8 @@ func NewClient(conn net.Conn) (*Client, error) {
 	c := &Client{conn: conn}
 
 	c.limiter = &io.LimitedReader{c.conn, ReadLimit}
-	c.decoder = json.NewDecoder(c.limiter)
-	c.encoder = json.NewEncoder(c.conn)
+	c.decoder = msgpack.NewDecoder(c.limiter)
+	c.encoder = msgpack.NewEncoder(c.conn)
 
 	return c, nil
 }
@@ -60,7 +60,7 @@ func (c *Client) WriteMessage(v interface{}) error {
 	}
 
 	if c.encoder == nil {
-		c.encoder = json.NewEncoder(c.conn)
+		c.encoder = msgpack.NewEncoder(c.conn)
 	}
 
 	err := c.encoder.Encode(v)
@@ -78,7 +78,7 @@ func (c *Client) ReadMessage() (*Message, error) {
 	}
 
 	if c.decoder == nil {
-		c.decoder = json.NewDecoder(c.limiter)
+		c.decoder = msgpack.NewDecoder(c.limiter)
 	}
 
 	if err := c.decoder.Decode(&msg); err != nil {
@@ -98,8 +98,8 @@ func (c *Client) Decode(i interface{}) error {
 
 // Sends a DHT entry to a peer.
 func (c *Client) SendStruct(e common.Encodable) error {
-	json, err := e.Json()
-	msg := Message{Header: ProtoEntry, Content: json}
+	enc, err := e.Encode()
+	msg := Message{Header: ProtoEntry, Content: enc}
 
 	if err != nil {
 		c.conn.Close()
@@ -114,7 +114,7 @@ func (c *Client) SendStruct(e common.Encodable) error {
 // Announce the given DHT entry to a peer, passes on this peers details,
 // meaning that it can be reached by other peers on the network.
 func (c *Client) Announce(e common.Encodable) error {
-	json, err := e.Json()
+	enc, err := e.Encode()
 
 	if err != nil {
 		c.conn.Close()
@@ -123,7 +123,7 @@ func (c *Client) Announce(e common.Encodable) error {
 
 	msg := &Message{
 		Header:  ProtoDhtAnnounce,
-		Content: json,
+		Content: enc,
 	}
 
 	err = c.WriteMessage(msg)

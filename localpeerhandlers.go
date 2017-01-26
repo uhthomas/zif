@@ -52,7 +52,7 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
 
 		var dat []byte
-		dat, err = lp.Entry.Json()
+		dat, err = lp.Entry.Encode()
 
 		if err != nil {
 			return err
@@ -109,7 +109,7 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 	if address.Equals(lp.Address()) {
 		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
 
-		json, err := lp.Entry.Json()
+		dat, err := lp.Entry.Encode()
 
 		if err != nil {
 			return err
@@ -123,7 +123,7 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 			return err
 		}
 
-		kv := dht.NewKeyValue(lp.Entry.Address, json)
+		kv := dht.NewKeyValue(lp.Entry.Address, dat)
 
 		err = cl.WriteMessage(kv)
 
@@ -169,8 +169,8 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 		return err
 	}
 
-	json, _ := entry.Json()
-	err = lp.DHT.Insert(dht.NewKeyValue(entry.Address, json))
+	dat, _ := entry.Encode()
+	err = lp.DHT.Insert(dht.NewKeyValue(entry.Address, dat))
 
 	if err == nil {
 		cl.WriteMessage(&proto.Message{Header: proto.ProtoOk})
@@ -320,7 +320,7 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 		hashList = make([]byte, len(hl))
 		copy(hashList, hl)
 
-		entry, err := proto.JsonToEntry(kv.Value())
+		entry, err := proto.DecodeEntry(kv.Value(), false)
 
 		if err != nil {
 			return err
@@ -453,7 +453,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 			return errors.New("Cannot add peer, do not have entry")
 		}
 
-		decoded, err := proto.JsonToEntry(kv.Value())
+		decoded, err := proto.DecodeEntry(kv.Value(), false)
 
 		if err != nil {
 			return err
@@ -467,7 +467,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 				"for":  pfor,
 				"seed": from}).Info("Added seed")
 
-		newEntry, err := decoded.Json()
+		newEntry, err := decoded.Encode()
 
 		if err != nil {
 			return err

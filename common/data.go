@@ -5,8 +5,8 @@ type Encodable interface {
 	String() (string, error)
 
 	// The latter two may be equivelant
-	Json() ([]byte, error)
-	JsonString() (string, error)
+	Encode() ([]byte, error)
+	EncodeString() (string, error)
 }
 
 type Signer interface {
