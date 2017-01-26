@@ -35,13 +35,15 @@ func ReadPost(r io.Reader, delim byte) {
 }
 
 func MergeSeeds(one [][]byte, two [][]byte) [][]byte {
-	temp := append(one, two...)
-
 	// make a map
 	encountered := make(map[string]bool)
 	result := make([][]byte, 0, len(one)+len(two))
 
-	for _, i := range temp {
+	for _, i := range one {
+		encountered[string(i)] = true
+	}
+
+	for _, i := range two {
 		encountered[string(i)] = true
 	}
 

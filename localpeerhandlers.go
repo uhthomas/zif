@@ -151,12 +151,16 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 }
 
 func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
-	cl := proto.NewClient(msg.Stream)
+	cl, err := proto.NewClient(msg.Stream)
+
+	if err != nil {
+		return err
+	}
 
 	defer msg.Stream.Close()
 
 	entry := proto.Entry{}
-	err := msg.Decode(&entry)
+	err = msg.Decode(&entry)
 
 	es, _ := entry.Address.String()
 	log.WithField("address", es).Info("Announce")

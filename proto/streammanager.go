@@ -106,16 +106,27 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, dat
 		return nil, errors.New("Failed to handshake, nil entry")
 	}
 
-	pair := ConnHeader{*NewClient(conn), *header}
+	c, err := NewClient(conn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pair := ConnHeader{*c, *header}
 	sm.connection = pair
 
 	return &pair, nil
 }
 
 func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encodable) (*Entry, error) {
-	cl := NewClient(conn)
+	cl, err := NewClient(conn)
+
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("Sending handshake")
-	err := handshake_send(*cl, lp, data)
+	err = handshake_send(*cl, lp, data)
 
 	msg, err := cl.ReadMessage()
 

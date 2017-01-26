@@ -25,22 +25,35 @@ const (
 type Client struct {
 	conn net.Conn
 
+	gzr     *gzip.Reader
+	gzw     *gzip.Writer
 	limiter *io.LimitedReader
 	decoder *json.Decoder
 	encoder *json.Encoder
 }
 
 // Creates a new client, automatically setting up the json encoder/decoder.
-func NewClient(conn net.Conn) *Client {
-	c := &Client{
-		conn:    conn,
-		limiter: &io.LimitedReader{conn, ReadLimit},
-		encoder: json.NewEncoder(conn),
+func NewClient(conn net.Conn) (*Client, error) {
+	var err error
+	c := &Client{conn: conn}
+
+	c.gzr, err = gzip.NewReader(conn)
+
+	if err != nil {
+		return nil, err
 	}
 
-	c.decoder = json.NewDecoder(c.limiter)
+	c.gzw = gzip.NewWriter(conn)
 
-	return c
+	if err != nil {
+		return nil, err
+	}
+
+	c.limiter = &io.LimitedReader{c.gzr, ReadLimit}
+	c.decoder = json.NewDecoder(c.limiter)
+	c.encoder = json.NewEncoder(c.gzw)
+
+	return c, nil
 }
 
 func (c *Client) Terminate() {
@@ -62,7 +75,7 @@ func (c *Client) WriteMessage(v interface{}) error {
 	}
 
 	if c.encoder == nil {
-		c.encoder = json.NewEncoder(c.conn)
+		c.encoder = json.NewEncoder(c.gzw)
 	}
 
 	err := c.encoder.Encode(v)
@@ -76,7 +89,7 @@ func (c *Client) ReadMessage() (*Message, error) {
 	var msg Message
 
 	if c.limiter == nil {
-		c.limiter = &io.LimitedReader{c.conn, ReadLimit}
+		c.limiter = &io.LimitedReader{c.gzr, ReadLimit}
 	}
 
 	if c.decoder == nil {
