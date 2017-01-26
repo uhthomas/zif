@@ -103,6 +103,10 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, *proto.Entry, error) {
 
 	entry, err := lp.Resolve(addr)
 
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if entry.Address.Equals(lp.Address()) {
 		return nil, nil, errors.New("Cannot connect to self")
 	}

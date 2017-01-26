@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"strconv"
 
+	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/zif/zif/data"
@@ -59,7 +61,7 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		}
 
 		kv := dht.NewKeyValue(lp.Entry.Address, dat)
-		encoded, _ := json.Marshal(kv)
+		encoded, _ := msgpack.Marshal(kv)
 		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: encoded})
 
 	} else {
@@ -74,7 +76,7 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 			cl.WriteMessage(&proto.Message{Header: proto.ProtoNo})
 		}
 
-		encoded, _ := json.Marshal(kv)
+		encoded, _ := msgpack.Marshal(kv)
 		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: encoded})
 	}
 
