@@ -145,6 +145,7 @@ func (lp *LocalPeer) Listen(addr string) {
 	lp.SignEntry()
 	go lp.Server.Listen(addr, lp, lp.Entry)
 	go lp.QuerySelf()
+	lp.peerManager.LoadSeeds()
 }
 
 // Generate a ed25519 keypair.

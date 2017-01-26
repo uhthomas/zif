@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"os"
 	"time"
 
 	"github.com/hashicorp/yamux"
@@ -460,7 +461,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	log.Info("Mirror complete")
 
-	p.RequestAddPeer(s)
+	err = p.RequestAddPeer(s)
 
 	// we're done mirroring, so now we need to switch OFF the fact that this is
 	// a seed. If it becomes a seed again, it will be properly set by the
@@ -495,6 +496,30 @@ func (p *Peer) RequestAddPeer(addr string) error {
 		return err
 	}
 
-	return p.addSeedManager(address)
+	err = p.addSeedManager(address)
 
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat("./data/seeding.dat")
+
+	if os.IsNotExist(err) {
+		os.Create("./data/seeding.dat")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	seedList, err := os.OpenFile("./data/seeding.dat", os.O_APPEND|os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+
+	defer seedList.Close()
+
+	_, err = seedList.Write(address.Raw)
+
+	return err
 }

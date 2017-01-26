@@ -2,6 +2,8 @@ package libzif
 
 import (
 	"errors"
+	"io"
+	"os"
 	"strconv"
 	"time"
 
@@ -100,6 +102,10 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, *proto.Entry, error) {
 	var peer *Peer
 
 	entry, err := lp.Resolve(addr)
+
+	if entry.Address.Equals(lp.Address()) {
+		return nil, nil, errors.New("Cannot connect to self")
+	}
 
 	if entry == nil {
 		return nil, nil, data.AddressResolutionError{addr}
@@ -249,6 +255,8 @@ func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
 		return nil
 	}
 
+	log.WithField("peer", s).Info("Loading seed manager")
+
 	sm, err := NewSeedManager(addr, pm.localPeer)
 
 	if err != nil {
@@ -259,4 +267,33 @@ func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
 	sm.Start()
 
 	return nil
+}
+
+func (pm *PeerManager) LoadSeeds() error {
+	log.Info("Loading seed list")
+	seedList, err := os.OpenFile("./data/seeding.dat", os.O_RDONLY, 0666)
+
+	if err != nil {
+		return err
+	}
+
+	defer seedList.Close()
+
+	address := make([]byte, 20)
+
+	for _, err = io.ReadFull(seedList, address); err == nil; {
+		addr := dht.Address{address}
+
+		err := pm.AddSeedManager(addr)
+
+		if err != nil {
+			log.Error(err.Error())
+		}
+	}
+
+	if err == io.EOF {
+		return nil
+	}
+
+	return err
 }
