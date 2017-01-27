@@ -257,7 +257,6 @@ func (c *Client) Query(address string) (*Entry, error) {
 	}
 
 	return entry, nil
-
 }
 
 // Adds the initial entries into the given routing table. Essentially queries for
