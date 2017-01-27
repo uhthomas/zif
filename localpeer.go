@@ -402,6 +402,12 @@ func (lp *LocalPeer) StartExploring() {
 			// make sure it is newer!
 			ps, _ := i.Address.String()
 			encoded, err := i.Encode()
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
 			if kv == nil {
 
 				if err != nil {
@@ -419,9 +425,23 @@ func (lp *LocalPeer) StartExploring() {
 					continue
 				}
 
-				if i.Updated >= current.Updated || (i.Updated >= current.Updated && len(i.Seeds) > len(current.Seeds)) {
+				if i.Updated > current.Updated {
 					lp.DHT.Insert(dht.NewKeyValue(i.Address, encoded))
 					log.WithField("peer", ps).Info("Updated peer")
+
+				} else if len(i.Seeds) > len(current.Seeds) {
+					current.Seeds = util.MergeSeeds(current.Seeds, i.Seeds)
+
+					currentDat, err := current.Encode()
+
+					if err != nil {
+						log.Error(err.Error())
+						continue
+					}
+
+					lp.DHT.Insert(dht.NewKeyValue(current.Address, currentDat))
+
+					log.WithField("peer", ps).Info("Found new seeds")
 				}
 			}
 		}
