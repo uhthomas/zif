@@ -286,18 +286,16 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 	}
 
 	for _, i := range closest {
-		entry, err := proto.DecodeEntry(i.Value(), false)
-
-		if err != nil {
-			continue
-		}
+		entry := i.(*proto.Entry)
 
 		result, err := lp.resolveStep(entry, addr)
 
-		if result != nil {
-			ret, _ := proto.DecodeEntry(i.Value(), false)
+		if err != nil {
+			return nil, err
+		}
 
-			return ret, nil
+		if result != nil {
+			return result, nil
 		}
 	}
 

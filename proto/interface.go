@@ -37,5 +37,5 @@ type NetworkPeer interface {
 
 	Address() *dht.Address
 	Query(string) (*Entry, error)
-	FindClosest(address string) (dht.Pairs, error)
+	FindClosest(address string) ([]common.Verifiable, error)
 }

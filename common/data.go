@@ -13,3 +13,7 @@ type Signer interface {
 	Sign([]byte) []byte
 	PublicKey() []byte
 }
+
+type Verifiable interface {
+	Verify() error
+}

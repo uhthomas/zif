@@ -280,7 +280,7 @@ func (p *Peer) Query(address string) (*proto.Entry, error) {
 	return entry, err
 }
 
-func (p *Peer) FindClosest(address string) (dht.Pairs, error) {
+func (p *Peer) FindClosest(address string) ([]common.Verifiable, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err

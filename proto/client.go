@@ -144,7 +144,7 @@ func (c *Client) Announce(e common.Encodable) error {
 	return nil
 }
 
-func (c *Client) FindClosest(address string) (dht.Pairs, error) {
+func (c *Client) FindClosest(address string) ([]common.Verifiable, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -186,6 +186,10 @@ func (c *Client) FindClosest(address string) (dht.Pairs, error) {
 		return nil, err
 	}
 
+	if length > dht.BucketSize {
+		return nil, errors.New("Too many entries returned")
+	}
+
 	entries := make(dht.Pairs, 0, length)
 
 	for i := 0; i < length; i++ {
@@ -201,7 +205,25 @@ func (c *Client) FindClosest(address string) (dht.Pairs, error) {
 
 	log.WithField("entries", len(entries)).Info("Find closest complete")
 
-	return entries, err
+	result := make([]common.Verifiable, 0, len(entries))
+
+	for _, i := range entries {
+		entry := &Entry{}
+		err := i.Decode(&entry)
+
+		if err != nil {
+			return nil, err
+		}
+
+		valid := entry.Verify()
+		if valid != nil {
+			return nil, valid
+		}
+
+		result = append(result, entry)
+	}
+
+	return result, err
 }
 
 func (c *Client) Query(address string) (*Entry, error) {
@@ -274,12 +296,24 @@ func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 	}
 
 	// add them all to our routing table! :D
-	for _, e := range peers {
-		if len(e.Key().Raw) != dht.AddressBinarySize {
+	for _, i := range peers {
+		e := i.(*Entry)
+
+		if e == nil {
+			return errors.New("Nil entry")
+		}
+
+		if len(e.Address.Raw) != dht.AddressBinarySize {
 			continue
 		}
 
-		d.Insert(e)
+		dat, err := e.Encode()
+
+		if err != nil {
+			return err
+		}
+
+		d.Insert(dht.NewKeyValue(e.Address, dat))
 	}
 
 	if len(peers) > 1 {

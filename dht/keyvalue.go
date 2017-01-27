@@ -1,5 +1,7 @@
 package dht
 
+import msgpack "gopkg.in/vmihailenco/msgpack.v2"
+
 const (
 	MaxValueSize = 10 * 1024
 )
@@ -17,6 +19,10 @@ func (kv KeyValue) Key() *Address {
 
 func (kv KeyValue) Value() []byte {
 	return kv.Value_
+}
+
+func (kv KeyValue) Decode(iface interface{}) error {
+	return msgpack.Unmarshal(kv.Value(), iface)
 }
 
 func NewKeyValue(key Address, value []byte) *KeyValue {
