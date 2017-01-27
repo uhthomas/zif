@@ -377,7 +377,7 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 }
 
 func (lp *LocalPeer) StartExploring() {
-	in := make(chan dht.KeyValue, jobs.ExploreBufferSize)
+	in := make(chan proto.Entry, jobs.ExploreBufferSize)
 
 	lp.seedExplore(in)
 
@@ -387,27 +387,29 @@ func (lp *LocalPeer) StartExploring() {
 			return peer, err
 		},
 		lp.address,
-		func(in chan dht.KeyValue) { lp.seedExplore(in) })
+		func(in chan proto.Entry) { lp.seedExplore(in) })
 
 	go func() {
 		for i := range ret {
-			kv, err := lp.DHT.Query(*i.Key())
+			kv, err := lp.DHT.Query(i.Address)
 
-			if i.Key().Equals(lp.Address()) {
+			if i.Address.Equals(lp.Address()) {
 				continue
 			}
 
 			// reinsert regardless of whether we have it or not. This helps
 			// keep more "active" things at the top, and also keeps us up to date.
 			// make sure it is newer!
-			entry, err := proto.DecodeEntry(i.Value(), false)
-			if err != nil {
-				continue
-			}
-
+			ps, _ := i.Address.String()
+			encoded, err := i.Encode()
 			if kv == nil {
-				ps, _ := i.Key().String()
-				lp.DHT.Insert(&i)
+
+				if err != nil {
+					log.Error(err.Error())
+					continue
+				}
+
+				lp.DHT.Insert(dht.NewKeyValue(i.Address, encoded))
 				log.WithField("peer", ps).Info("Discovered new peer")
 
 				in <- i
@@ -417,15 +419,16 @@ func (lp *LocalPeer) StartExploring() {
 					continue
 				}
 
-				if entry.Updated >= current.Updated || (entry.Updated >= current.Updated && len(entry.Seeds) > len(current.Seeds)) {
-					lp.DHT.Insert(&i)
+				if i.Updated >= current.Updated || (i.Updated >= current.Updated && len(i.Seeds) > len(current.Seeds)) {
+					lp.DHT.Insert(dht.NewKeyValue(i.Address, encoded))
+					log.WithField("peer", ps).Info("Updated peer")
 				}
 			}
 		}
 	}()
 }
 
-func (lp *LocalPeer) seedExplore(in chan dht.KeyValue) {
+func (lp *LocalPeer) seedExplore(in chan proto.Entry) {
 	closest, err := lp.DHT.FindClosest(*lp.Address())
 
 	if err != nil {
@@ -444,7 +447,15 @@ func (lp *LocalPeer) seedExplore(in chan dht.KeyValue) {
 		}
 
 		if !i.Key().Equals(lp.Address()) {
-			in <- *i
+			entry := proto.Entry{}
+			err := i.Decode(&entry)
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			in <- entry
 		}
 	}
 }
