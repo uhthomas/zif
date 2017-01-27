@@ -215,11 +215,13 @@ func (p *Peer) Entry() (*proto.Entry, error) {
 	}
 
 	s, _ := p.Address().String()
-	entry, err := p.Query(s)
+	e, err := p.Query(s)
 
 	if err != nil {
 		return nil, err
 	}
+
+	entry := e.(*proto.Entry)
 
 	log.WithField("addr", s).Info("Recieved")
 
@@ -259,7 +261,7 @@ func (p *Peer) Bootstrap(d *dht.DHT) error {
 	return stream.Bootstrap(d, d.Address())
 }
 
-func (p *Peer) Query(address string) (*proto.Entry, error) {
+func (p *Peer) Query(address string) (common.Verifiable, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err

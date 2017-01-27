@@ -74,10 +74,12 @@ func (sm *SeedManager) findSeeds() {
 			es, _ := entry.Address.String()
 			log.WithField("peer", es).Info("Querying for seeds")
 
-			qResult, err := peer.Query(ts)
+			qResultVerifiable, err := peer.Query(ts)
 			if err != nil {
 				continue
 			}
+
+			qResult := qResultVerifiable.(*proto.Entry)
 
 			if len(qResult.Seeds) != len(sm.entry.Seeds) {
 				result := util.MergeSeeds(sm.entry.Seeds, qResult.Seeds)

@@ -276,7 +276,7 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 
 	if kv != nil {
 		entry := kv
-		return entry, err
+		return entry.(*proto.Entry), err
 	}
 
 	closest, err := peer.FindClosest(s)
@@ -397,9 +397,6 @@ func (lp *LocalPeer) StartExploring() {
 				continue
 			}
 
-			// reinsert regardless of whether we have it or not. This helps
-			// keep more "active" things at the top, and also keeps us up to date.
-			// make sure it is newer!
 			ps, _ := i.Address.String()
 			encoded, err := i.Encode()
 
@@ -572,11 +569,12 @@ func (lp *LocalPeer) QuerySelf() {
 			continue
 		}
 
-		entry, err := peer.Query(lps)
+		e, err := peer.Query(lps)
 
 		if err != nil {
 			continue
 		}
+		entry := e.(*proto.Entry)
 
 		if len(entry.Seeds) > len(lp.Entry.Seeds) {
 			log.WithField("from", s).Info("Found new seeds for self")
