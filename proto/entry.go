@@ -130,6 +130,10 @@ func (e Entries) Less(i, j int) bool {
 // Zif libzifcol. If an entry passes this, then we should be able to perform
 // most operations on it.
 func (entry *Entry) Verify() error {
+	if entry == nil {
+		return errors.New("Entry is nil")
+	}
+
 	if len(entry.Address.Raw) != 20 {
 		return errors.New("Address size invalid")
 	}
