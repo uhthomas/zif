@@ -3,7 +3,6 @@ package libzif
 import (
 	"bufio"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -208,7 +207,7 @@ func (lp *LocalPeer) HandleSearch(msg *proto.Message) error {
 	}
 	log.Info("Posts loaded")
 
-	json, err := json.Marshal(posts)
+	json, err := msgpack.Marshal(posts)
 
 	if err != nil {
 		return err
@@ -239,7 +238,7 @@ func (lp *LocalPeer) HandleRecent(msg *proto.Message) error {
 		return err
 	}
 
-	recent_json, err := json.Marshal(recent)
+	recent_json, err := msgpack.Marshal(recent)
 
 	if err != nil {
 		return err
@@ -270,7 +269,7 @@ func (lp *LocalPeer) HandlePopular(msg *proto.Message) error {
 		return err
 	}
 
-	recent_json, err := json.Marshal(recent)
+	recent_json, err := msgpack.Marshal(recent)
 
 	if err != nil {
 		return err

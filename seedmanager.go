@@ -52,7 +52,7 @@ func (sm *SeedManager) Start() {
 
 // queries all seeds to see if we can find new seeds
 func (sm *SeedManager) findSeeds() {
-	ticker := time.NewTimer(SeedSearchFrequency)
+	ticker := time.NewTicker(SeedSearchFrequency)
 	ts, _ := sm.entry.Address.String()
 
 	find := func() {

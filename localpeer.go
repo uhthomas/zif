@@ -513,51 +513,49 @@ func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
 
 func (lp *LocalPeer) QuerySelf() {
 	log.Info("Querying for seeds")
-	seeds := lp.Entry.Seeds
-
 	lps, _ := lp.Address().String()
+	ticker := time.NewTicker(time.Minute * 5)
 
-	for {
-		for _, i := range seeds {
+	for _ = range ticker.C {
+		i := lp.Entry.Seeds[util.CryptoRandInt(0, int64(len(lp.Entry.Seeds)))]
 
-			addr := dht.Address{i}
+		addr := dht.Address{i}
 
-			if addr.Equals(lp.Address()) {
-				continue
-			}
-
-			s, err := addr.String()
-
-			if err != nil {
-				continue
-			}
-
-			log.WithField("peer", s).Info("Querying for new feeds for self")
-
-			peer, _, err := lp.ConnectPeer(s)
-
-			if err != nil {
-				continue
-			}
-
-			entry, err := peer.Query(lps)
-
-			if err != nil {
-				continue
-			}
-
-			decoded, err := proto.DecodeEntry(entry.Value(), false)
-
-			if err != nil {
-				continue
-			}
-
-			if len(decoded.Seeds) > len(lp.Entry.Seeds) {
-				log.WithField("from", s).Info("Found new seeds for self")
-				lp.Entry.Seeds = util.MergeSeeds(lp.Entry.Seeds, decoded.Seeds)
-			}
-
-			time.Sleep(time.Minute * 5)
+		if addr.Equals(lp.Address()) {
+			continue
 		}
+
+		s, err := addr.String()
+
+		if err != nil {
+			continue
+		}
+
+		log.WithField("peer", s).Info("Querying for new feeds for self")
+
+		peer, _, err := lp.ConnectPeer(s)
+
+		if err != nil {
+			continue
+		}
+
+		entry, err := peer.Query(lps)
+
+		if err != nil {
+			continue
+		}
+
+		decoded, err := proto.DecodeEntry(entry.Value(), false)
+
+		if err != nil {
+			continue
+		}
+
+		if len(decoded.Seeds) > len(lp.Entry.Seeds) {
+			log.WithField("from", s).Info("Found new seeds for self")
+			lp.Entry.Seeds = util.MergeSeeds(lp.Entry.Seeds, decoded.Seeds)
+		}
+
+		time.Sleep(time.Minute * 5)
 	}
 }
