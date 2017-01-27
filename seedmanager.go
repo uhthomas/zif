@@ -74,18 +74,13 @@ func (sm *SeedManager) findSeeds() {
 			es, _ := entry.Address.String()
 			log.WithField("peer", es).Info("Querying for seeds")
 
-			kv, err := peer.Query(ts)
+			qResult, err := peer.Query(ts)
 			if err != nil {
 				continue
 			}
 
-			decoded, err := proto.DecodeEntry(kv.Value(), false)
-			if err != nil {
-				continue
-			}
-
-			if len(decoded.Seeds) != len(sm.entry.Seeds) {
-				result := util.MergeSeeds(sm.entry.Seeds, decoded.Seeds)
+			if len(qResult.Seeds) != len(sm.entry.Seeds) {
+				result := util.MergeSeeds(sm.entry.Seeds, qResult.Seeds)
 
 				sm.entry.Seeds = result
 				encoded, err := sm.entry.Encode()

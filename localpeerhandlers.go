@@ -31,7 +31,9 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	log.Info("Handling query")
 	cl := msg.Client
 
-	//msg.From.limiter.queryLimiter.Wait()
+	if len(msg.Content) > 35 {
+		return errors.New("Invalid address")
+	}
 
 	address, err := dht.DecodeAddress(string(msg.Content))
 
@@ -59,9 +61,7 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 			return err
 		}
 
-		kv := dht.NewKeyValue(lp.Entry.Address, dat)
-		encoded, _ := msgpack.Marshal(kv)
-		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: encoded})
+		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: dat})
 
 	} else {
 		kv := &dht.KeyValue{}

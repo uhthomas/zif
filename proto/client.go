@@ -17,7 +17,6 @@ import (
 )
 
 const (
-	ReadLimit      = 1024 * 1024 * 2 // 2MiB max for reads
 	EntryLengthMax = 1024
 	MaxPageSize    = 25
 )
@@ -34,7 +33,7 @@ type Client struct {
 func NewClient(conn net.Conn) (*Client, error) {
 	c := &Client{conn: conn}
 
-	c.limiter = &io.LimitedReader{c.conn, ReadLimit}
+	c.limiter = &io.LimitedReader{c.conn, common.MaxEntrySize}
 	c.decoder = msgpack.NewDecoder(c.limiter)
 	c.encoder = msgpack.NewEncoder(c.conn)
 
@@ -74,7 +73,7 @@ func (c *Client) ReadMessage() (*Message, error) {
 	var msg Message
 
 	if c.limiter == nil {
-		c.limiter = &io.LimitedReader{c.conn, ReadLimit}
+		c.limiter = &io.LimitedReader{c.conn, common.MaxEntrySize}
 	}
 
 	if c.decoder == nil {
@@ -82,13 +81,13 @@ func (c *Client) ReadMessage() (*Message, error) {
 	}
 
 	if err := c.decoder.Decode(&msg); err != nil {
-		c.limiter.N = ReadLimit
+		c.limiter.N = common.MaxEntrySize
 		return nil, err
 	}
 
 	msg.Stream = c.conn
 
-	c.limiter.N = ReadLimit
+	c.limiter.N = common.MaxEntrySize
 	return &msg, nil
 }
 
@@ -204,7 +203,7 @@ func (c *Client) FindClosest(address string) (dht.Pairs, error) {
 	return entries, err
 }
 
-func (c *Client) Query(address string) (*dht.KeyValue, error) {
+func (c *Client) Query(address string) (*Entry, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -230,8 +229,11 @@ func (c *Client) Query(address string) (*dht.KeyValue, error) {
 		return nil, errors.New("Peer refused query address")
 	}
 
-	kv := &dht.KeyValue{}
 	kvr, err := c.ReadMessage()
+
+	if len(kvr.Content) > common.MaxEntrySize {
+		return nil, errors.New("Entry too large")
+	}
 
 	if err != nil {
 		return nil, err
@@ -241,9 +243,20 @@ func (c *Client) Query(address string) (*dht.KeyValue, error) {
 		return nil, nil
 	}
 
-	kvr.Decode(kv)
+	var entry *Entry
+	kvr.Decode(entry)
 
-	return kv, err
+	if err != nil {
+		return nil, err
+	}
+
+	err = entry.Verify()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return entry, nil
 
 }
 

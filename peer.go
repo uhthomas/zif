@@ -215,13 +215,7 @@ func (p *Peer) Entry() (*proto.Entry, error) {
 	}
 
 	s, _ := p.Address().String()
-	kv, err := p.Query(s)
-
-	if err != nil {
-		return nil, err
-	}
-
-	entry, err := proto.DecodeEntry(kv.Value(), false)
+	entry, err := p.Query(s)
 
 	if err != nil {
 		return nil, err
@@ -265,7 +259,7 @@ func (p *Peer) Bootstrap(d *dht.DHT) error {
 	return stream.Bootstrap(d, d.Address())
 }
 
-func (p *Peer) Query(address string) (*dht.KeyValue, error) {
+func (p *Peer) Query(address string) (*proto.Entry, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err

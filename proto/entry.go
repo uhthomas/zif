@@ -12,6 +12,13 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
+const (
+	MaxEntryNameLength          = 32
+	MaxEntryDescLength          = 160
+	MaxEntryPublicAddressLength = 253
+	MaxEntrySeeds               = 100000
+)
+
 // This is an entry into the DHT. It is used to connect to a peer given just
 // it's Zif address.
 type Entry struct {
@@ -34,19 +41,6 @@ type Entry struct {
 	CollectionHash []byte `json:"collectionHash"`
 	Port           int    `json:"port"`
 
-	// Essentially just a list of other peers who have this entry in their table.
-	// They may or may not actually have pieces, so mirror/piece requests may go
-	// awry.
-	// This is... weird. It is not signed. It is not verified.
-	// While the idea of doing the above irks me somewhat, as potentially bad
-	// actors can make themselves become seeds - they will fail with piece
-	// requests. Hashes of pieces will not match.
-	// Removing the requirement for this to be both signed and verified means
-	// that any peer can become a seed without that much work at all. Again,
-	// seed lists can then be updated *without* the requirement that the origin
-	// peer actually be online in the first place.
-	// TODO: Switch this to be a struct containing the last time this peer was
-	// announced as a peer, then the list can be periodically culled.
 	Seeds [][]byte `json:"seeds"`
 
 	// Used in the FindClosest function, for sorting.
@@ -136,6 +130,22 @@ func (e Entries) Less(i, j int) bool {
 // Zif libzifcol. If an entry passes this, then we should be able to perform
 // most operations on it.
 func (entry *Entry) Verify() error {
+	if len(entry.Address.Raw) != 20 {
+		return errors.New("Address size invalid")
+	}
+
+	if len(entry.Name) > MaxEntryNameLength {
+		return errors.New("Entry name is too long")
+	}
+
+	if len(entry.Desc) > MaxEntryDescLength {
+		return errors.New("Entry description is too long")
+	}
+
+	if len(entry.Seeds) > MaxEntrySeeds {
+		return errors.New("Entry has too many seeds")
+	}
+
 	if len(entry.PublicKey) < ed25519.PublicKeySize {
 		return errors.New(fmt.Sprintf("Public key too small: %d", len(entry.PublicKey)))
 	}
@@ -156,7 +166,7 @@ func (entry *Entry) Verify() error {
 	}
 
 	// 253 is the maximum length of a domain name
-	if len(entry.PublicAddress) >= 253 {
+	if len(entry.PublicAddress) >= MaxEntryPublicAddressLength {
 		return errors.New("Public address is too large (253 char max)")
 	}
 

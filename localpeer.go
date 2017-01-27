@@ -275,7 +275,7 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 	}
 
 	if kv != nil {
-		entry, err := proto.DecodeEntry(kv.Value(), false)
+		entry := kv
 		return entry, err
 	}
 
@@ -549,15 +549,9 @@ func (lp *LocalPeer) QuerySelf() {
 			continue
 		}
 
-		decoded, err := proto.DecodeEntry(entry.Value(), false)
-
-		if err != nil {
-			continue
-		}
-
-		if len(decoded.Seeds) > len(lp.Entry.Seeds) {
+		if len(entry.Seeds) > len(lp.Entry.Seeds) {
 			log.WithField("from", s).Info("Found new seeds for self")
-			lp.Entry.Seeds = util.MergeSeeds(lp.Entry.Seeds, decoded.Seeds)
+			lp.Entry.Seeds = util.MergeSeeds(lp.Entry.Seeds, entry.Seeds)
 		}
 
 		time.Sleep(time.Minute * 5)
