@@ -144,7 +144,7 @@ func (c *Client) Announce(e common.Encodable) error {
 	return nil
 }
 
-func (c *Client) FindClosest(address string) (dht.Pairs, error) {
+func (c *Client) FindClosest(address string) ([]Entry, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -200,6 +200,10 @@ func (c *Client) FindClosest(address string) (dht.Pairs, error) {
 	}
 
 	log.WithField("entries", len(entries)).Info("Find closest complete")
+
+	// then decode the entries :)
+	results := make([]Entry, 0, len(entries))
+
 	return entries, err
 }
 
@@ -229,7 +233,9 @@ func (c *Client) Query(address string) (*Entry, error) {
 		return nil, errors.New("Peer refused query address")
 	}
 
+	var kv dht.KeyValue
 	kvr, err := c.ReadMessage()
+	kvr.Decode(&kv)
 
 	if len(kvr.Content) > common.MaxEntrySize {
 		return nil, errors.New("Entry too large")
@@ -244,7 +250,7 @@ func (c *Client) Query(address string) (*Entry, error) {
 	}
 
 	var entry Entry
-	err = kvr.Decode(&entry)
+	err = msgpack.Unmarshal(kv.Value(), &entry)
 
 	if err != nil {
 		return nil, err

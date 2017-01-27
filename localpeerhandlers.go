@@ -61,7 +61,9 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 			return err
 		}
 
-		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: dat})
+		kv := dht.NewKeyValue(lp.Entry.Address, dat)
+		encoded, _ := msgpack.Marshal(kv)
+		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: encoded})
 
 	} else {
 		kv := &dht.KeyValue{}
@@ -83,6 +85,10 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 }
 
 func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
+	if len(msg.Content) > 35 {
+		return errors.New("Invalid address")
+	}
+
 	cl := msg.Client
 
 	address, err := dht.DecodeAddress(string(msg.Content))
