@@ -243,8 +243,8 @@ func (c *Client) Query(address string) (*Entry, error) {
 		return nil, nil
 	}
 
-	var entry *Entry
-	kvr.Decode(entry)
+	var entry Entry
+	err = kvr.Decode(&entry)
 
 	if err != nil {
 		return nil, err
@@ -256,7 +256,7 @@ func (c *Client) Query(address string) (*Entry, error) {
 		return nil, err
 	}
 
-	return entry, nil
+	return &entry, nil
 }
 
 // Adds the initial entries into the given routing table. Essentially queries for
