@@ -144,7 +144,7 @@ func (c *Client) Announce(e common.Encodable) error {
 	return nil
 }
 
-func (c *Client) FindClosest(address string) ([]Entry, error) {
+func (c *Client) FindClosest(address string) (dht.Pairs, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -200,9 +200,6 @@ func (c *Client) FindClosest(address string) ([]Entry, error) {
 	}
 
 	log.WithField("entries", len(entries)).Info("Find closest complete")
-
-	// then decode the entries :)
-	results := make([]Entry, 0, len(entries))
 
 	return entries, err
 }
