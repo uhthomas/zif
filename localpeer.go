@@ -517,6 +517,10 @@ func (lp *LocalPeer) QuerySelf() {
 	ticker := time.NewTicker(time.Minute * 5)
 
 	for _ = range ticker.C {
+		if len(lp.Entry.Seeds) == 0 {
+			continue
+		}
+
 		i := lp.Entry.Seeds[util.CryptoRandInt(0, int64(len(lp.Entry.Seeds)))]
 
 		addr := dht.Address{i}

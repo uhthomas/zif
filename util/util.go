@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"io"
 	"math/big"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func CryptoRandBytes(size int) ([]byte, error) {
@@ -22,7 +24,8 @@ func CryptoRandInt(min, max int64) int64 {
 	num, err := rand.Int(rand.Reader, big.NewInt(max-min))
 
 	if err != nil {
-		panic(err)
+		log.Error(err.Error())
+		return min
 	}
 
 	return num.Int64() + min
