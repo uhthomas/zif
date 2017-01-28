@@ -43,7 +43,7 @@ func (sm *StreamManager) Setup() {
 	sm.clients = make([]Client, 0, 10)
 }
 
-func (sm *StreamManager) OpenSocks(addr string, lp ProtocolHandler, data common.Encodable) (*ConnHeader, error) {
+func (sm *StreamManager) OpenSocks(addr string, lp ProtocolHandler, data common.Encoder) (*ConnHeader, error) {
 	if sm.torDialer == nil {
 		dialer, err := proxy.SOCKS5("tcp", fmt.Sprintf("127.0.0.1:%d", sm.SocksPort), nil, proxy.Direct)
 
@@ -63,7 +63,7 @@ func (sm *StreamManager) OpenSocks(addr string, lp ProtocolHandler, data common.
 	return sm.handleConnection(conn, lp, data)
 }
 
-func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler, data common.Encodable) (*ConnHeader, error) {
+func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler, data common.Encoder) (*ConnHeader, error) {
 	if sm.Socks {
 		return sm.OpenSocks(addr, lp, data)
 	}
@@ -81,7 +81,7 @@ func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler, data common.En
 	return sm.handleConnection(conn, lp, data)
 }
 
-func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, data common.Encodable) (*ConnHeader, error) {
+func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, data common.Encoder) (*ConnHeader, error) {
 	log.WithField("zif", ProtoZif).Info("Sending")
 	err := binary.Write(conn, binary.LittleEndian, ProtoZif)
 
@@ -118,7 +118,7 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, dat
 	return &pair, nil
 }
 
-func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encodable) (*Entry, error) {
+func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encoder) (*Entry, error) {
 	cl, err := NewClient(conn)
 
 	if err != nil {

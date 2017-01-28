@@ -43,7 +43,7 @@ type Peer struct {
 	addSeedManager func(dht.Address) error
 }
 
-func (p *Peer) EAddress() common.Encodable {
+func (p *Peer) EAddress() common.Encoder {
 	return &p.address
 }
 
@@ -205,13 +205,17 @@ func (p *Peer) CloseStreams() {
 }
 
 func (p *Peer) Entry() (*proto.Entry, error) {
+	if p.entry != nil {
+		return p.entry, nil
+	}
+
+	return p.GetEntry()
+}
+
+func (p *Peer) GetEntry() (*proto.Entry, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err
-	}
-
-	if p.entry != nil {
-		return p.entry, nil
 	}
 
 	s, _ := p.Address().String()
@@ -261,7 +265,7 @@ func (p *Peer) Bootstrap(d *dht.DHT) error {
 	return stream.Bootstrap(d, d.Address())
 }
 
-func (p *Peer) Query(address dht.Address) (common.Verifiable, error) {
+func (p *Peer) Query(address dht.Address) (common.Verifier, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err
@@ -283,7 +287,7 @@ func (p *Peer) Query(address dht.Address) (common.Verifiable, error) {
 	return entry, err
 }
 
-func (p *Peer) FindClosest(address dht.Address) ([]common.Verifiable, error) {
+func (p *Peer) FindClosest(address dht.Address) ([]common.Verifier, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err
@@ -377,6 +381,12 @@ func (p *Peer) Popular(page int) ([]*data.Post, error) {
 
 func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error {
 	_, err := p.Ping(time.Second * 10)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.GetEntry()
+
 	if err != nil {
 		return err
 	}

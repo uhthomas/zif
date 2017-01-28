@@ -39,7 +39,13 @@ func NewCommandServer(lp *LocalPeer) *CommandServer {
 func (cs *CommandServer) Ping(p CommandPing) CommandResult {
 	log.Info("Command: Ping request")
 
-	peer, _, err := cs.LocalPeer.ConnectPeer(p.Address)
+	address, err := dht.DecodeAddress(p.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	peer, _, err := cs.LocalPeer.ConnectPeer(address)
 
 	if err != nil {
 		return CommandResult{false, nil, err}
@@ -56,8 +62,14 @@ func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 
 	peer := cs.LocalPeer.GetPeer(a.Address)
 
+	address, err := dht.DecodeAddress(a.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
 	if peer == nil {
-		peer, _, err = cs.LocalPeer.ConnectPeer(a.Address)
+		peer, _, err = cs.LocalPeer.ConnectPeer(address)
 
 		if err != nil {
 			return CommandResult{false, nil, err}
@@ -77,12 +89,18 @@ func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 
 	log.Info("Command: Peer Remote Search request")
 
-	peer := cs.LocalPeer.GetPeer(rs.CommandPeer.Address)
+	peer := cs.LocalPeer.GetPeer(rs.Address)
+
+	address, err := dht.DecodeAddress(rs.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
 
 	if peer == nil {
 		// Remote searching is not allowed to be done on seeds, it has no
 		// verification so can be falsified easily. Mirror people, mirror!
-		peer, _, err = cs.LocalPeer.ConnectPeer(rs.CommandPeer.Address)
+		peer, _, err = cs.LocalPeer.ConnectPeer(address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -120,9 +138,16 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 		return CommandResult{err == nil, posts, err}
 	}
 
-	peer := cs.LocalPeer.GetPeer(pr.CommandPeer.Address)
+	peer := cs.LocalPeer.GetPeer(pr.Address)
+
+	address, err := dht.DecodeAddress(pr.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
 	if peer == nil {
-		peer, _, err = cs.LocalPeer.ConnectPeer(pr.CommandPeer.Address)
+		peer, _, err = cs.LocalPeer.ConnectPeer(address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -146,8 +171,15 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 	}
 
 	peer := cs.LocalPeer.GetPeer(pp.CommandPeer.Address)
+
+	address, err := dht.DecodeAddress(pp.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
 	if peer == nil {
-		peer, _, err = cs.LocalPeer.ConnectPeer(pp.CommandPeer.Address)
+		peer, _, err = cs.LocalPeer.ConnectPeer(address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -162,7 +194,13 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 	log.Info("Command: Peer Mirror request")
 
-	mirroring, err := cs.LocalPeer.Resolve(cm.Address)
+	address, err := dht.DecodeAddress(cm.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	mirroring, err := cs.LocalPeer.Resolve(address)
 
 	if err != nil {
 		return CommandResult{false, nil, err}
@@ -172,7 +210,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 	if peer == nil {
 		var entry *proto.Entry
-		peer, entry, err = cs.LocalPeer.ConnectPeer(cm.Address)
+		peer, entry, err = cs.LocalPeer.ConnectPeer(address)
 
 		if err != nil {
 			if err == PeerUnreachable {
@@ -191,8 +229,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 						continue
 					}
 
-					s, _ := addr.String()
-					peer, _, err = cs.LocalPeer.ConnectPeer(s)
+					peer, _, err = cs.LocalPeer.ConnectPeer(*addr)
 
 					if err != nil || peer == nil {
 						continue
@@ -299,7 +336,13 @@ func (cs *CommandServer) SelfIndex(ci CommandSelfIndex) CommandResult {
 func (cs *CommandServer) Resolve(cr CommandResolve) CommandResult {
 	log.Info("Command: Resolve request")
 
-	entry, err := cs.LocalPeer.Resolve(cr.Address)
+	address, err := dht.DecodeAddress(cr.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	entry, err := cs.LocalPeer.Resolve(address)
 
 	return CommandResult{err == nil, entry, err}
 }
@@ -394,7 +437,13 @@ func (cs *CommandServer) Peers(cp CommandPeers) CommandResult {
 func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResult {
 	log.Info("Command: Request Add Peer request")
 
-	peer, _, err := cs.LocalPeer.ConnectPeer(crap.Remote)
+	address, err := dht.DecodeAddress(crap.Peer)
+
+	if err != nil {
+		return CommandResult{true, nil, err}
+	}
+
+	peer, _, err := cs.LocalPeer.ConnectPeer(address)
 
 	if err != nil {
 		return CommandResult{true, nil, err}

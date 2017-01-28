@@ -17,7 +17,7 @@ const ExploreBufferSize = 100
 func ExploreJob(in chan proto.Entry, data ...interface{}) <-chan proto.Entry {
 	ret := make(chan proto.Entry, ExploreBufferSize)
 
-	connector := data[0].(func(string) (interface{}, error))
+	connector := data[0].(func(dht.Address) (interface{}, error))
 	me := data[1].(dht.Address)
 	seed := data[2].(func(ret chan proto.Entry))
 
@@ -56,8 +56,7 @@ func exploreTick(in chan proto.Entry, ret chan proto.Entry, me dht.Address, conn
 }
 
 func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, connectPeer common.ConnectPeer) error {
-	s, _ := addr.String()
-	peer, err := connectPeer(s)
+	peer, err := connectPeer(addr)
 	p := peer.(common.Peer)
 
 	if err != nil {

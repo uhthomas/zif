@@ -1,6 +1,6 @@
 package common
 
-type Encodable interface {
+type Encoder interface {
 	Bytes() ([]byte, error)
 	String() (string, error)
 
@@ -14,6 +14,6 @@ type Signer interface {
 	PublicKey() []byte
 }
 
-type Verifiable interface {
+type Verifier interface {
 	Verify() error
 }

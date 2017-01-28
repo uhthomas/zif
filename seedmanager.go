@@ -40,6 +40,7 @@ func NewSeedManager(track dht.Address, lp *LocalPeer) (*SeedManager, error) {
 	}
 
 	ret.entry = entry
+	ret.track = track
 
 	return &ret, nil
 }
@@ -73,13 +74,20 @@ func (sm *SeedManager) findSeeds() {
 				continue
 			}
 
-			peer, entry, err := sm.lp.ConnectPeer(s)
+			peer, entry, err := sm.lp.ConnectPeer(addr)
 
 			if err != nil {
+				log.Error(err.Error())
 				continue
 			}
 
-			es, _ := entry.Address.String()
+			es, err := entry.Address.String()
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
 			log.WithField("peer", es).Info("Querying for seeds")
 
 			qResultVerifiable, err := peer.Query(sm.entry.Address)

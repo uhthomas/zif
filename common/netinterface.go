@@ -2,12 +2,12 @@ package common
 
 import "github.com/zif/zif/dht"
 
-type ConnectPeer func(string) (interface{}, error)
+type ConnectPeer func(dht.Address) (interface{}, error)
 
 type Peer interface {
-	EAddress() Encodable
-	FindClosest(dht.Address) ([]Verifiable, error)
-	Query(dht.Address) (Verifiable, error)
+	EAddress() Encoder
+	FindClosest(dht.Address) ([]Verifier, error)
+	Query(dht.Address) (Verifier, error)
 }
 
 type Closable interface {

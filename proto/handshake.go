@@ -11,7 +11,7 @@ import (
 )
 
 // Perform a handshake operation given a peer. server.go does the other end of this.
-func handshake(cl Client, lp common.Signer, data common.Encodable) (*Entry, error) {
+func handshake(cl Client, lp common.Signer, data common.Encoder) (*Entry, error) {
 	header, err := handshake_recieve(cl)
 
 	if err != nil {
@@ -126,7 +126,7 @@ func handshake_recieve(cl Client) (*Entry, error) {
 }
 
 // Sends a handshake to a peer.
-func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
+func handshake_send(cl Client, lp common.Signer, data common.Encoder) error {
 	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
 
 	/*binary.Write(cl.conn, binary.BigEndian, ProtoZif)

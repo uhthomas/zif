@@ -17,7 +17,7 @@ type Server struct {
 	listener net.Listener
 }
 
-func (s *Server) Listen(addr string, handler ProtocolHandler, data common.Encodable) {
+func (s *Server) Listen(addr string, handler ProtocolHandler, data common.Encoder) {
 	var err error
 
 	s.listener, err = net.Listen("tcp", addr)
@@ -163,7 +163,7 @@ func (s *Server) RouteMessage(msg *Message, handler ProtocolHandler) {
 
 }
 
-func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encodable) {
+func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encoder) {
 	cl, err := NewClient(conn)
 
 	if err != nil {

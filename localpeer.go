@@ -5,7 +5,6 @@ package zif
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
@@ -42,6 +41,7 @@ type LocalPeer struct {
 
 	privateKey  ed25519.PrivateKey
 	peerManager *PeerManager
+	seedManager *SeedManager
 }
 
 func (lp *LocalPeer) Setup() {
@@ -142,9 +142,17 @@ func (lp *LocalPeer) Sign(msg []byte) []byte {
 
 // Pass the address to listen on. This is for the Zif connection.
 func (lp *LocalPeer) Listen(addr string) {
+	var err error
+	lp.seedManager, err = NewSeedManager(lp.Entry.Address, lp)
+
+	if err != nil {
+		panic(err)
+	}
+
 	lp.SignEntry()
 	go lp.Server.Listen(addr, lp, lp.Entry)
 	go lp.QuerySelf()
+	lp.seedManager.Start()
 	lp.peerManager.LoadSeeds()
 }
 
@@ -186,119 +194,6 @@ func (lp *LocalPeer) ReadKey() error {
 	lp.publicKey = lp.privateKey.Public().(ed25519.PublicKey)
 
 	return nil
-}
-
-// At the moment just query for the closest known peer
-// This takes a Zif address as a string and attempts to resolve it to an entry.
-// This may be fast, may be a little slower. Will recurse its way through as
-// many Queries as needed, getting closer to the target until either it cannot
-// be found or is found.
-// Cannot be found if a Query returns nothing, in this case the address does not
-// exist on the DHT. Otherwise we should get to a peer that either has the entry,
-// or one that IS the peer we are hunting.
-// Takes a string as the API will just be passing a Zif address as a string.
-// May well change, I'm unsure really. Pretty happy with it at the moment though.
-// TODO: Somehow move this to the DHT package.
-func (lp *LocalPeer) Resolve(addr string) (*proto.Entry, error) {
-	log.WithField("address", addr).Debug("Resolving")
-
-	lps, _ := lp.Address().String()
-	if addr == lps {
-		return lp.Entry, nil
-	}
-
-	address, err := dht.DecodeAddress(addr)
-
-	if err != nil {
-		return nil, err
-	}
-
-	kv, err := lp.DHT.Query(address)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if kv != nil {
-		return proto.DecodeEntry(kv.Value(), false)
-	}
-
-	closest, err := lp.DHT.FindClosest(address)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for _, i := range closest {
-		e, err := proto.DecodeEntry(i.Value(), false)
-
-		if err == nil {
-			// TODO: Goroutine this.
-			entry, err := lp.resolveStep(e, address)
-
-			if err != nil {
-				log.Error(err.Error())
-				continue
-			}
-
-			if entry.Address.Equals(&address) {
-				return entry, nil
-			}
-		}
-	}
-
-	return nil, errors.New("Address could not be resolved")
-}
-
-// Will return the entry itself, or an error.
-func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry, error) {
-	// connect to the peer
-	var peer *Peer
-	var err error
-
-	es, _ := e.Address.String()
-	peer = lp.GetPeer(es)
-
-	if peer == nil {
-		peer, err = lp.ConnectPeerDirect(fmt.Sprintf("%s:%d", e.PublicAddress, e.Port))
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	kv, err := peer.Query(addr)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if kv != nil {
-		entry := kv
-		return entry.(*proto.Entry), err
-	}
-
-	closest, err := peer.FindClosest(addr)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for _, i := range closest {
-		entry := i.(*proto.Entry)
-
-		result, err := lp.resolveStep(entry, addr)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if result != nil {
-			return result, nil
-		}
-	}
-
-	return nil, errors.New("No entries could be found")
 }
 
 func (lp *LocalPeer) SaveEntry() error {
@@ -381,7 +276,7 @@ func (lp *LocalPeer) StartExploring() {
 	lp.seedExplore(in)
 
 	ret := jobs.ExploreJob(in,
-		func(addr string) (interface{}, error) {
+		func(addr dht.Address) (interface{}, error) {
 			peer, _, err := lp.ConnectPeer(addr)
 			return peer, err
 		},
@@ -489,6 +384,10 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 	return lp.peerManager.ConnectPeerDirect(addr)
 }
 
+func (lp *LocalPeer) ConnectPeer(addr dht.Address) (*Peer, *proto.Entry, error) {
+	return lp.peerManager.ConnectPeer(addr)
+}
+
 func (lp *LocalPeer) HandleCloseConnection(addr *dht.Address) {
 	lp.peerManager.HandleCloseConnection(addr)
 }
@@ -526,6 +425,10 @@ func (lp *LocalPeer) GetSocksPort() int {
 	return lp.peerManager.socksPort
 }
 
+func (lp *LocalPeer) Resolve(addr dht.Address) (*proto.Entry, error) {
+	return lp.peerManager.Resolve(addr)
+}
+
 func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
 	if addr.Equals(lp.Address()) {
 		return lp.Entry, nil
@@ -535,6 +438,10 @@ func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if kv == nil {
+		return nil, errors.New("No entry with address")
 	}
 
 	return proto.DecodeEntry(kv.Value(), false)
@@ -565,7 +472,7 @@ func (lp *LocalPeer) QuerySelf() {
 
 		log.WithField("peer", s).Info("Querying for new feeds for self")
 
-		peer, _, err := lp.ConnectPeer(s)
+		peer, _, err := lp.ConnectPeer(addr)
 
 		if err != nil {
 			continue

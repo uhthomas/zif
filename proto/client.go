@@ -107,7 +107,7 @@ func (c *Client) Decode(i interface{}) error {
 }
 
 // Sends a DHT entry to a peer.
-func (c *Client) SendStruct(e common.Encodable) error {
+func (c *Client) SendStruct(e common.Encoder) error {
 	msg := Message{Header: ProtoEntry}
 	err := msg.Write(e)
 
@@ -123,7 +123,7 @@ func (c *Client) SendStruct(e common.Encodable) error {
 
 // Announce the given DHT entry to a peer, passes on this peers details,
 // meaning that it can be reached by other peers on the network.
-func (c *Client) Announce(e common.Encodable) error {
+func (c *Client) Announce(e common.Encoder) error {
 	msg := &Message{
 		Header: ProtoDhtAnnounce,
 	}
@@ -153,7 +153,7 @@ func (c *Client) Announce(e common.Encodable) error {
 	return nil
 }
 
-func (c *Client) FindClosest(address dht.Address) ([]common.Verifiable, error) {
+func (c *Client) FindClosest(address dht.Address) ([]common.Verifier, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -219,7 +219,7 @@ func (c *Client) FindClosest(address dht.Address) ([]common.Verifiable, error) {
 
 	log.WithField("entries", len(entries)).Info("Find closest complete")
 
-	result := make([]common.Verifiable, 0, len(entries))
+	result := make([]common.Verifier, 0, len(entries))
 
 	for _, i := range entries {
 		entry := &Entry{}
