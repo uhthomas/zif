@@ -106,7 +106,7 @@ func handshake_recieve(cl Client) (*Entry, error) {
 		return nil, err
 	}
 
-	verified := ed25519.Verify(entry.PublicKey, cookie, sig.Content().Bytes())
+	verified := ed25519.Verify(entry.PublicKey, cookie, sig.Content)
 
 	if !verified {
 		log.Error("Failed to verify peer ", s)
@@ -167,7 +167,7 @@ func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
 
 	log.Info("Cookie recieved, signing")
 
-	sig := lp.Sign(msg.Content().Bytes())
+	sig := lp.Sign(msg.Content)
 
 	msg = &Message{
 		Header: ProtoSig,

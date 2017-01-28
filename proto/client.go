@@ -275,7 +275,7 @@ func (c *Client) Query(address dht.Address) (*Entry, error) {
 	kvr, err := c.ReadMessage()
 	kvr.Read(&kv)
 
-	if kvr.ContentLength() > common.MaxMessageSize {
+	if len(kvr.Content) > common.MaxMessageSize {
 		return nil, errors.New("Entry too large")
 	}
 

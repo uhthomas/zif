@@ -18,19 +18,12 @@ type Message struct {
 	Client *Client
 	From   *dht.Address
 
-	content bytes.Buffer
-}
-
-func (m *Message) Content() *bytes.Buffer {
-	return &m.content
-}
-
-func (m *Message) ContentLength() int {
-	return m.content.Len()
+	Content []byte
 }
 
 func (m *Message) Write(iface interface{}) error {
-	compressor := gzip.NewWriter(&m.content)
+	writer := bytes.Buffer{}
+	compressor := gzip.NewWriter(&writer)
 	encoder := msgpack.NewEncoder(compressor)
 
 	err := encoder.Encode(iface)
@@ -45,11 +38,14 @@ func (m *Message) Write(iface interface{}) error {
 		return err
 	}
 
+	m.Content = writer.Bytes()
+
 	return nil
 }
 
 func (m *Message) Read(iface interface{}) error {
-	decompressor, err := gzip.NewReader(&m.content)
+	reader := bytes.NewReader(m.Content)
+	decompressor, err := gzip.NewReader(reader)
 	limiter := &io.LimitedReader{decompressor, common.MaxMessageContentSize}
 
 	if err != nil {
