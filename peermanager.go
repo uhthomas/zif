@@ -3,8 +3,7 @@ package zif
 import (
 	"errors"
 	"fmt"
-	"io"
-	"os"
+	"io/ioutil"
 	"strconv"
 	"time"
 
@@ -276,29 +275,22 @@ func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
 }
 
 func (pm *PeerManager) LoadSeeds() error {
-	log.Info("Loading seed list")
-	seedList, err := os.OpenFile("./data/seeding.dat", os.O_RDONLY, 0666)
+	file, err := ioutil.ReadFile("./data/seeding.dat")
 
 	if err != nil {
 		return err
 	}
 
-	defer seedList.Close()
+	seedCount := len(file) / 20
 
-	address := make([]byte, 20)
-
-	for _, err = io.ReadFull(seedList, address); err == nil; {
-		addr := dht.Address{address}
+	for i := 0; i < seedCount; i++ {
+		addr := dht.Address{file[i*20 : 20+i*20]}
 
 		err := pm.AddSeedManager(addr)
 
 		if err != nil {
 			log.Error(err.Error())
 		}
-	}
-
-	if err == io.EOF {
-		return nil
 	}
 
 	return err
