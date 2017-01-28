@@ -135,7 +135,7 @@ func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data commo
 	}
 
 	if !msg.Ok() {
-		return nil, errors.New(string(msg.Content))
+		return nil, errors.New(string(msg.Content().Bytes()))
 	}
 
 	// server now knows that we are definitely who we say we are.

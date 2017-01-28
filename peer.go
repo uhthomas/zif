@@ -215,7 +215,7 @@ func (p *Peer) Entry() (*proto.Entry, error) {
 	}
 
 	s, _ := p.Address().String()
-	e, err := p.Query(s)
+	e, err := p.Query(*p.Address())
 
 	if err != nil {
 		return nil, err
@@ -261,7 +261,7 @@ func (p *Peer) Bootstrap(d *dht.DHT) error {
 	return stream.Bootstrap(d, d.Address())
 }
 
-func (p *Peer) Query(address string) (common.Verifiable, error) {
+func (p *Peer) Query(address dht.Address) (common.Verifiable, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err
@@ -282,7 +282,7 @@ func (p *Peer) Query(address string) (common.Verifiable, error) {
 	return entry, err
 }
 
-func (p *Peer) FindClosest(address string) ([]common.Verifiable, error) {
+func (p *Peer) FindClosest(address dht.Address) ([]common.Verifiable, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err
@@ -414,9 +414,8 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	}
 
 	collection := data.Collection{HashList: mcol.HashList}
-	es, _ := entry.Address.String()
 
-	err = collection.Save(fmt.Sprintf("./data/%s/collection.dat", es))
+	err = collection.Save(fmt.Sprintf("./data/%s/collection.dat", s))
 
 	if err != nil {
 		return err
@@ -457,7 +456,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	log.Info("Mirror complete")
 
-	err = p.RequestAddPeer(s)
+	err = p.RequestAddPeer(entry.Address)
 
 	// we're done mirroring, so now we need to switch OFF the fact that this is
 	// a seed. If it becomes a seed again, it will be properly set by the
@@ -468,7 +467,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	return err
 }
 
-func (p *Peer) RequestAddPeer(addr string) error {
+func (p *Peer) RequestAddPeer(addr dht.Address) error {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return err
@@ -482,17 +481,12 @@ func (p *Peer) RequestAddPeer(addr string) error {
 
 	defer stream.Close()
 
-	address, err := dht.DecodeAddress(addr)
-	if err != nil {
-		return err
-	}
-
 	err = stream.RequestAddPeer(addr)
 	if err != nil {
 		return err
 	}
 
-	err = p.addSeedManager(address)
+	err = p.addSeedManager(addr)
 
 	if err != nil {
 		return err
@@ -515,7 +509,7 @@ func (p *Peer) RequestAddPeer(addr string) error {
 
 	defer seedList.Close()
 
-	_, err = seedList.Write(address.Raw)
+	_, err = seedList.Write(addr.Raw)
 
 	return err
 }

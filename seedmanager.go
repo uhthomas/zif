@@ -53,7 +53,6 @@ func (sm *SeedManager) Start() {
 // queries all seeds to see if we can find new seeds
 func (sm *SeedManager) findSeeds() {
 	ticker := time.NewTicker(SeedSearchFrequency)
-	ts, _ := sm.entry.Address.String()
 
 	find := func() {
 		log.Info("Searching for new seeds")
@@ -74,7 +73,7 @@ func (sm *SeedManager) findSeeds() {
 			es, _ := entry.Address.String()
 			log.WithField("peer", es).Info("Querying for seeds")
 
-			qResultVerifiable, err := peer.Query(ts)
+			qResultVerifiable, err := peer.Query(sm.entry.Address)
 			if err != nil {
 				continue
 			}

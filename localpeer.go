@@ -267,8 +267,7 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 		}
 	}
 
-	s, _ := addr.String()
-	kv, err := peer.Query(s)
+	kv, err := peer.Query(addr)
 
 	if err != nil {
 		return nil, err
@@ -279,7 +278,7 @@ func (lp *LocalPeer) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry
 		return entry.(*proto.Entry), err
 	}
 
-	closest, err := peer.FindClosest(s)
+	closest, err := peer.FindClosest(addr)
 
 	if err != nil {
 		return nil, err
@@ -539,7 +538,6 @@ func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
 
 func (lp *LocalPeer) QuerySelf() {
 	log.Info("Querying for seeds")
-	lps, _ := lp.Address().String()
 	ticker := time.NewTicker(time.Minute * 5)
 
 	for _ = range ticker.C {
@@ -569,7 +567,7 @@ func (lp *LocalPeer) QuerySelf() {
 			continue
 		}
 
-		e, err := peer.Query(lps)
+		e, err := peer.Query(*lp.Address())
 
 		if err != nil {
 			continue

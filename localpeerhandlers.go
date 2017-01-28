@@ -6,9 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"strconv"
-
-	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 
 	log "github.com/sirupsen/logrus"
 
@@ -31,11 +28,8 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	log.Info("Handling query")
 	cl := msg.Client
 
-	if len(msg.Content) > 35 {
-		return errors.New("Invalid address")
-	}
-
-	address, err := dht.DecodeAddress(string(msg.Content))
+	address := dht.Address{}
+	err := msg.Read(&address)
 
 	if err != nil {
 		return err
@@ -62,8 +56,15 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		}
 
 		kv := dht.NewKeyValue(lp.Entry.Address, dat)
-		encoded, _ := msgpack.Marshal(kv)
-		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: encoded})
+		msg := &proto.Message{Header: proto.ProtoDhtQuery}
+
+		err = msg.Write(kv)
+
+		if err != nil {
+			return err
+		}
+
+		err = cl.WriteMessage(msg)
 
 	} else {
 		kv := &dht.KeyValue{}
@@ -77,21 +78,26 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 			cl.WriteMessage(&proto.Message{Header: proto.ProtoNo})
 		}
 
-		encoded, _ := msgpack.Marshal(kv)
-		err = cl.WriteMessage(&proto.Message{Header: proto.ProtoDhtQuery, Content: encoded})
+		msg := &proto.Message{Header: proto.ProtoDhtQuery}
+
+		err = msg.Write(kv)
+
+		if err != nil {
+			return err
+		}
+
+		err = cl.WriteMessage(msg)
 	}
 
 	return err
 }
 
 func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
-	if len(msg.Content) > 35 {
-		return errors.New("Invalid address")
-	}
 
 	cl := msg.Client
 
-	address, err := dht.DecodeAddress(string(msg.Content))
+	address := dht.Address{}
+	err := msg.Read(&address)
 
 	if err != nil {
 		return err
@@ -122,7 +128,7 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 			return err
 		}
 
-		results.WriteInt(1)
+		results.Write(1)
 
 		err = cl.WriteMessage(results)
 
@@ -141,7 +147,7 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 			return err
 		}
 
-		results.WriteInt(len(pairs))
+		results.Write(len(pairs))
 
 		err = cl.WriteMessage(results)
 
@@ -167,7 +173,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 	defer msg.Stream.Close()
 
 	entry := proto.Entry{}
-	err = msg.Decode(&entry)
+	err = msg.Read(&entry)
 
 	es, _ := entry.Address.String()
 	log.WithField("address", es).Info("Announce")
@@ -193,12 +199,9 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 }
 
 func (lp *LocalPeer) HandleSearch(msg *proto.Message) error {
-	if len(msg.Content) > MaxSearchLength {
-		return errors.New("Search query too long")
-	}
 
 	sq := proto.MessageSearchQuery{}
-	err := msg.Decode(&sq)
+	err := msg.Read(&sq)
 
 	if err != nil {
 		return err
@@ -213,26 +216,24 @@ func (lp *LocalPeer) HandleSearch(msg *proto.Message) error {
 	}
 	log.Info("Posts loaded")
 
-	json, err := msgpack.Marshal(posts)
+	post_msg := &proto.Message{
+		Header: proto.ProtoPosts,
+	}
+
+	err = post_msg.Write(posts)
 
 	if err != nil {
 		return err
 	}
 
-	post_msg := &proto.Message{
-		Header:  proto.ProtoPosts,
-		Content: json,
-	}
-
-	msg.Client.WriteMessage(post_msg)
-
-	return nil
+	return msg.Client.WriteMessage(post_msg)
 }
 
 func (lp *LocalPeer) HandleRecent(msg *proto.Message) error {
 	log.Info("Recieved query for recent posts")
 
-	page, err := strconv.Atoi(string(msg.Content))
+	page := 0
+	err := msg.Read(&page)
 
 	if err != nil {
 		return err
@@ -244,26 +245,24 @@ func (lp *LocalPeer) HandleRecent(msg *proto.Message) error {
 		return err
 	}
 
-	recent_json, err := msgpack.Marshal(recent)
+	resp := &proto.Message{
+		Header: proto.ProtoPosts,
+	}
+
+	err = resp.Write(recent)
 
 	if err != nil {
 		return err
 	}
 
-	resp := &proto.Message{
-		Header:  proto.ProtoPosts,
-		Content: recent_json,
-	}
-
-	msg.Client.WriteMessage(resp)
-
-	return nil
+	return msg.Client.WriteMessage(resp)
 }
 
 func (lp *LocalPeer) HandlePopular(msg *proto.Message) error {
 	log.Info("Recieved query for popular posts")
 
-	page, err := strconv.Atoi(string(msg.Content))
+	page := 0
+	err := msg.Read(&page)
 
 	if err != nil {
 		return err
@@ -275,24 +274,26 @@ func (lp *LocalPeer) HandlePopular(msg *proto.Message) error {
 		return err
 	}
 
-	recent_json, err := msgpack.Marshal(recent)
+	resp := &proto.Message{
+		Header: proto.ProtoPosts,
+	}
+
+	err = resp.Write(recent)
 
 	if err != nil {
 		return err
 	}
 
-	resp := &proto.Message{
-		Header:  proto.ProtoPosts,
-		Content: recent_json,
-	}
-
-	msg.Client.WriteMessage(resp)
-
-	return nil
+	return msg.Client.WriteMessage(resp)
 }
 
 func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
-	address := dht.Address{msg.Content}
+	address := dht.Address{}
+	err := msg.Read(&address)
+
+	if err != nil {
+		return err
+	}
 
 	s, _ := address.String()
 	log.WithField("address", s).Info("Collection request recieved")
@@ -344,15 +345,15 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 	}
 
 	mhl := proto.MessageCollection{hash, hashList, len(hashList) / 32, sig}
-	data, err := mhl.Encode()
+
+	resp := &proto.Message{
+		Header: proto.ProtoHashList,
+	}
+
+	resp.Write(mhl)
 
 	if err != nil {
 		return err
-	}
-
-	resp := &proto.Message{
-		Header:  proto.ProtoHashList,
-		Content: data,
 	}
 
 	msg.Client.WriteMessage(resp)
@@ -363,7 +364,7 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 func (lp *LocalPeer) HandlePiece(msg *proto.Message) error {
 
 	mrp := proto.MessageRequestPiece{}
-	err := msg.Decode(&mrp)
+	err := msg.Read(&mrp)
 
 	log.WithFields(log.Fields{
 		"id":     mrp.Id,
@@ -415,12 +416,12 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 	// The AddPeer message contains the address of the peer that the client
 	// wishes to be registered for.
 
-	if len(msg.Content) != dht.AddressBinarySize {
-		msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoNo})
-		return errors.New("Invalid binary address size")
-	}
+	address := dht.Address{}
+	err := msg.Read(&address)
 
-	address := dht.Address{msg.Content}
+	if err != nil {
+		return err
+	}
 
 	from, _ := msg.From.String()
 	pfor, _ := address.String()

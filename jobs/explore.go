@@ -57,7 +57,6 @@ func exploreTick(in chan proto.Entry, ret chan proto.Entry, me dht.Address, conn
 
 func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, connectPeer common.ConnectPeer) error {
 	s, _ := addr.String()
-	me_s, _ := me.String()
 	peer, err := connectPeer(s)
 	p := peer.(common.Peer)
 
@@ -65,7 +64,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, conne
 		return err
 	}
 
-	self, err := p.Query(s)
+	self, err := p.Query(addr)
 
 	if err != nil {
 		return err
@@ -73,7 +72,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, conne
 
 	ret <- *self.(*proto.Entry)
 
-	closestToMe, err := p.FindClosest(me_s)
+	closestToMe, err := p.FindClosest(me)
 
 	if err != nil {
 		return err
@@ -89,8 +88,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, conne
 		return err
 	}
 
-	rs, _ := randAddr.String()
-	closest, err := p.FindClosest(rs)
+	closest, err := p.FindClosest(*randAddr)
 
 	if err != nil {
 		return err

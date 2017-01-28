@@ -15,12 +15,12 @@ func handshake(cl Client, lp common.Signer, data common.Encodable) (*Entry, erro
 	header, err := handshake_recieve(cl)
 
 	if err != nil {
-		cl.WriteMessage(Message{Header: ProtoNo, Content: []byte(err.Error())})
+		cl.WriteErr(err)
 		return header, err
 	}
 
 	if lp == nil {
-		cl.WriteMessage(Message{Header: ProtoNo, Content: []byte("nil LocalPeer")})
+		cl.WriteErr(errors.New("Nil localpeer"))
 		return header, errors.New("Handshake passed nil LocalPeer")
 	}
 
@@ -65,7 +65,11 @@ func handshake_recieve(cl Client) (*Entry, error) {
 	}
 
 	var entry Entry
-	header.Decode(&entry)
+	err = header.Read(&entry)
+
+	if err != nil {
+		return nil, err
+	}
 
 	err = entry.Verify()
 	if err != nil {
@@ -83,8 +87,14 @@ func handshake_recieve(cl Client) (*Entry, error) {
 	if check(err) {
 		return nil, err
 	}
+	msg := Message{Header: ProtoCookie}
+	err = msg.Write(cookie)
 
-	err = cl.WriteMessage(Message{Header: ProtoCookie, Content: cookie})
+	if err != nil {
+		return nil, err
+	}
+
+	err = cl.WriteMessage(msg)
 
 	if check(err) {
 		return nil, err
@@ -96,7 +106,7 @@ func handshake_recieve(cl Client) (*Entry, error) {
 		return nil, err
 	}
 
-	verified := ed25519.Verify(entry.PublicKey, cookie, sig.Content)
+	verified := ed25519.Verify(entry.PublicKey, cookie, sig.Content().Bytes())
 
 	if !verified {
 		log.Error("Failed to verify peer ", s)
@@ -119,15 +129,14 @@ func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
 	/*binary.Write(cl.conn, binary.BigEndian, ProtoZif)
 	binary.Write(cl.conn, binary.BigEndian, ProtoVersion)*/
 
-	entryEnc, err := data.Encode()
+	header := Message{
+		Header: ProtoHeader,
+	}
+
+	err := header.Write(data)
 
 	if err != nil {
 		return err
-	}
-
-	header := Message{
-		Header:  ProtoHeader,
-		Content: entryEnc,
 	}
 
 	err = cl.WriteMessage(header)
@@ -158,14 +167,23 @@ func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
 
 	log.Info("Cookie recieved, signing")
 
-	sig := lp.Sign(msg.Content)
+	sig := lp.Sign(msg.Content().Bytes())
 
 	msg = &Message{
-		Header:  ProtoSig,
-		Content: sig,
+		Header: ProtoSig,
 	}
 
-	cl.WriteMessage(msg)
+	err = msg.Write(sig)
+
+	if err != nil {
+		return err
+	}
+
+	err = cl.WriteMessage(msg)
+
+	if err != nil {
+		return err
+	}
 
 	msg, err = cl.ReadMessage()
 	log.Debug("Written cookie")

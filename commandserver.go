@@ -400,7 +400,13 @@ func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResul
 		return CommandResult{true, nil, err}
 	}
 
-	err = peer.RequestAddPeer(crap.Peer)
+	addr, err := dht.DecodeAddress(crap.Peer)
+
+	if err != nil {
+		return CommandResult{true, nil, err}
+	}
+
+	err = peer.RequestAddPeer(addr)
 
 	return CommandResult{err == nil, nil, err}
 }

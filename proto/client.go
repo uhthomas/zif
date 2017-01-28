@@ -33,7 +33,7 @@ type Client struct {
 func NewClient(conn net.Conn) (*Client, error) {
 	c := &Client{conn: conn}
 
-	c.limiter = &io.LimitedReader{c.conn, common.MaxEntrySize}
+	c.limiter = &io.LimitedReader{c.conn, common.MaxMessageSize}
 	c.decoder = msgpack.NewDecoder(c.limiter)
 	c.encoder = msgpack.NewEncoder(c.conn)
 
@@ -67,13 +67,24 @@ func (c *Client) WriteMessage(v interface{}) error {
 	return err
 }
 
+func (c *Client) WriteErr(toSend error) error {
+	msg := &Message{Header: ProtoNo}
+	err := msg.Write(toSend.Error())
+
+	if err != nil {
+		return err
+	}
+
+	return c.WriteMessage(msg)
+}
+
 // Blocks until a message is read from c.conn, decodes it into a *Message and
 // returns.
 func (c *Client) ReadMessage() (*Message, error) {
 	var msg Message
 
 	if c.limiter == nil {
-		c.limiter = &io.LimitedReader{c.conn, common.MaxEntrySize}
+		c.limiter = &io.LimitedReader{c.conn, common.MaxMessageSize}
 	}
 
 	if c.decoder == nil {
@@ -81,13 +92,13 @@ func (c *Client) ReadMessage() (*Message, error) {
 	}
 
 	if err := c.decoder.Decode(&msg); err != nil {
-		c.limiter.N = common.MaxEntrySize
+		c.limiter.N = common.MaxMessageSize
 		return nil, err
 	}
 
 	msg.Stream = c.conn
 
-	c.limiter.N = common.MaxEntrySize
+	c.limiter.N = common.MaxMessageSize
 	return &msg, nil
 }
 
@@ -97,8 +108,8 @@ func (c *Client) Decode(i interface{}) error {
 
 // Sends a DHT entry to a peer.
 func (c *Client) SendStruct(e common.Encodable) error {
-	enc, err := e.Encode()
-	msg := Message{Header: ProtoEntry, Content: enc}
+	msg := Message{Header: ProtoEntry}
+	err := msg.Write(e)
 
 	if err != nil {
 		c.conn.Close()
@@ -113,16 +124,14 @@ func (c *Client) SendStruct(e common.Encodable) error {
 // Announce the given DHT entry to a peer, passes on this peers details,
 // meaning that it can be reached by other peers on the network.
 func (c *Client) Announce(e common.Encodable) error {
-	enc, err := e.Encode()
-
-	if err != nil {
-		c.conn.Close()
-		return err
+	msg := &Message{
+		Header: ProtoDhtAnnounce,
 	}
 
-	msg := &Message{
-		Header:  ProtoDhtAnnounce,
-		Content: enc,
+	err := msg.Write(e)
+
+	if err != nil {
+		return err
 	}
 
 	err = c.WriteMessage(msg)
@@ -144,16 +153,21 @@ func (c *Client) Announce(e common.Encodable) error {
 	return nil
 }
 
-func (c *Client) FindClosest(address string) ([]common.Verifiable, error) {
+func (c *Client) FindClosest(address dht.Address) ([]common.Verifiable, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
-		Header:  ProtoDhtFindClosest,
-		Content: []byte(address),
+		Header: ProtoDhtFindClosest,
+	}
+
+	err := msg.Write(address)
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Tell the peer the address we are looking for
-	err := c.WriteMessage(msg)
+	err = c.WriteMessage(msg)
 
 	if err != nil {
 		return nil, err
@@ -226,16 +240,21 @@ func (c *Client) FindClosest(address string) ([]common.Verifiable, error) {
 	return result, err
 }
 
-func (c *Client) Query(address string) (*Entry, error) {
+func (c *Client) Query(address dht.Address) (*Entry, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
-		Header:  ProtoDhtQuery,
-		Content: []byte(address),
+		Header: ProtoDhtQuery,
+	}
+
+	err := msg.Write(address)
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Tell the peer the address we are looking for
-	err := c.WriteMessage(msg)
+	err = c.WriteMessage(msg)
 
 	if err != nil {
 		return nil, err
@@ -254,9 +273,9 @@ func (c *Client) Query(address string) (*Entry, error) {
 
 	var kv dht.KeyValue
 	kvr, err := c.ReadMessage()
-	kvr.Decode(&kv)
+	kvr.Read(&kv)
 
-	if len(kvr.Content) > common.MaxEntrySize {
+	if kvr.ContentLength() > common.MaxMessageSize {
 		return nil, errors.New("Entry too large")
 	}
 
@@ -288,8 +307,7 @@ func (c *Client) Query(address string) (*Entry, error) {
 // both it's own and the peers address, storing the result. This means that after
 // a bootstrap, it should be possible to connect to *any* peer!
 func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
-	s, _ := address.String()
-	peers, err := c.FindClosest(s)
+	peers, err := c.FindClosest(address)
 
 	if err != nil {
 		return err
@@ -330,15 +348,15 @@ func (c *Client) Search(search string, page int) ([]*data.Post, error) {
 	log.WithField("Query", search).Info("Querying")
 
 	sq := MessageSearchQuery{search, page}
-	dat, err := sq.Encode()
+
+	msg := &Message{
+		Header: ProtoSearch,
+	}
+
+	err := msg.Write(sq)
 
 	if err != nil {
 		return nil, err
-	}
-
-	msg := &Message{
-		Header:  ProtoSearch,
-		Content: dat,
 	}
 
 	c.WriteMessage(msg)
@@ -351,7 +369,7 @@ func (c *Client) Search(search string, page int) ([]*data.Post, error) {
 		return nil, err
 	}
 
-	err = recv.Decode(&posts)
+	err = recv.Read(&posts)
 
 	if err != nil {
 		return nil, err
@@ -363,14 +381,17 @@ func (c *Client) Search(search string, page int) ([]*data.Post, error) {
 func (c *Client) Recent(page int) ([]*data.Post, error) {
 	log.Info("Fetching recent posts from peer")
 
-	page_s := strconv.Itoa(page)
-
 	msg := &Message{
-		Header:  ProtoRecent,
-		Content: []byte(page_s),
+		Header: ProtoRecent,
 	}
 
-	err := c.WriteMessage(msg)
+	err := msg.Write(page)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.WriteMessage(msg)
 
 	if err != nil {
 		return nil, err
@@ -383,7 +404,11 @@ func (c *Client) Recent(page int) ([]*data.Post, error) {
 	}
 
 	var posts []*data.Post
-	posts_msg.Decode(&posts)
+	err = posts_msg.Read(&posts)
+
+	if err != nil {
+		return nil, err
+	}
 
 	log.Info("Recieved ", len(posts), " recent posts")
 
@@ -393,14 +418,17 @@ func (c *Client) Recent(page int) ([]*data.Post, error) {
 func (c *Client) Popular(page int) ([]*data.Post, error) {
 	log.Info("Fetching popular posts from peer")
 
-	page_s := strconv.Itoa(page)
-
 	msg := &Message{
-		Header:  ProtoPopular,
-		Content: []byte(page_s),
+		Header: ProtoPopular,
 	}
 
-	err := c.WriteMessage(msg)
+	err := msg.Write(page)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.WriteMessage(msg)
 
 	if err != nil {
 		return nil, err
@@ -413,7 +441,11 @@ func (c *Client) Popular(page int) ([]*data.Post, error) {
 	}
 
 	var posts []*data.Post
-	posts_msg.Decode(&posts)
+	err = posts_msg.Read(&posts)
+
+	if err != nil {
+		return nil, err
+	}
 
 	log.Info("Recieved ", len(posts), " popular posts")
 
@@ -426,13 +458,21 @@ func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*Message
 	s, _ := address.String()
 	log.WithField("for", s).Info("Sending request for a collection")
 
-	b, _ := address.Bytes()
 	msg := &Message{
-		Header:  ProtoRequestHashList,
-		Content: b,
+		Header: ProtoRequestHashList,
 	}
 
-	c.WriteMessage(msg)
+	err := msg.Write(address)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.WriteMessage(msg)
+
+	if err != nil {
+		return nil, err
+	}
 
 	hl, err := c.ReadMessage()
 
@@ -441,7 +481,7 @@ func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*Message
 	}
 
 	mhl := MessageCollection{}
-	err = hl.Decode(&mhl)
+	err = hl.Read(&mhl)
 
 	if err != nil {
 		return nil, err
@@ -470,15 +510,15 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 	ret := make(chan *data.Piece, 100)
 
 	mrp := MessageRequestPiece{s, id, length}
-	dat, err := mrp.Encode()
+
+	msg := &Message{
+		Header: ProtoRequestPiece,
+	}
+
+	err := msg.Write(mrp)
 
 	if err != nil {
 		return nil
-	}
-
-	msg := &Message{
-		Header:  ProtoRequestPiece,
-		Content: dat,
 	}
 
 	c.WriteMessage(msg)
@@ -565,21 +605,26 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 	return ret
 }
 
-func (c *Client) RequestAddPeer(addr string) error {
-	address, err := dht.DecodeAddress(addr)
+func (c *Client) RequestAddPeer(addr dht.Address) error {
+	s, _ := addr.String()
+	log.WithField("for", s).Info("Registering as seed")
+
+	msg := &Message{
+		Header: ProtoRequestAddPeer,
+	}
+
+	err := msg.Write(addr)
 
 	if err != nil {
 		return err
 	}
 
-	log.WithField("for", addr).Info("Registering as seed")
+	err = c.WriteMessage(msg)
 
-	msg := &Message{
-		Header:  ProtoRequestAddPeer,
-		Content: address.Raw,
+	if err != nil {
+		return err
 	}
 
-	c.WriteMessage(msg)
 	rep, err := c.ReadMessage()
 
 	if err != nil {
