@@ -1,4 +1,4 @@
-package libzif
+package zif
 
 import (
 	"encoding/json"

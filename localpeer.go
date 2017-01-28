@@ -1,7 +1,7 @@
 // The local peer. This runs on the current node, so we have access to its
 // private key, database, etc.
 
-package libzif
+package zif
 
 import (
 	"errors"
@@ -527,6 +527,10 @@ func (lp *LocalPeer) GetSocksPort() int {
 }
 
 func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
+	if addr.Equals(lp.Address()) {
+		return lp.Entry, nil
+	}
+
 	kv, err := lp.DHT.Query(addr)
 
 	if err != nil {

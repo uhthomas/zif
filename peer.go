@@ -3,7 +3,7 @@
 // everything else can be discovered via the network.
 // Just a bit of a wrapper for the client really, that contains most of the networking code, this mostly has the data and a few other things.
 
-package libzif
+package zif
 
 import (
 	"bytes"

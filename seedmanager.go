@@ -1,4 +1,4 @@
-package libzif
+package zif
 
 import (
 	"time"
@@ -55,6 +55,15 @@ func (sm *SeedManager) findSeeds() {
 	ticker := time.NewTicker(SeedSearchFrequency)
 
 	find := func() {
+		entry, err := sm.lp.QueryEntry(sm.track)
+
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		sm.entry = entry
+
 		log.Info("Searching for new seeds")
 		for _, i := range sm.entry.Seeds {
 			addr := dht.Address{i}
