@@ -494,3 +494,15 @@ func (lp *LocalPeer) QuerySelf() {
 		time.Sleep(time.Minute * 5)
 	}
 }
+
+func (lp *LocalPeer) AddEntry(entry *proto.Entry) error {
+	dat, err := entry.Encode()
+
+	if err != nil {
+		return err
+	}
+
+	kv := dht.NewKeyValue(entry.Address, dat)
+
+	return lp.DHT.Insert(kv)
+}

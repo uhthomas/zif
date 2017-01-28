@@ -41,6 +41,7 @@ type Peer struct {
 	seedFor *proto.Entry
 
 	addSeedManager func(dht.Address) error
+	addEntry       func(*proto.Entry) error
 }
 
 func (p *Peer) EAddress() common.Encoder {
@@ -504,6 +505,14 @@ func (p *Peer) RequestAddPeer(addr dht.Address) error {
 		return err
 	}
 
+	for _, i := range p.entry.Seeds {
+		seedAddr := &dht.Address{i}
+
+		if seedAddr.Equals(&addr) {
+			return nil
+		}
+	}
+
 	_, err = os.Stat("./data/seeding.dat")
 
 	if os.IsNotExist(err) {
@@ -522,6 +531,14 @@ func (p *Peer) RequestAddPeer(addr dht.Address) error {
 	defer seedList.Close()
 
 	_, err = seedList.Write(addr.Raw)
+
+	if err != nil {
+		return err
+	}
+
+	p.entry.Seeds = append(p.entry.Seeds, addr.Raw)
+
+	p.addEntry(p.entry)
 
 	return err
 }
