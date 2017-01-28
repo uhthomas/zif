@@ -275,6 +275,7 @@ func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
 }
 
 func (pm *PeerManager) LoadSeeds() error {
+	log.Info("Loading seed list")
 	file, err := ioutil.ReadFile("./data/seeding.dat")
 
 	if err != nil {
@@ -292,6 +293,7 @@ func (pm *PeerManager) LoadSeeds() error {
 			log.Error(err.Error())
 		}
 	}
+	log.Info("Finished loading seed list")
 
 	return err
 }

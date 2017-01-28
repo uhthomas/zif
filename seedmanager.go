@@ -69,6 +69,10 @@ func (sm *SeedManager) findSeeds() {
 		for _, i := range sm.entry.Seeds {
 			addr := dht.Address{i}
 
+			if addr.Equals(sm.lp.Address()) {
+				continue
+			}
+
 			s, err := addr.String()
 			if err != nil {
 				continue
@@ -97,9 +101,9 @@ func (sm *SeedManager) findSeeds() {
 
 			qResult := qResultVerifiable.(*proto.Entry)
 
-			if len(qResult.Seeds) != len(sm.entry.Seeds) {
-				result := util.MergeSeeds(sm.entry.Seeds, qResult.Seeds)
+			result := util.MergeSeeds(sm.entry.Seeds, qResult.Seeds)
 
+			if len(result) != len(sm.entry.Seeds) {
 				sm.entry.Seeds = result
 				encoded, err := sm.entry.Encode()
 
