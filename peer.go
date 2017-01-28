@@ -267,7 +267,8 @@ func (p *Peer) Query(address dht.Address) (common.Verifiable, error) {
 		return nil, err
 	}
 
-	log.WithField("target", address).Info("Querying")
+	addressString, _ := address.String()
+	log.WithField("target", addressString).Info("Querying")
 
 	stream, err := p.OpenStream()
 
@@ -288,7 +289,8 @@ func (p *Peer) FindClosest(address dht.Address) ([]common.Verifiable, error) {
 		return nil, err
 	}
 
-	log.WithField("target", address).Info("Finding closest")
+	addressString, _ := address.String()
+	log.WithField("target", addressString).Info("Finding closest")
 
 	stream, err := p.OpenStream()
 

@@ -2,7 +2,6 @@ package proto
 
 import (
 	"errors"
-	"fmt"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -175,7 +174,6 @@ func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
 	var cookie [20]byte
 	msg.Read(&cookie)
 	sig := lp.Sign(cookie[:])
-	fmt.Println(cookie)
 
 	msg = &Message{
 		Header: ProtoSig,
