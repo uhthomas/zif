@@ -92,6 +92,7 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 
 	pm.SetPeer(peer)
 	peer.addSeedManager = pm.AddSeedManager
+	peer.addEntry = pm.localPeer.AddEntry
 
 	return peer, nil
 }
