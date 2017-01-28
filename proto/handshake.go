@@ -2,6 +2,7 @@ package proto
 
 import (
 	"errors"
+	"fmt"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -106,7 +107,10 @@ func handshake_recieve(cl Client) (*Entry, error) {
 		return nil, err
 	}
 
-	verified := ed25519.Verify(entry.PublicKey, cookie, sig.Content)
+	// need to decompress the signature before verifying
+	var signature [ed25519.SignatureSize]byte
+	sig.Read(&signature)
+	verified := ed25519.Verify(entry.PublicKey, cookie, signature[:])
 
 	if !verified {
 		log.Error("Failed to verify peer ", s)
@@ -167,7 +171,11 @@ func handshake_send(cl Client, lp common.Signer, data common.Encodable) error {
 
 	log.Info("Cookie recieved, signing")
 
-	sig := lp.Sign(msg.Content)
+	// the peer expects us to sign the *decompressed* cookie. So do that.
+	var cookie [20]byte
+	msg.Read(&cookie)
+	sig := lp.Sign(cookie[:])
+	fmt.Println(cookie)
 
 	msg = &Message{
 		Header: ProtoSig,

@@ -3,6 +3,7 @@ package proto
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net"
 
@@ -39,6 +40,7 @@ func (m *Message) Write(iface interface{}) error {
 	}
 
 	m.Content = writer.Bytes()
+	fmt.Println(len(m.Content))
 
 	return nil
 }
