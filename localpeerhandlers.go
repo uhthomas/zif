@@ -498,6 +498,10 @@ func (lp *LocalPeer) HandleHandshake(header proto.ConnHeader) (proto.NetworkPeer
 		return nil, err
 	}
 
+	lp.peerManager.SetPeer(peer)
+	peer.addSeedManager = lp.peerManager.AddSeedManager
+	peer.addEntry = lp.AddEntry
+
 	return peer, nil
 }
 

@@ -393,18 +393,9 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	}
 
 	pieces := make(chan *data.Piece, data.PieceSize)
-	defer close(pieces)
 	defer close(onPiece)
 
 	go db.InsertPieces(pieces, true)
-
-	stream, err := p.OpenStream()
-
-	if err != nil {
-		return err
-	}
-
-	defer stream.Close()
 
 	var entry *proto.Entry
 	if p.seed {
@@ -419,6 +410,13 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	if err != nil {
 		return err
 	}
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return err
+	}
+
+	defer stream.Close()
 
 	mcol, err := stream.Collection(entry.Address, entry.PublicKey)
 
@@ -446,10 +444,19 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	}
 
 	log.WithField("Size", mcol.Size).Info("Downloading collection")
-	piece_stream := stream.Pieces(entry.Address, since, mcol.Size)
+
+	pieceStream, err := p.OpenStream()
+
+	if err != nil {
+		return err
+	}
+
+	defer pieceStream.Close()
+
+	piece_chan := pieceStream.Pieces(entry.Address, since, mcol.Size)
 
 	i := 0
-	for piece := range piece_stream {
+	for piece := range piece_chan {
 		log.Info(len(mcol.HashList))
 		hash := piece.Hash()
 
@@ -476,6 +483,8 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	// commandserver
 	p.seed = false
 	p.seedFor = nil
+
+	pieces <- nil
 
 	return err
 }

@@ -85,6 +85,7 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 	tx, err := db.conn.Begin()
 
 	if err != nil {
+		log.Error(err.Error())
 		return err
 	}
 
@@ -97,16 +98,23 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 			tx.Rollback()
 			log.Error(err.Error())
 		}
+
+		close(pieces)
 	}()
 
 	//lastId := 0
 	for piece := range pieces {
+		if piece == nil {
+			return nil
+		}
+
 		// Insert the transaction every 100,000 posts.
 		if n == 99 {
 			err = tx.Commit()
 
 			if err != nil {
-				return
+				log.Error(err.Error())
+				return err
 			}
 
 			//db.GenerateFts(lastId)
@@ -115,6 +123,7 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 			tx, err = db.conn.Begin()
 
 			if err != nil {
+				log.Error(err.Error())
 				return
 			}
 

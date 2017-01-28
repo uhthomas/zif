@@ -518,10 +518,16 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 	err := msg.Write(mrp)
 
 	if err != nil {
+		log.Error(err.Error())
 		return nil
 	}
 
-	c.WriteMessage(msg)
+	err = c.WriteMessage(msg)
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
 
 	// Convert a string to an int, prevents endless error checks below.
 	convert := func(val string) int {
@@ -537,10 +543,12 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 
 	go func() {
 		defer close(ret)
+		log.Info("Recieving pieces")
 
 		gzr, err := gzip.NewReader(c.conn)
 
 		if err != nil {
+			log.Error(err.Error())
 			return
 		}
 
