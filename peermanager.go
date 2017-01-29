@@ -48,6 +48,7 @@ func NewPeerManager(lp *LocalPeer) *PeerManager {
 	ret.peers = cmap.New()
 	ret.publicToZif = cmap.New()
 	ret.SeedManagers = cmap.New()
+	ret.peerSeen = cmap.New()
 	ret.localPeer = lp
 
 	return ret
@@ -74,8 +75,11 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 	var peer *Peer
 	var err error
 
-	if peer = pm.GetPeer(addr); peer != nil {
-		return peer, nil
+	zifAddr, ok := pm.publicToZif.Get(addr)
+	if ok {
+		if peer = pm.GetPeer(*zifAddr.(*dht.Address)); peer != nil {
+			return peer, nil
+		}
 	}
 
 	peer = &Peer{}
@@ -94,30 +98,6 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 	peer.ConnectClient(pm.localPeer)
 
 	pm.SetPeer(peer)
-	peer.addSeedManager = pm.AddSeedManager
-	peer.addEntry = pm.localPeer.AddEntry
-	peer.addSeeding = pm.localPeer.AddSeeding
-
-	peer.updateSeen = func() {
-		pm.peerSeen.Set(string(peer.entry.Address.Raw), time.Now().UnixNano())
-	}
-	pm.peerSeen.Set(string(peer.entry.Address.Raw), time.Now().UnixNano())
-
-	// if we need to clear space for another
-	if pm.peers.Count() > viper.GetInt("net.maxPeers") {
-		oldestKey := ""
-		oldestValue := time.Now().UnixNano()
-
-		// find the least recently seen peer
-		for i := range pm.peerSeen.IterBuffered() {
-			time := i.Val.(int64)
-
-			if time < oldestValue {
-				oldestKey = i.Key
-			}
-		}
-
-	}
 
 	return peer, nil
 }
@@ -141,7 +121,7 @@ func (pm *PeerManager) ConnectPeer(addr dht.Address) (*Peer, *proto.Entry, error
 		return nil, nil, data.AddressResolutionError{entry.Address.StringOr("")}
 	}
 
-	if peer = pm.GetPeer(entry.Address.StringOr("")); peer != nil {
+	if peer = pm.GetPeer(entry.Address); peer != nil {
 		return peer, entry, nil
 	}
 
@@ -166,8 +146,8 @@ func (pm *PeerManager) ConnectPeer(addr dht.Address) (*Peer, *proto.Entry, error
 	return peer, entry, nil
 }
 
-func (pm *PeerManager) GetPeer(addr string) *Peer {
-	peer, has := pm.peers.Get(addr)
+func (pm *PeerManager) GetPeer(addr dht.Address) *Peer {
+	peer, has := pm.peers.Get(string(addr.Raw))
 
 	if !has {
 		return nil
@@ -182,7 +162,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 		return
 	}
 
-	pm.peers.Set(p.Address().StringOr(""), p)
+	pm.peers.Set(string(p.Address().Raw), p)
 
 	e, err := p.Entry()
 
@@ -191,7 +171,50 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 		return
 	}
 
-	pm.publicToZif.Set(e.PublicAddress, p.Address().StringOr(""))
+	pm.publicToZif.Set(e.PublicAddress, p.Address())
+
+	p.addSeedManager = pm.AddSeedManager
+	p.addEntry = pm.localPeer.AddEntry
+	p.addSeeding = pm.localPeer.AddSeeding
+
+	p.updateSeen = func() {
+		pm.peerSeen.Set(string(p.entry.Address.Raw), time.Now().UnixNano())
+	}
+	pm.peerSeen.Set(string(p.entry.Address.Raw), time.Now().UnixNano())
+
+	// if we need to clear space for another, remove the least recently used one
+	for pm.peers.Count() > viper.GetInt("net.maxPeers") {
+
+		oldestKey := ""
+		oldestValue := time.Now().UnixNano()
+
+		// find the least recently seen peer
+		for i := range pm.peerSeen.IterBuffered() {
+			time := i.Val.(int64)
+
+			if time < oldestValue {
+				oldestKey = i.Key
+			}
+		}
+
+		// then remove it, after disconnecting it from the network
+		peer, ok := pm.peers.Get(oldestKey)
+
+		if !ok {
+			log.Error("Could not get peer for removal")
+		}
+
+		switch peer.(type) {
+		case *Peer:
+			log.WithField("removing", peer.(*Peer).Address().StringOr("")).
+				Info("Too many peers connected, culling")
+			peer.(*Peer).Terminate()
+			pm.HandleCloseConnection(peer.(*Peer).Address())
+		default:
+			log.Error("Value was not *Peer")
+		}
+
+	}
 
 	go pm.heartbeatPeer(p)
 	go pm.announcePeer(p)
@@ -383,7 +406,7 @@ func (pm *PeerManager) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Ent
 
 	log.WithField("peer", e.Address.StringOr("")).Info("Querying for resolve")
 
-	peer = pm.GetPeer(e.Address.StringOr(""))
+	peer = pm.GetPeer(e.Address)
 
 	if peer == nil {
 		peer, err = pm.ConnectPeerDirect(fmt.Sprintf("%s:%d", e.PublicAddress, e.Port))

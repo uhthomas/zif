@@ -61,13 +61,13 @@ func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 
 	log.Info("Command: Announce request")
 
-	peer := cs.LocalPeer.GetPeer(a.Address)
-
 	address, err := dht.DecodeAddress(a.Address)
 
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}
+
+	peer := cs.LocalPeer.GetPeer(address)
 
 	if peer == nil {
 		peer, _, err = cs.LocalPeer.ConnectPeer(address)
@@ -90,13 +90,13 @@ func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 
 	log.Info("Command: Peer Remote Search request")
 
-	peer := cs.LocalPeer.GetPeer(rs.Address)
-
 	address, err := dht.DecodeAddress(rs.Address)
 
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}
+
+	peer := cs.LocalPeer.GetPeer(address)
 
 	if peer == nil {
 		// Remote searching is not allowed to be done on seeds, it has no
@@ -138,13 +138,13 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 		return CommandResult{err == nil, posts, err}
 	}
 
-	peer := cs.LocalPeer.GetPeer(pr.Address)
-
 	address, err := dht.DecodeAddress(pr.Address)
 
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}
+
+	peer := cs.LocalPeer.GetPeer(address)
 
 	if peer == nil {
 		peer, _, err = cs.LocalPeer.ConnectPeer(address)
@@ -169,13 +169,13 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 		return CommandResult{err == nil, posts, err}
 	}
 
-	peer := cs.LocalPeer.GetPeer(pp.CommandPeer.Address)
-
 	address, err := dht.DecodeAddress(pp.Address)
 
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}
+
+	peer := cs.LocalPeer.GetPeer(address)
 
 	if peer == nil {
 		peer, _, err = cs.LocalPeer.ConnectPeer(address)
@@ -205,7 +205,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 		return CommandResult{false, nil, err}
 	}
 
-	peer := cs.LocalPeer.GetPeer(cm.Address)
+	peer := cs.LocalPeer.GetPeer(address)
 
 	if peer == nil {
 		var entry *proto.Entry

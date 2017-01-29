@@ -25,7 +25,7 @@ type ProtocolHandler interface {
 	HandleHandshake(ConnHeader) (NetworkPeer, error)
 	HandleCloseConnection(*dht.Address)
 
-	GetNetworkPeer(string) NetworkPeer
+	GetNetworkPeer(dht.Address) NetworkPeer
 	SetNetworkPeer(NetworkPeer)
 }
 

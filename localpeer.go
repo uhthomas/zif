@@ -420,11 +420,11 @@ func (lp *LocalPeer) SetNetworkPeer(p proto.NetworkPeer) {
 	}
 }
 
-func (lp *LocalPeer) GetPeer(addr string) *Peer {
+func (lp *LocalPeer) GetPeer(addr dht.Address) *Peer {
 	return lp.peerManager.GetPeer(addr)
 }
 
-func (lp *LocalPeer) GetNetworkPeer(addr string) proto.NetworkPeer {
+func (lp *LocalPeer) GetNetworkPeer(addr dht.Address) proto.NetworkPeer {
 	return lp.peerManager.GetPeer(addr)
 }
 
