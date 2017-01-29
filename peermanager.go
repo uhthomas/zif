@@ -185,7 +185,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 	// if we need to clear space for another, remove the least recently used one
 	for pm.peers.Count() > viper.GetInt("net.maxPeers") {
 
-		oldest := (<-pm.peers.IterBuffered())
+		oldest := (<-pm.peerSeen.IterBuffered())
 
 		oldestKey := oldest.Key
 		oldestValue := oldest.Val.(int64)
@@ -210,7 +210,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 		switch peer.(type) {
 		case *Peer:
 			log.WithField("removing", peer.(*Peer).Address().StringOr("")).
-				Info("Too many peers connected")
+				Warn("Too many peers connected")
 			peer.(*Peer).Terminate()
 			pm.HandleCloseConnection(peer.(*Peer).Address())
 		default:
