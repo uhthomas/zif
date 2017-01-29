@@ -134,7 +134,7 @@ func (pm *PeerManager) ConnectPeer(addr dht.Address) (*Peer, *proto.Entry, error
 	// Caller can go on to choose a seed to connect to, not quite the end of the
 	// world :P
 	if err != nil {
-		log.WithField("peer", addr).Info("Failed to connect")
+		log.WithField("peer", addr.StringOr("")).Info("Failed to connect")
 
 		return nil, entry, err
 	}
@@ -290,7 +290,7 @@ func (pm *PeerManager) LoadSeeds() error {
 }
 
 func (pm *PeerManager) Resolve(addr dht.Address) (*proto.Entry, error) {
-	log.WithField("address", addr).Debug("Resolving")
+	log.WithField("address", addr.StringOr("")).Debug("Resolving")
 
 	if addr.Equals(pm.localPeer.Address()) {
 		return pm.localPeer.Entry, nil
