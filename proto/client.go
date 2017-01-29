@@ -456,8 +456,7 @@ func (c *Client) Popular(page int) ([]*data.Post, error) {
 // Download a hash list for a peer. Expects said hash list to be valid and
 // signed.
 func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*MessageCollection, error) {
-	s, _ := address.String()
-	log.WithField("for", s).Info("Sending request for a collection")
+	log.WithField("for", address.StringOr("")).Info("Sending request for a collection")
 
 	msg := &Message{
 		Header: ProtoRequestHashList,
@@ -501,16 +500,15 @@ func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*Message
 
 // Download a piece from a peer, given the address and id of the piece we want.
 func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
-	s, _ := address.String()
 	log.WithFields(log.Fields{
-		"address": s,
+		"address": address.StringOr(""),
 		"id":      id,
 		"length":  length,
 	}).Info("Sending request for piece")
 
 	ret := make(chan *data.Piece, 100)
 
-	mrp := MessageRequestPiece{s, id, length}
+	mrp := MessageRequestPiece{address.StringOr(""), id, length}
 
 	msg := &Message{
 		Header: ProtoRequestPiece,
@@ -615,8 +613,7 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 }
 
 func (c *Client) RequestAddPeer(addr dht.Address) error {
-	s, _ := addr.String()
-	log.WithField("for", s).Info("Registering as seed")
+	log.WithField("for", addr.StringOr("")).Info("Registering as seed")
 
 	msg := &Message{
 		Header: ProtoRequestAddPeer,

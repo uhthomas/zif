@@ -104,7 +104,11 @@ func main() {
 	httpServer.CommandServer = commandServer
 	go httpServer.ListenHttp(*http)
 
-	lp.StartExploring()
+	err = lp.StartExploring()
+
+	if err != nil {
+		log.Error(err.Error())
+	}
 
 	// Listen for SIGINT
 	sigchan := make(chan os.Signal, 1)

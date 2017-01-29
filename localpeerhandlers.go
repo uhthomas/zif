@@ -35,8 +35,7 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		return err
 	}
 
-	s, _ := address.String()
-	log.WithField("target", s).Info("Recieved query")
+	log.WithField("target", address.StringOr("")).Info("Recieved query")
 
 	ok := &proto.Message{Header: proto.ProtoOk}
 	err = cl.WriteMessage(ok)
@@ -103,8 +102,7 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 		return err
 	}
 
-	s, _ := address.String()
-	log.WithField("target", s).Info("Recieved find closest")
+	log.WithField("target", address.StringOr("")).Info("Recieved find closest")
 
 	ok := &proto.Message{Header: proto.ProtoOk}
 	err = cl.WriteMessage(ok)
@@ -175,8 +173,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 	entry := proto.Entry{}
 	err = msg.Read(&entry)
 
-	es, _ := entry.Address.String()
-	log.WithField("address", es).Info("Announce")
+	log.WithField("address", entry.Address.StringOr("")).Info("Announce")
 
 	if err != nil {
 		return err
@@ -187,7 +184,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 
 	if err == nil {
 		cl.WriteMessage(&proto.Message{Header: proto.ProtoOk})
-		log.WithField("peer", es).Info("Saved new peer")
+		log.WithField("peer", entry.Address.StringOr("")).Info("Saved new peer")
 
 	} else {
 		cl.WriteMessage(&proto.Message{Header: proto.ProtoNo})
@@ -295,8 +292,7 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 		return err
 	}
 
-	s, _ := address.String()
-	log.WithField("address", s).Info("Collection request recieved")
+	log.WithField("address", address.StringOr("")).Info("Collection request recieved")
 
 	var sig []byte
 	var hash []byte
@@ -319,7 +315,8 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 		}
 
 		// load the hashlist from disk, if it exists. If not, err
-		hl, err := ioutil.ReadFile(fmt.Sprintf("./data/%s/collection.dat", s))
+		// if not "err", then it'd probably read its own collection
+		hl, err := ioutil.ReadFile(fmt.Sprintf("./data/%s/collection.dat", address.StringOr("err")))
 
 		if err != nil {
 			return err
@@ -377,8 +374,7 @@ func (lp *LocalPeer) HandlePiece(msg *proto.Message) error {
 
 	var posts chan *data.Post
 
-	lps, _ := lp.Entry.Address.String()
-	if mrp.Address == lps {
+	if mrp.Address == lp.Address().StringOr("") {
 		posts = lp.Database.QueryPiecePosts(mrp.Id, mrp.Length, true)
 
 	} else if lp.Databases.Has(mrp.Address) {

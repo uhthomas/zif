@@ -49,6 +49,8 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/self/set/{key}/", hs.SelfSet).Methods("POST")
 	router.HandleFunc("/self/get/{key}/", hs.SelfGet)
 
+	router.HandleFunc("/self/explore/", hs.SelfExplore)
+
 	log.WithField("address", addr).Info("Starting HTTP server")
 
 	err := http.ListenAndServe(addr, router)
@@ -304,6 +306,10 @@ func (hs *HttpServer) SelfGet(w http.ResponseWriter, r *http.Request) {
 	key := vars["key"]
 
 	write_http_response(w, hs.CommandServer.LocalGet(CommandLocalGet{key}))
+}
+
+func (hs *HttpServer) SelfExplore(w http.ResponseWriter, r *http.Request) {
+	write_http_response(w, hs.CommandServer.Explore())
 }
 
 func (hs *HttpServer) IndexHandler(w http.ResponseWriter, r *http.Request) {

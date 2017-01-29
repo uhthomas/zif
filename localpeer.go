@@ -271,10 +271,14 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 	return id, err
 }
 
-func (lp *LocalPeer) StartExploring() {
+func (lp *LocalPeer) StartExploring() error {
 	in := make(chan proto.Entry, jobs.ExploreBufferSize)
 
-	lp.seedExplore(in)
+	err := lp.seedExplore(in)
+
+	if err != nil {
+		return err
+	}
 
 	ret := jobs.ExploreJob(in,
 		func(addr dht.Address) (interface{}, error) {
@@ -338,13 +342,15 @@ func (lp *LocalPeer) StartExploring() {
 			}
 		}
 	}()
+
+	return nil
 }
 
-func (lp *LocalPeer) seedExplore(in chan proto.Entry) {
+func (lp *LocalPeer) seedExplore(in chan proto.Entry) error {
 	closest, err := lp.DHT.FindClosest(*lp.Address())
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	addr, _ := dht.RandomAddress()
@@ -352,6 +358,10 @@ func (lp *LocalPeer) seedExplore(in chan proto.Entry) {
 
 	closest = append(closest, closestRand...)
 	log.WithField("seeds", len(closest)).Info("Seeding peer explore")
+
+	if len(closest) == 0 {
+		return errors.New("Failed to seed bootstrap, bootstrap first")
+	}
 
 	for _, i := range closest {
 		if i == nil {
@@ -370,6 +380,8 @@ func (lp *LocalPeer) seedExplore(in chan proto.Entry) {
 			in <- entry
 		}
 	}
+
+	return nil
 }
 
 // convenience methods

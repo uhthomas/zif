@@ -109,17 +109,15 @@ func (pm *PeerManager) ConnectPeer(addr dht.Address) (*Peer, *proto.Entry, error
 		return nil, nil, err
 	}
 
-	s, _ := entry.Address.String()
-
 	if entry.Address.Equals(pm.localPeer.Address()) {
 		return nil, nil, errors.New("Cannot connect to self")
 	}
 
 	if entry == nil {
-		return nil, nil, data.AddressResolutionError{s}
+		return nil, nil, data.AddressResolutionError{entry.Address.StringOr("")}
 	}
 
-	if peer = pm.GetPeer(s); peer != nil {
+	if peer = pm.GetPeer(entry.Address.StringOr("")); peer != nil {
 		return peer, entry, nil
 	}
 
@@ -129,7 +127,7 @@ func (pm *PeerManager) ConnectPeer(addr dht.Address) (*Peer, *proto.Entry, error
 	}
 
 	// now should have an entry for the peer, connect to it!
-	log.WithField("address", s).Debug("Connecting")
+	log.WithField("address", entry.Address.StringOr("")).Debug("Connecting")
 
 	peer, err = pm.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
 
@@ -156,13 +154,11 @@ func (pm *PeerManager) GetPeer(addr string) *Peer {
 
 func (pm *PeerManager) SetPeer(p *Peer) {
 
-	s, _ := p.Address().String()
-
-	if pm.peers.Has(s) {
+	if pm.peers.Has(p.Address().StringOr("")) {
 		return
 	}
 
-	pm.peers.Set(s, p)
+	pm.peers.Set(p.Address().StringOr(""), p)
 
 	e, err := p.Entry()
 
@@ -171,15 +167,14 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 		return
 	}
 
-	pm.publicToZif.Set(e.PublicAddress, s)
+	pm.publicToZif.Set(e.PublicAddress, p.Address().StringOr(""))
 
 	go pm.heartbeatPeer(p)
 	go pm.announcePeer(p)
 }
 
 func (pm *PeerManager) HandleCloseConnection(addr *dht.Address) {
-	s, _ := addr.String()
-	pm.peers.Remove(s)
+	pm.peers.Remove(addr.StringOr(""))
 }
 
 // Pings the peer regularly to check the connection
@@ -193,19 +188,17 @@ func (pm *PeerManager) heartbeatPeer(p *Peer) {
 			return
 		}
 
-		s, _ := p.Address().String()
-
 		// If the peer has already been removed, don't bother
-		if has := pm.peers.Has(s); !has {
+		if has := pm.peers.Has(p.Address().StringOr("")); !has {
 			return
 		}
 
-		log.WithField("peer", s).Debug("Sending heartbeat")
+		log.WithField("peer", p.Address().StringOr("")).Debug("Sending heartbeat")
 		// allows for a suddenly slower connection, most requests have a lower timeout
 		_, err := p.Ping(HeartbeatFrequency)
 
 		if err != nil {
-			log.WithField("peer", s).Info("Peer has no heartbeat, terminating")
+			log.WithField("peer", p.Address().StringOr("")).Info("Peer has no heartbeat, terminating")
 
 			pm.HandleCloseConnection(p.Address())
 
@@ -223,14 +216,12 @@ func (pm *PeerManager) announcePeer(p *Peer) {
 			return errors.New("Peer is nil")
 		}
 
-		s, _ := p.Address().String()
-
 		// If the peer has already been removed, don't bother
-		if has := pm.peers.Has(s); !has {
+		if has := pm.peers.Has(p.Address().StringOr("")); !has {
 			return PeerDisconnected
 		}
 
-		log.WithField("peer", s).Info("Announcing to peer")
+		log.WithField("peer", p.Address().StringOr("")).Info("Announcing to peer")
 		err := p.Announce(pm.localPeer)
 
 		if err != nil {
@@ -256,13 +247,11 @@ func (pm *PeerManager) announcePeer(p *Peer) {
 }
 
 func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
-	s, _ := addr.String()
-
-	if pm.SeedManagers.Has(s) {
+	if pm.SeedManagers.Has(addr.StringOr("")) {
 		return nil
 	}
 
-	log.WithField("peer", s).Info("Loading seed manager")
+	log.WithField("peer", addr.StringOr("")).Info("Loading seed manager")
 
 	sm, err := NewSeedManager(addr, pm.localPeer)
 
@@ -270,7 +259,7 @@ func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
 		return err
 	}
 
-	pm.SeedManagers.Set(s, pm.localPeer)
+	pm.SeedManagers.Set(addr.StringOr(""), pm.localPeer)
 	sm.Start()
 
 	return nil
@@ -364,8 +353,7 @@ func (pm *PeerManager) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Ent
 	var peer *Peer
 	var err error
 
-	es, _ := e.Address.String()
-	peer = pm.GetPeer(es)
+	peer = pm.GetPeer(e.Address.StringOr(""))
 
 	if peer == nil {
 		peer, err = pm.ConnectPeerDirect(fmt.Sprintf("%s:%d", e.PublicAddress, e.Port))

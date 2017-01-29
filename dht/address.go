@@ -38,6 +38,16 @@ func (a Address) String() (string, error) {
 	return base58check.Encode("51", b)
 }
 
+func (a Address) StringOr(or string) string {
+	str, err := a.String()
+
+	if err != nil {
+		return or
+	}
+
+	return str
+}
+
 func (a *Address) Bytes() ([]byte, error) {
 	return a.Raw, nil
 }

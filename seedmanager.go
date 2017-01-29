@@ -47,8 +47,7 @@ func NewSeedManager(track dht.Address, lp *LocalPeer) (*SeedManager, error) {
 }
 
 func (sm *SeedManager) Start() {
-	s, _ := sm.entry.Address.String()
-	log.WithField("peer", s).Info("Starting seed manager")
+	log.WithField("peer", sm.track.StringOr("")).Info("Starting seed manager")
 	go sm.findSeeds()
 }
 

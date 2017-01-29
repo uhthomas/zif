@@ -82,8 +82,7 @@ func (e Entry) String() (string, error) {
 	str += string(e.PublicKey)
 	str += string(e.Port)
 	str += string(e.PublicAddress)
-	s, _ := e.Address.String()
-	str += s
+	str += e.Address.StringOr("")
 	str += string(e.PostCount)
 
 	for _, i := range e.Seeding {

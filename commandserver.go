@@ -131,8 +131,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 
 	log.Info("Command: Peer Recent request")
 
-	lps, _ := cs.LocalPeer.Address().String()
-	if pr.CommandPeer.Address == lps {
+	if pr.CommandPeer.Address == cs.LocalPeer.Address().StringOr("") {
 		posts, err = cs.LocalPeer.Database.QueryRecent(pr.Page)
 
 		return CommandResult{err == nil, posts, err}
@@ -163,8 +162,7 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 
 	log.Info("Command: Peer Popular request")
 
-	lps, _ := cs.LocalPeer.Address().String()
-	if pp.CommandPeer.Address == lps {
+	if pp.CommandPeer.Address == cs.LocalPeer.Address().StringOr("") {
 		posts, err = cs.LocalPeer.Database.QueryPopular(pp.Page)
 
 		return CommandResult{err == nil, posts, err}
@@ -253,17 +251,14 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 	log.Debug("Peer ", peer)
 	// TODO: make this configurable
-	s, _ := peer.Address().String()
-
-	ms, _ := mirroring.Address.String()
-	d := fmt.Sprintf("./data/%s", ms)
+	d := fmt.Sprintf("./data/%s", mirroring.Address.StringOr(""))
 
 	os.Mkdir(d, 0777)
 
 	db := data.NewDatabase(fmt.Sprintf("%s/posts.db", d))
 	db.Connect()
 
-	cs.LocalPeer.Databases.Set(s, db)
+	cs.LocalPeer.Databases.Set(peer.Address().StringOr(""), db)
 
 	progressChan := make(chan int)
 
@@ -277,9 +272,6 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}
-
-	// TODO: wjh: is this needed? -poro
-	cs.LocalPeer.Databases.Set(s, db)
 
 	return CommandResult{true, nil, nil}
 }
@@ -376,8 +368,8 @@ func (cs *CommandServer) SelfSuggest(css CommandSuggest) CommandResult {
 func (cs *CommandServer) SelfSearch(css CommandSelfSearch) CommandResult {
 	log.Info("Command: Search request")
 
-	s, _ := cs.LocalPeer.Address().String()
-	posts, err := cs.LocalPeer.SearchProvider.Search(s, cs.LocalPeer.Database, css.Query, css.Page)
+	posts, err := cs.LocalPeer.SearchProvider.Search(cs.LocalPeer.Address().StringOr(""),
+		cs.LocalPeer.Database, css.Query, css.Page)
 
 	return CommandResult{err == nil, posts, err}
 }
@@ -504,4 +496,10 @@ func (cs *CommandServer) LocalGet(clg CommandLocalGet) CommandResult {
 	}
 
 	return CommandResult{true, value, nil}
+}
+
+func (cs *CommandServer) Explore() CommandResult {
+	err := cs.LocalPeer.StartExploring()
+
+	return CommandResult{err == nil, nil, err}
 }

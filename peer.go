@@ -100,8 +100,7 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 		return err
 	}
 
-	s, _ := p.Address().String()
-	log.WithField("peer", s).Debug("Sending announce")
+	log.WithField("peer", p.Address().StringOr("")).Debug("Sending announce")
 
 	if lp.Entry.PublicAddress == "" {
 		log.Debug("Local peer public address is nil, attempting to fetch")
@@ -219,7 +218,6 @@ func (p *Peer) GetEntry() (*proto.Entry, error) {
 		return nil, err
 	}
 
-	s, _ := p.Address().String()
 	e, err := p.Query(*p.Address())
 
 	if err != nil {
@@ -228,7 +226,7 @@ func (p *Peer) GetEntry() (*proto.Entry, error) {
 
 	entry := e.(*proto.Entry)
 
-	log.WithField("addr", s).Info("Recieved")
+	log.WithField("for", p.Address().StringOr("")).Info("Recieved entry")
 
 	if !entry.Address.Equals(p.Address()) {
 		return nil, errors.New("Failed to fetch entry")
@@ -317,8 +315,7 @@ func (p *Peer) Search(search string, page int) (*data.SearchResult, error) {
 		return nil, err
 	}
 
-	s, _ := p.Address().String()
-	log.WithField("Query", s).Info("Searching")
+	log.WithField("peer", p.Address().StringOr("")).Info("Searching")
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -330,7 +327,7 @@ func (p *Peer) Search(search string, page int) (*data.SearchResult, error) {
 	posts, err := stream.Search(search, page)
 	res := &data.SearchResult{
 		Posts:  posts,
-		Source: s,
+		Source: p.Address().StringOr(""),
 	}
 
 	if err != nil {
@@ -404,8 +401,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 		entry, err = p.Entry()
 	}
 
-	s, _ := entry.Address.String()
-	log.WithField("peer", s).Info("Mirroring")
+	log.WithField("peer", entry.Address.StringOr("")).Info("Mirroring")
 
 	if err != nil {
 		return err
@@ -426,7 +422,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	collection := data.Collection{HashList: mcol.HashList}
 
-	err = collection.Save(fmt.Sprintf("./data/%s/collection.dat", s))
+	err = collection.Save(fmt.Sprintf("./data/%s/collection.dat", entry.Address.StringOr("err")))
 
 	if err != nil {
 		return err
