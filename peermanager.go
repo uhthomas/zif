@@ -158,7 +158,7 @@ func (pm *PeerManager) GetPeer(addr dht.Address) *Peer {
 
 func (pm *PeerManager) SetPeer(p *Peer) {
 
-	if pm.peers.Has(p.Address().StringOr("")) {
+	if pm.peers.Has(string(p.Address().Raw)) {
 		return
 	}
 
@@ -236,7 +236,7 @@ func (pm *PeerManager) heartbeatPeer(p *Peer) {
 		}
 
 		// If the peer has already been removed, don't bother
-		if has := pm.peers.Has(p.Address().StringOr("")); !has {
+		if has := pm.peers.Has(string(p.Address().Raw)); !has {
 			return
 		}
 
@@ -264,7 +264,7 @@ func (pm *PeerManager) announcePeer(p *Peer) {
 		}
 
 		// If the peer has already been removed, don't bother
-		if has := pm.peers.Has(p.Address().StringOr("")); !has {
+		if has := pm.peers.Has(string(p.Address().Raw)); !has {
 			return PeerDisconnected
 		}
 
