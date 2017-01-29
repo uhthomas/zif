@@ -185,8 +185,10 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 	// if we need to clear space for another, remove the least recently used one
 	for pm.peers.Count() > viper.GetInt("net.maxPeers") {
 
-		oldestKey := ""
-		oldestValue := time.Now().UnixNano()
+		oldest := (<-pm.peers.IterBuffered())
+
+		oldestKey := oldest.Key
+		oldestValue := oldest.Val.(int64)
 
 		// find the least recently seen peer
 		for i := range pm.peerSeen.IterBuffered() {
