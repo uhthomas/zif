@@ -202,6 +202,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 
 		if !ok {
 			log.Error("Could not get peer for removal")
+			continue
 		}
 
 		switch peer.(type) {
