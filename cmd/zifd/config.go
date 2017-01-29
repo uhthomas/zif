@@ -39,6 +39,10 @@ func SetupConfig() {
 
 	viper.SetDefault("socks", map[string]interface{}{"enabled": true, "port": 10050})
 
+	viper.SetDefault("net", map[string]interface{}{
+		"maxPeers": 100,
+	})
+
 	viper.WatchConfig()
 
 	viper.OnConfigChange(func(e fsnotify.Event) {

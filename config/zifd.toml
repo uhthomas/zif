@@ -18,3 +18,7 @@ cookiePath = "./tor/"
 [socks]
 enabled = true
 port = 10050
+
+[net]
+# maximum number of open peer connections
+maxPeers = 100

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/streamrail/concurrent-map"
 	"github.com/zif/zif/data"
 	"github.com/zif/zif/dht"
@@ -30,6 +31,8 @@ type PeerManager struct {
 	// a map of currently connected peers
 	// also use to cancel reconnects :)
 	peers cmap.ConcurrentMap
+	// maps a peer address to when it was last seen
+	peerSeen cmap.ConcurrentMap
 	// A map of public address to Zif address
 	publicToZif  cmap.ConcurrentMap
 	SeedManagers cmap.ConcurrentMap
@@ -94,6 +97,27 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 	peer.addSeedManager = pm.AddSeedManager
 	peer.addEntry = pm.localPeer.AddEntry
 	peer.addSeeding = pm.localPeer.AddSeeding
+
+	peer.updateSeen = func() {
+		pm.peerSeen.Set(string(peer.entry.Address.Raw), time.Now().UnixNano())
+	}
+	pm.peerSeen.Set(string(peer.entry.Address.Raw), time.Now().UnixNano())
+
+	// if we need to clear space for another
+	if pm.peers.Count() > viper.GetInt("net.maxPeers") {
+		oldestKey := ""
+		oldestValue := time.Now().UnixNano()
+
+		// find the least recently seen peer
+		for i := range pm.peerSeen.IterBuffered() {
+			time := i.Val.(int64)
+
+			if time < oldestValue {
+				oldestKey = i.Key
+			}
+		}
+
+	}
 
 	return peer, nil
 }

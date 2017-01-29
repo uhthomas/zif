@@ -11,6 +11,7 @@ import (
 	"github.com/zif/zif/data"
 	"github.com/zif/zif/dht"
 	"github.com/zif/zif/proto"
+	"github.com/zif/zif/util"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
@@ -218,6 +219,9 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 					// if not, not much we can do :(
 					return CommandResult{false, nil, err}
 				}
+
+				// balances load amongst all seeds
+				util.ShuffleBytes(entry.Seeds)
 
 				// Keep picking seeds until one connects
 				for _, i := range entry.Seeds {

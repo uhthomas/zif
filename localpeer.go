@@ -359,6 +359,8 @@ func (lp *LocalPeer) seedExplore(in chan proto.Entry) error {
 	closest = append(closest, closestRand...)
 	log.WithField("seeds", len(closest)).Info("Seeding peer explore")
 
+	dht.ShufflePairs(closest)
+
 	if len(closest) == 0 {
 		return errors.New("Failed to seed bootstrap, bootstrap first")
 	}

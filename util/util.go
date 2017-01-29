@@ -2,16 +2,17 @@ package util
 
 import (
 	"bufio"
-	"crypto/rand"
+	crand "crypto/rand"
 	"io"
 	"math/big"
+	"math/rand"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func CryptoRandBytes(size int) ([]byte, error) {
 	buf := make([]byte, size)
-	_, err := rand.Read(buf)
+	_, err := crand.Read(buf)
 
 	if err != nil {
 		return nil, err
@@ -21,7 +22,7 @@ func CryptoRandBytes(size int) ([]byte, error) {
 }
 
 func CryptoRandInt(min, max int64) int64 {
-	num, err := rand.Int(rand.Reader, big.NewInt(max-min))
+	num, err := crand.Int(crand.Reader, big.NewInt(max-min))
 
 	if err != nil {
 		log.Error(err.Error())
@@ -75,4 +76,12 @@ func MergeSeeds(one [][]byte, two [][]byte) [][]byte {
 	}
 
 	return result
+}
+
+func ShuffleBytes(slice [][]byte) {
+	for i := range slice {
+		j := rand.Intn(i + 1)
+
+		slice[i], slice[j] = slice[j], slice[i]
+	}
 }
