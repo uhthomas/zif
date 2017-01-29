@@ -158,7 +158,7 @@ func (ndb *NetDB) FindClosest(addr Address) (Pairs, error) {
 			bucket = ndb.table[index-i]
 
 			for _, i := range bucket {
-				if len(bucket) >= BucketSize {
+				if len(ret) >= BucketSize {
 					break
 				}
 
@@ -176,7 +176,7 @@ func (ndb *NetDB) FindClosest(addr Address) (Pairs, error) {
 			bucket = ndb.table[index+i]
 
 			for _, i := range bucket {
-				if len(bucket) >= BucketSize {
+				if len(ret) >= BucketSize {
 					break
 				}
 

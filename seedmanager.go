@@ -113,6 +113,11 @@ func (sm *SeedManager) findSeeds() {
 
 				// nope, we won't be adding this one
 				if err != nil {
+					if n >= len(result)-1 {
+						result = result[:n]
+					} else {
+						result = append(result[:n], result[n+1:]...)
+					}
 					result = append(result[:n], result[n+1:]...)
 					continue
 				}
@@ -128,7 +133,11 @@ func (sm *SeedManager) findSeeds() {
 				}
 
 				if !found {
-					result = append(result[:n], result[n+1:]...)
+					if n >= len(result)-1 {
+						result = result[:n]
+					} else {
+						result = append(result[:n], result[n+1:]...)
+					}
 					continue
 				}
 			}

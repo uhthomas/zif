@@ -3,6 +3,7 @@ package proto
 import (
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -201,7 +202,7 @@ func (c *Client) FindClosest(address dht.Address) ([]common.Verifier, error) {
 	}
 
 	if length > dht.BucketSize {
-		return nil, errors.New("Too many entries returned")
+		return nil, errors.New(fmt.Sprintf("Too many entries returned: %d", length))
 	}
 
 	entries := make(dht.Pairs, 0, length)
