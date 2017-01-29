@@ -383,12 +383,6 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 		return err
 	}
 
-	_, err = p.GetEntry()
-
-	if err != nil {
-		return err
-	}
-
 	pieces := make(chan *data.Piece, data.PieceSize)
 	defer close(onPiece)
 
@@ -396,9 +390,25 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	var entry *proto.Entry
 	if p.seed {
-		entry = p.seedFor
+		e, err := p.Query(p.seedFor.Address)
+
+		if err != nil {
+			return err
+		}
+
+		entry = e.(*proto.Entry)
 	} else {
+		_, err = p.GetEntry()
+
+		if err != nil {
+			return err
+		}
+
 		entry, err = p.Entry()
+
+		if err != nil {
+			return err
+		}
 	}
 
 	log.WithField("peer", entry.Address.StringOr("")).Info("Mirroring")
@@ -428,7 +438,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 		return err
 	}
 
-	if int(db.PostCount()) == p.entry.PostCount {
+	if int(db.PostCount()) == entry.PostCount {
 		return nil
 	}
 
@@ -439,7 +449,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 		since = currentStore - 1
 	}
 
-	log.WithField("Size", mcol.Size).Info("Downloading collection")
+	log.WithField("size", mcol.Size).Info("Downloading collection")
 
 	pieceStream, err := p.OpenStream()
 

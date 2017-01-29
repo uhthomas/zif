@@ -141,8 +141,8 @@ func (sm *SeedManager) findSeeds() {
 				}
 			}
 
-			if len(result) != len(sm.entry.Seeds) {
-				sm.entry.Seeds = result
+			if len(result) > 0 {
+				sm.entry.Seeds = append(sm.entry.Seeds, result...)
 				encoded, err := sm.entry.Encode()
 
 				if err != nil {
