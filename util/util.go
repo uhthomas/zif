@@ -37,6 +37,26 @@ func ReadPost(r io.Reader, delim byte) {
 	br.ReadString(delim)
 }
 
+// Returns everything in two that is not in one
+func SliceDiff(one [][]byte, two [][]byte) [][]byte {
+	// first build a map out of one
+	encountered := make(map[string]bool)
+	result := make([][]byte, 0, len(one)+len(two))
+
+	for _, i := range one {
+		encountered[string(i)] = true
+	}
+
+	// then add to result if not in the map
+	for _, i := range two {
+		if _, ok := encountered[string(i)]; !ok {
+			result = append(result, i)
+		}
+	}
+
+	return result
+}
+
 func MergeSeeds(one [][]byte, two [][]byte) [][]byte {
 	// make a map
 	encountered := make(map[string]bool)

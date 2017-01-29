@@ -41,7 +41,8 @@ type Entry struct {
 	CollectionHash []byte `json:"collectionHash"`
 	Port           int    `json:"port"`
 
-	Seeds [][]byte `json:"seeds"`
+	Seeds   [][]byte `json:"seeds"`
+	Seeding [][]byte `json:"seeding"`
 
 	// Used in the FindClosest function, for sorting.
 	distance dht.Address
@@ -84,6 +85,10 @@ func (e Entry) String() (string, error) {
 	s, _ := e.Address.String()
 	str += s
 	str += string(e.PostCount)
+
+	for _, i := range e.Seeding {
+		str += string(i)
+	}
 
 	return str, nil
 }

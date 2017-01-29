@@ -449,13 +449,13 @@ func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResul
 		return CommandResult{true, nil, err}
 	}
 
-	addr, err := dht.DecodeAddress(crap.Peer)
+	entry, err := cs.LocalPeer.QueryEntry(address)
 
 	if err != nil {
 		return CommandResult{true, nil, err}
 	}
 
-	err = peer.RequestAddPeer(addr)
+	err = peer.RequestAddPeer(entry)
 
 	return CommandResult{err == nil, nil, err}
 }

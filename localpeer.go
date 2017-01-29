@@ -506,3 +506,23 @@ func (lp *LocalPeer) AddEntry(entry *proto.Entry) error {
 
 	return lp.DHT.Insert(kv)
 }
+
+func (lp *LocalPeer) AddSeeding(entry *proto.Entry) error {
+	// save with the local entry, then the remote
+	lp.Entry.Seeding = append(lp.Entry.Seeding, entry.Address.Raw)
+	entry.Seeds = append(entry.Seeds, lp.Address().Raw)
+
+	err := lp.AddEntry(entry)
+
+	if err != nil {
+		return err
+	}
+
+	lp.SignEntry()
+
+	if err != nil {
+		return err
+	}
+
+	return lp.SaveEntry()
+}

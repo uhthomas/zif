@@ -93,6 +93,7 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 	pm.SetPeer(peer)
 	peer.addSeedManager = pm.AddSeedManager
 	peer.addEntry = pm.localPeer.AddEntry
+	peer.addSeeding = pm.localPeer.AddSeeding
 
 	return peer, nil
 }
@@ -334,7 +335,21 @@ func (pm *PeerManager) Resolve(addr dht.Address) (*proto.Entry, error) {
 				continue
 			}
 
+			if entry == nil {
+				continue
+			}
+
 			if entry.Address.Equals(&addr) {
+				dat, err := entry.Encode()
+
+				if err != nil {
+					return nil, err
+				}
+
+				kv := dht.NewKeyValue(entry.Address, dat)
+
+				pm.localPeer.DHT.Insert(kv)
+
 				return entry, nil
 			}
 		}

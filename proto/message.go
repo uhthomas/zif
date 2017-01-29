@@ -3,6 +3,7 @@ package proto
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -46,6 +47,10 @@ func (m *Message) Write(iface interface{}) error {
 }
 
 func (m *Message) Read(iface interface{}) error {
+	if m.Content == nil {
+		return errors.New("Message has no content")
+	}
+
 	reader := bytes.NewReader(m.Content)
 	decompressor, err := gzip.NewReader(reader)
 	limiter := &io.LimitedReader{decompressor, common.MaxMessageContentSize}

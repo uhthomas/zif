@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"os"
 	"time"
 
 	"github.com/hashicorp/yamux"
@@ -41,6 +40,7 @@ type Peer struct {
 	seedFor *proto.Entry
 
 	addSeedManager func(dht.Address) error
+	addSeeding     func(*proto.Entry) error
 	addEntry       func(*proto.Entry) error
 }
 
@@ -476,7 +476,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	log.Info("Mirror complete")
 
-	err = p.RequestAddPeer(entry.Address)
+	err = p.RequestAddPeer(entry)
 
 	// we're done mirroring, so now we need to switch OFF the fact that this is
 	// a seed. If it becomes a seed again, it will be properly set by the
@@ -489,7 +489,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	return err
 }
 
-func (p *Peer) RequestAddPeer(addr dht.Address) error {
+func (p *Peer) RequestAddPeer(entry *proto.Entry) error {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return err
@@ -503,51 +503,25 @@ func (p *Peer) RequestAddPeer(addr dht.Address) error {
 
 	defer stream.Close()
 
-	err = stream.RequestAddPeer(addr)
+	err = stream.RequestAddPeer(entry.Address)
 	if err != nil {
 		return err
 	}
 
-	err = p.addSeedManager(addr)
+	err = p.addSeedManager(entry.Address)
 
 	if err != nil {
 		return err
 	}
 
-	for _, i := range p.entry.Seeds {
+	// first register the peer as a seed for the entry given
+	for _, i := range entry.Seeds {
 		seedAddr := &dht.Address{i}
 
-		if seedAddr.Equals(&addr) {
+		if seedAddr.Equals(&entry.Address) {
 			return nil
 		}
 	}
 
-	_, err = os.Stat("./data/seeding.dat")
-
-	if os.IsNotExist(err) {
-		os.Create("./data/seeding.dat")
-	}
-
-	if err != nil {
-		return err
-	}
-
-	seedList, err := os.OpenFile("./data/seeding.dat", os.O_APPEND|os.O_WRONLY, 0666)
-	if err != nil {
-		return err
-	}
-
-	defer seedList.Close()
-
-	_, err = seedList.Write(addr.Raw)
-
-	if err != nil {
-		return err
-	}
-
-	p.entry.Seeds = append(p.entry.Seeds, addr.Raw)
-
-	p.addEntry(p.entry)
-
-	return err
+	return p.addSeeding(entry)
 }

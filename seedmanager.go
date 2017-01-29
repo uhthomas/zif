@@ -1,6 +1,7 @@
 package zif
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/zif/zif/dht"
@@ -101,7 +102,36 @@ func (sm *SeedManager) findSeeds() {
 
 			qResult := qResultVerifiable.(*proto.Entry)
 
-			result := util.MergeSeeds(sm.entry.Seeds, qResult.Seeds)
+			result := util.SliceDiff(sm.entry.Seeds, qResult.Seeds)
+
+			// make sure all these seeds actually link back! Otherwise they could
+			// be fakes
+			for n, i := range result {
+				seedAddress := dht.Address{i}
+
+				entry, err := sm.lp.Resolve(seedAddress)
+
+				// nope, we won't be adding this one
+				if err != nil {
+					result = append(result[:n], result[n+1:]...)
+					continue
+				}
+
+				// check if the entry has registered itself as a seeder
+
+				found := false
+				for _, j := range entry.Seeding {
+					if bytes.Equal(sm.track.Raw, j) {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					result = append(result[:n], result[n+1:]...)
+					continue
+				}
+			}
 
 			if len(result) != len(sm.entry.Seeds) {
 				sm.entry.Seeds = result
