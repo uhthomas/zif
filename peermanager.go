@@ -207,7 +207,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 		switch peer.(type) {
 		case *Peer:
 			log.WithField("removing", peer.(*Peer).Address().StringOr("")).
-				Info("Too many peers connected, culling")
+				Info("Too many peers connected")
 			peer.(*Peer).Terminate()
 			pm.HandleCloseConnection(peer.(*Peer).Address())
 		default:
@@ -221,7 +221,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 }
 
 func (pm *PeerManager) HandleCloseConnection(addr *dht.Address) {
-	pm.peers.Remove(addr.StringOr(""))
+	pm.peers.Remove(string(addr.Raw))
 }
 
 // Pings the peer regularly to check the connection

@@ -45,6 +45,12 @@ type Peer struct {
 	updateSeen     func()
 }
 
+func (p *Peer) UpdateSeen() {
+	if p.updateSeen != nil {
+		p.updateSeen()
+	}
+}
+
 func (p *Peer) EAddress() common.Encoder {
 	return &p.address
 }
@@ -184,6 +190,8 @@ func (p *Peer) OpenStream() (*proto.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	p.UpdateSeen()
 
 	s, err := p.streams.OpenStream()
 	return s, err

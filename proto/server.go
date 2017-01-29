@@ -95,6 +95,7 @@ func (s *Server) ListenStream(peer NetworkPeer, handler ProtocolHandler) {
 		log.Debug("Accepted stream (", session.NumStreams(), " total)")
 
 		peer.AddStream(stream)
+		peer.UpdateSeen()
 
 		go s.HandleStream(peer, handler, stream)
 	}
