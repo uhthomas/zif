@@ -1,6 +1,10 @@
 package dht
 
-import msgpack "gopkg.in/vmihailenco/msgpack.v2"
+import (
+	"math/rand"
+
+	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+)
 
 const (
 	MaxValueSize = 10 * 1024
@@ -40,6 +44,14 @@ func (kv *KeyValue) Valid() bool {
 }
 
 type Pairs []*KeyValue
+
+func ShufflePairs(slice Pairs) {
+	for i := range slice {
+		j := rand.Intn(i + 1)
+
+		slice[i], slice[j] = slice[j], slice[i]
+	}
+}
 
 func (e Pairs) Len() int {
 	return len(e)

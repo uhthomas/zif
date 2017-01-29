@@ -1,0 +1,24 @@
+[bind]
+zif = "0.0.0.0:5050"
+
+# http is an API that allows interaction with the daemon
+http = "127.0.0.1:8080" 
+
+[database]
+# Defaults to relative to the binary
+path = "./data/posts.db"
+
+[tor]
+enabled = true
+control = 10051
+socks = 10050
+# assumes you're using the tor config provided, running in a subfolder
+cookiePath = "./tor/"
+
+[socks]
+enabled = true
+port = 10050
+
+[net]
+# maximum number of open peer connections
+maxPeers = 100

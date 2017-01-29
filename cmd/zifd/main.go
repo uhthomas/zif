@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -9,24 +8,20 @@ import (
 
 	"strings"
 
+	"github.com/spf13/viper"
 	zif "github.com/zif/zif"
 	data "github.com/zif/zif/data"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func SetupLocalPeer(addr string, newAddr bool) *zif.LocalPeer {
+func SetupLocalPeer(addr string) *zif.LocalPeer {
 	var lp zif.LocalPeer
 
-	if !newAddr {
-		if lp.ReadKey() != nil {
-			lp.GenerateKey()
-			lp.WriteKey()
-		}
-	} else {
+	if lp.ReadKey() != nil {
 		lp.GenerateKey()
+		lp.WriteKey()
 	}
-
 	lp.Setup()
 
 	return &lp
@@ -42,36 +37,35 @@ func main() {
 
 	os.Mkdir("./data", 0777)
 
-	var addr = flag.String("address", "0.0.0.0:5050", "Bind address")
-	var db_path = flag.String("database", "./data/posts.db", "Posts database path")
-	var newAddr = flag.Bool("new", false, "Ignore identity file and create a new address")
-	var tor = flag.Bool("tor", false, "Start hidden service and proxy connections through tor")
-	var torPort = flag.Int("torPort", 10051, "Port for Tor control")
-	var socksPort = flag.Int("socksPort", 10050, "Port for SOCKS5 proxy")
-	var torpath = flag.String("torpath", "./tor/", "Path to the tor folder")
+	SetupConfig()
 
-	var http = flag.String("http", "127.0.0.1:8080", "HTTP address and port")
+	addr := viper.GetString("bind.zif")
+	fmt.Println(addr)
 
-	flag.Parse()
+	port, _ := strconv.Atoi(strings.Split(addr, ":")[1])
 
-	port, _ := strconv.Atoi(strings.Split(*addr, ":")[1])
-
-	lp := SetupLocalPeer(fmt.Sprintf("%s:%v", *addr), *newAddr)
+	lp := SetupLocalPeer(fmt.Sprintf("%s:%v", addr))
 	lp.LoadEntry()
 
-	if *tor {
-		_, onion, err := zif.SetupZifTorService(5050, *torPort, fmt.Sprintf("%s/cookie", *torpath))
+	if viper.GetBool("tor.enabled") {
+		_, onion, err := zif.SetupZifTorService(port, viper.GetInt("tor.control"),
+			fmt.Sprintf("%s/cookie", viper.GetString("tor.cookiePath")))
 
 		if err == nil {
 			lp.PublicAddress = onion
 			lp.Entry.PublicAddress = onion
 			lp.SetSocks(true)
-			lp.SetSocksPort(*socksPort)
+			lp.SetSocksPort(viper.GetInt("tor.socks"))
 			lp.Peer.Streams().Socks = true
-			lp.Peer.Streams().SocksPort = *socksPort
+			lp.Peer.Streams().SocksPort = viper.GetInt("tor.socks")
 		} else {
 			panic(err)
 		}
+	} else if viper.GetBool("socks.enabled") {
+		lp.SetSocks(true)
+		lp.SetSocksPort(viper.GetInt("socks.port"))
+		lp.Peer.Streams().Socks = true
+		lp.Peer.Streams().SocksPort = viper.GetInt("socks.port")
 	}
 
 	lp.Entry.Port = port
@@ -85,7 +79,7 @@ func main() {
 		panic(err)
 	}
 
-	lp.Database = data.NewDatabase(*db_path)
+	lp.Database = data.NewDatabase(viper.GetString("database.path"))
 
 	err = lp.Database.Connect()
 
@@ -93,7 +87,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	lp.Listen(*addr)
+	lp.Listen(viper.GetString("bind.zif"))
 
 	log.Info("My name: ", lp.Entry.Name)
 	s, _ := lp.Address().String()
@@ -102,7 +96,7 @@ func main() {
 	commandServer := zif.NewCommandServer(lp)
 	var httpServer zif.HttpServer
 	httpServer.CommandServer = commandServer
-	go httpServer.ListenHttp(*http)
+	go httpServer.ListenHttp(viper.GetString("bind.http"))
 
 	err = lp.StartExploring()
 

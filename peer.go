@@ -42,6 +42,7 @@ type Peer struct {
 	addSeedManager func(dht.Address) error
 	addSeeding     func(*proto.Entry) error
 	addEntry       func(*proto.Entry) error
+	updateSeen     func()
 }
 
 func (p *Peer) EAddress() common.Encoder {
