@@ -289,6 +289,9 @@ func (pm *PeerManager) LoadSeeds() error {
 	return err
 }
 
+// Resolves a Zif address into an entry. Hopefully we already have the entry,
+// in which case it's just loaded from disk. Otherwise, recursive network
+// queries are made to try and find it.
 func (pm *PeerManager) Resolve(addr dht.Address) (*proto.Entry, error) {
 	log.WithField("address", addr.StringOr("")).Debug("Resolving")
 
@@ -306,6 +309,7 @@ func (pm *PeerManager) Resolve(addr dht.Address) (*proto.Entry, error) {
 		return proto.DecodeEntry(kv.Value(), false)
 	}
 
+	// gets an initial set to work with
 	closest, err := pm.localPeer.DHT.FindClosest(addr)
 
 	if err != nil {
@@ -352,6 +356,8 @@ func (pm *PeerManager) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Ent
 	// connect to the peer
 	var peer *Peer
 	var err error
+
+	log.WithField("peer", e.Address.StringOr("")).Info("Querying for resolve")
 
 	peer = pm.GetPeer(e.Address.StringOr(""))
 
