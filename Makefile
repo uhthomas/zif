@@ -1,24 +1,21 @@
 # The import path is where your repository can be found.
-# Any subpackage should be imported as relative to it.
-# If you change this, run `make clean`.
+# To import subpackages, always prepend the full import path.
+# If you change this, run `make clean`. Read more: https://git.io/vM7zV
 IMPORT_PATH := github.com/zif/zif
 
-# V := 1 # When V is set, print commands and build progress.
+V := 1 # When V is set, print commands and build progress.
 
 # Space separated patterns of packages to skip in list, test, format.
 IGNORED_PACKAGES := /vendor/
 
 .PHONY: all
-all: build zifd
+all: build
 
 .PHONY: build
-build: .GOPATH/.ok zifd
-	$Q go install -v $(VERSION_FLAGS) $(IMPORT_PATH)
-	
-.PHONY: zifd
-zifd: .GOPATH/.ok
-	$Q go install -v $(VERSION_FLAGS) $(IMPORT_PATH)/cmd/zifd
+build: .GOPATH/.ok
+	$Q go install $(if $V,-v) $(VERSION_FLAGS) $(IMPORT_PATH)
 
+### Code not in the repository root? Another binary? Add to the path like this.
 # .PHONY: otherbin
 # otherbin: .GOPATH/.ok
 # 	$Q go install $(if $V,-v) $(VERSION_FLAGS) $(IMPORT_PATH)/cmd/otherbin
@@ -68,7 +65,8 @@ endif
 	$Q go tool cover -func .GOPATH/cover/all.merged
 
 format: bin/goimports .GOPATH/.ok
-	$Q find .GOPATH/src/$(IMPORT_PATH)/ -iname \*.go | grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)) | xargs ./bin/goimports -w
+	$Q find .GOPATH/src/$(IMPORT_PATH)/ -iname \*.go | grep -v \
+	    -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)) | xargs ./bin/goimports -w
 
 ##### =====> Internals <===== #####
 
@@ -96,6 +94,7 @@ _allpackages = $(shell ( cd $(CURDIR)/.GOPATH/src/$(IMPORT_PATH) && \
 allpackages = $(if $(__allpackages),,$(eval __allpackages := $$(_allpackages)))$(__allpackages)
 
 export GOPATH := $(CURDIR)/.GOPATH
+unexport GOBIN
 
 Q := $(if $V,,@)
 
@@ -109,6 +108,32 @@ Q := $(if $V,,@)
 
 .PHONY: bin/gocovmerge bin/goimports
 bin/gocovmerge: .GOPATH/.ok
+	@test -d ./vendor/github.com/wadey/gocovmerge || \
+	    { echo "Vendored gocovmerge not found, try running 'make setup'..."; exit 1; }
 	$Q go install $(IMPORT_PATH)/vendor/github.com/wadey/gocovmerge
 bin/goimports: .GOPATH/.ok
+	@test -d ./vendor/golang.org/x/tools/cmd/goimports || \
+	    { echo "Vendored goimports not found, try running 'make setup'..."; exit 1; }
 	$Q go install $(IMPORT_PATH)/vendor/golang.org/x/tools/cmd/goimports
+
+# Based on https://github.com/cloudflare/hellogopher - v1.1 - MIT License
+#
+# Copyright (c) 2017 Cloudflare
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
