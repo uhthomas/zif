@@ -35,7 +35,7 @@ type PeerManager struct {
 	peerSeen cmap.ConcurrentMap
 	// A map of public address to Zif address
 	publicToZif  cmap.ConcurrentMap
-	SeedManagers cmap.ConcurrentMap
+	seedManagers cmap.ConcurrentMap
 
 	socks     bool
 	socksPort int
@@ -47,7 +47,7 @@ func NewPeerManager(lp *LocalPeer) *PeerManager {
 
 	ret.peers = cmap.New()
 	ret.publicToZif = cmap.New()
-	ret.SeedManagers = cmap.New()
+	ret.seedManagers = cmap.New()
 	ret.peerSeen = cmap.New()
 	ret.localPeer = lp
 
@@ -178,9 +178,9 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 	p.addSeeding = pm.localPeer.AddSeeding
 
 	p.updateSeen = func() {
-		pm.peerSeen.Set(string(p.entry.Address.Raw), time.Now().UnixNano())
+		pm.peerSeen.Set(string(p.Address().Raw), time.Now().UnixNano())
 	}
-	pm.peerSeen.Set(string(p.entry.Address.Raw), time.Now().UnixNano())
+	pm.peerSeen.Set(string(p.Address().Raw), time.Now().UnixNano())
 
 	// if we need to clear space for another, remove the least recently used one
 	for pm.peers.Count() > viper.GetInt("net.maxPeers") {
@@ -225,6 +225,13 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 
 func (pm *PeerManager) HandleCloseConnection(addr *dht.Address) {
 	pm.peers.Remove(string(addr.Raw))
+	pm.peerSeen.Remove(string(addr.Raw))
+
+	sm, ok := pm.seedManagers.Get(string(addr.Raw))
+
+	if ok {
+		sm.(*SeedManager).Close <- true
+	}
 }
 
 // Pings the peer regularly to check the connection
@@ -297,7 +304,7 @@ func (pm *PeerManager) announcePeer(p *Peer) {
 }
 
 func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
-	if pm.SeedManagers.Has(addr.StringOr("")) {
+	if pm.seedManagers.Has(string(addr.Raw)) {
 		return nil
 	}
 
@@ -309,7 +316,7 @@ func (pm *PeerManager) AddSeedManager(addr dht.Address) error {
 		return err
 	}
 
-	pm.SeedManagers.Set(addr.StringOr(""), pm.localPeer)
+	pm.seedManagers.Set(string(addr.Raw), sm)
 	sm.Start()
 
 	return nil
