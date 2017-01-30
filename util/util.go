@@ -22,6 +22,10 @@ func CryptoRandBytes(size int) ([]byte, error) {
 }
 
 func CryptoRandInt(min, max int64) int64 {
+	if max-min <= 0 {
+		return 0 // so random
+	}
+
 	num, err := crand.Int(crand.Reader, big.NewInt(max-min))
 
 	if err != nil {

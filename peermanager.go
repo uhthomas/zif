@@ -188,6 +188,20 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 		oldest := (<-pm.peerSeen.IterBuffered())
 
 		oldestKey := oldest.Key
+
+		if oldest.Val == nil {
+			peer, ok := pm.peers.Get(oldestKey)
+
+			if !ok {
+				log.Error("Could not get peer for removal")
+				continue
+			}
+
+			log.WithField("removing", peer.(*Peer).Address().StringOr("")).Info("Too many peers connected")
+			peer.(*Peer).Terminate()
+			pm.HandleCloseConnection(peer.(*Peer).Address())
+		}
+
 		oldestValue := oldest.Val.(int64)
 
 		// find the least recently seen peer
@@ -209,8 +223,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 
 		switch peer.(type) {
 		case *Peer:
-			log.WithField("removing", peer.(*Peer).Address().StringOr("")).
-				Warn("Too many peers connected")
+			log.WithField("removing", peer.(*Peer).Address().StringOr("")).Info("Too many peers connected")
 			peer.(*Peer).Terminate()
 			pm.HandleCloseConnection(peer.(*Peer).Address())
 		default:
