@@ -88,6 +88,10 @@ type CommandLocalGet struct {
 	Key string `json:"key"`
 }
 
+type CommandAddressEncode struct {
+	Raw string `json:"raw"`
+}
+
 // Command output types
 
 type CommandResult struct {

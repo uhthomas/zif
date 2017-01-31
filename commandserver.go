@@ -225,7 +225,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 
 				// Keep picking seeds until one connects
 				for _, i := range entry.Seeds {
-					addr := &dht.Address{i}
+					addr := &dht.Address{Raw: i}
 
 					if addr.Equals(cs.LocalPeer.Address()) {
 						continue
@@ -253,7 +253,6 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 		return CommandResult{false, nil, PeerUnreachable}
 	}
 
-	log.Debug("Peer ", peer)
 	// TODO: make this configurable
 	d := fmt.Sprintf("./data/%s", mirroring.Address.StringOr(""))
 
@@ -339,6 +338,10 @@ func (cs *CommandServer) Resolve(cr CommandResolve) CommandResult {
 	}
 
 	entry, err := cs.LocalPeer.Resolve(address)
+
+	// forces the address to generate its encoded value, so this is then
+	// available in JSON.
+	entry.Address.String()
 
 	return CommandResult{err == nil, entry, err}
 }
@@ -506,4 +509,12 @@ func (cs *CommandServer) Explore() CommandResult {
 	err := cs.LocalPeer.StartExploring()
 
 	return CommandResult{err == nil, nil, err}
+}
+
+func (cs *CommandServer) AddressEncode(ce CommandAddressEncode) CommandResult {
+	address := &dht.Address{Raw: []byte(ce.Raw)}
+
+	decoded, err := address.String()
+
+	return CommandResult{err == nil, decoded, err}
 }

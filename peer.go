@@ -531,7 +531,7 @@ func (p *Peer) RequestAddPeer(entry *proto.Entry) error {
 
 	// first register the peer as a seed for the entry given
 	for _, i := range entry.Seeds {
-		seedAddr := &dht.Address{i}
+		seedAddr := &dht.Address{Raw: i}
 
 		if seedAddr.Equals(&entry.Address) {
 			return nil

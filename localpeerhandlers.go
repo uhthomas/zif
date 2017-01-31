@@ -428,7 +428,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 		add := true
 
 		for _, i := range lp.Entry.Seeds {
-			if msg.From.Equals(&dht.Address{i}) {
+			if msg.From.Equals(&dht.Address{Raw: i}) {
 				add = false
 			}
 		}

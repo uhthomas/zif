@@ -473,7 +473,7 @@ func (lp *LocalPeer) QuerySelf() {
 
 		i := lp.Entry.Seeds[util.CryptoRandInt(0, int64(len(lp.Entry.Seeds)))]
 
-		addr := dht.Address{i}
+		addr := dht.Address{Raw: i}
 
 		if addr.Equals(lp.Address()) {
 			continue

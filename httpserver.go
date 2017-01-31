@@ -50,6 +50,7 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/self/get/{key}/", hs.SelfGet)
 
 	router.HandleFunc("/self/explore/", hs.SelfExplore)
+	router.HandleFunc("/self/encode/", hs.AddressEncode).Methods("POST")
 
 	log.WithField("address", addr).Info("Starting HTTP server")
 
@@ -208,7 +209,9 @@ func (hs *HttpServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
 func (hs *HttpServer) Resolve(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	write_http_response(w, hs.CommandServer.Resolve(CommandResolve{vars["address"]}))
+	resolved := hs.CommandServer.Resolve(CommandResolve{vars["address"]})
+
+	write_http_response(w, resolved)
 }
 func (hs *HttpServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -310,6 +313,12 @@ func (hs *HttpServer) SelfGet(w http.ResponseWriter, r *http.Request) {
 
 func (hs *HttpServer) SelfExplore(w http.ResponseWriter, r *http.Request) {
 	write_http_response(w, hs.CommandServer.Explore())
+}
+
+func (hs *HttpServer) AddressEncode(w http.ResponseWriter, r *http.Request) {
+	write_http_response(w, hs.CommandServer.AddressEncode(
+		CommandAddressEncode{r.FormValue("raw")},
+	))
 }
 
 func (hs *HttpServer) IndexHandler(w http.ResponseWriter, r *http.Request) {

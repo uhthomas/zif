@@ -67,7 +67,7 @@ func (sm *SeedManager) findSeeds() {
 
 		log.Info("Searching for new seeds")
 		for _, i := range sm.entry.Seeds {
-			addr := dht.Address{i}
+			addr := dht.Address{Raw: i}
 
 			if addr.Equals(sm.lp.Address()) {
 				continue
@@ -106,7 +106,7 @@ func (sm *SeedManager) findSeeds() {
 			// make sure all these seeds actually link back! Otherwise they could
 			// be fakes
 			for n, i := range result {
-				seedAddress := dht.Address{i}
+				seedAddress := dht.Address{Raw: i}
 
 				entry, err := sm.lp.Resolve(seedAddress)
 

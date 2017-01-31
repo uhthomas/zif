@@ -346,7 +346,7 @@ func (pm *PeerManager) LoadSeeds() error {
 	seedCount := len(file) / 20
 
 	for i := 0; i < seedCount; i++ {
-		addr := dht.Address{file[i*20 : 20+i*20]}
+		addr := dht.Address{Raw: file[i*20 : 20+i*20]}
 
 		err := pm.AddSeedManager(addr)
 
