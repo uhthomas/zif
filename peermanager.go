@@ -162,8 +162,6 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 		return
 	}
 
-	pm.peers.Set(string(p.Address().Raw), p)
-
 	e, err := p.Entry()
 
 	if err != nil {
@@ -180,32 +178,22 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 	p.updateSeen = func() {
 		pm.peerSeen.Set(string(p.Address().Raw), time.Now().UnixNano())
 	}
+
+	pm.peers.Set(string(p.Address().Raw), p)
 	pm.peerSeen.Set(string(p.Address().Raw), time.Now().UnixNano())
 
 	// if we need to clear space for another, remove the least recently used one
 	for pm.peers.Count() > viper.GetInt("net.maxPeers") {
 
-		oldest := (<-pm.peerSeen.IterBuffered())
-
-		oldestKey := oldest.Key
-
-		if oldest.Val == nil {
-			peer, ok := pm.peers.Get(oldestKey)
-
-			if !ok {
-				log.Error("Could not get peer for removal")
-				continue
-			}
-
-			log.WithField("removing", peer.(*Peer).Address().StringOr("")).Info("Too many peers connected")
-			peer.(*Peer).Terminate()
-			pm.HandleCloseConnection(peer.(*Peer).Address())
-		}
-
-		oldestValue := oldest.Val.(int64)
+		oldestKey := ""
+		oldestValue := int64(time.Now().UnixNano())
 
 		// find the least recently seen peer
 		for i := range pm.peerSeen.IterBuffered() {
+			if i.Val == nil {
+				continue
+			}
+
 			time := i.Val.(int64)
 
 			if time < oldestValue {
@@ -218,7 +206,7 @@ func (pm *PeerManager) SetPeer(p *Peer) {
 
 		if !ok {
 			log.Error("Could not get peer for removal")
-			continue
+			break
 		}
 
 		switch peer.(type) {
