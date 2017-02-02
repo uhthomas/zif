@@ -83,6 +83,7 @@ func (db *Database) InsertPiece(piece *Piece) (err error) {
 // commit. Transactions contain 100 pieces, or 100,000 posts.
 func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 	tx, err := db.conn.Begin()
+	startPosts := db.PostCount()
 
 	if err != nil {
 		log.Error(err.Error())
@@ -96,6 +97,11 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 
 		if err != nil {
 			tx.Rollback()
+			log.Error(err.Error())
+		}
+
+		err = db.GenerateFts(int64(startPosts))
+		if err != nil {
 			log.Error(err.Error())
 		}
 

@@ -489,7 +489,11 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 		i++
 	}
 
-	log.Info("Mirror complete")
+	log.Info("Mirror complete, generating index")
+
+	if err != nil {
+		return err
+	}
 
 	err = p.RequestAddPeer(entry)
 
