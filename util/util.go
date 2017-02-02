@@ -12,6 +12,10 @@ import (
 
 func CryptoRandBytes(size int) ([]byte, error) {
 	buf := make([]byte, size)
+
+	if size <= 0 {
+		return buf, nil
+	}
 	_, err := crand.Read(buf)
 
 	if err != nil {

@@ -89,7 +89,7 @@ type CommandLocalGet struct {
 }
 
 type CommandAddressEncode struct {
-	Raw string `json:"raw"`
+	Raw []byte `json:"raw"`
 }
 
 // Command output types

@@ -512,7 +512,8 @@ func (cs *CommandServer) Explore() CommandResult {
 }
 
 func (cs *CommandServer) AddressEncode(ce CommandAddressEncode) CommandResult {
-	address := &dht.Address{Raw: []byte(ce.Raw)}
+	log.Info("Encode request")
+	address := &dht.Address{Raw: ce.Raw}
 
 	decoded, err := address.String()
 

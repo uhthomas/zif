@@ -3,6 +3,7 @@
 package zif
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -316,8 +317,15 @@ func (hs *HttpServer) SelfExplore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HttpServer) AddressEncode(w http.ResponseWriter, r *http.Request) {
+	decoded, err := base64.StdEncoding.DecodeString(r.FormValue("raw"))
+
+	if err != nil {
+		write_http_response(w, CommandResult{false, nil, err})
+		return
+	}
+
 	write_http_response(w, hs.CommandServer.AddressEncode(
-		CommandAddressEncode{r.FormValue("raw")},
+		CommandAddressEncode{decoded},
 	))
 }
 
