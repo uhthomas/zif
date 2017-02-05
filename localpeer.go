@@ -119,12 +119,12 @@ func (lp *LocalPeer) Setup() {
 	filepath.Walk("./data", handler)
 
 	// TODO: This does not work without internet xD
-	/*if lp.Entry.PublicAddress == "" {
+	if lp.Entry.PublicAddress == "" {
 		log.Debug("Local peer public address is nil, attempting to fetch")
 		ip := external_ip()
 		log.Debug("External IP is ", ip)
 		lp.Entry.PublicAddress = ip
-	}*/
+	}
 
 	lp.SearchProvider = data.NewSearchProvider()
 }
