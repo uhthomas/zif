@@ -5,10 +5,19 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 func SetupConfig() {
+	// bind the "bind" flags
+	flag.String("bind", "0.0.0.0:5050", "The address and port to listen for zif protocol connections")
+	flag.String("http", "127.0.0.1:8080", "The address and port to listen on for http commands")
+	flag.Parse()
+
+	viper.BindPFlag("bind.zif", flag.Lookup("bind"))
+	viper.BindPFlag("bind.http", flag.Lookup("http"))
+
 	viper.SetConfigName("zifd")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("$HOME/.zif")
