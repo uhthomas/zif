@@ -285,7 +285,7 @@ func (c *Client) Query(address dht.Address) (*Entry, error) {
 	}
 
 	if kvr.Header == ProtoNo {
-		return nil, nil
+		return nil, errors.New("Peer returned no")
 	}
 
 	var entry Entry

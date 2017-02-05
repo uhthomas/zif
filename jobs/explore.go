@@ -47,7 +47,7 @@ func exploreTick(in chan proto.Entry, ret chan proto.Entry, me dht.Address, conn
 	log.WithField("peer", s).Info("Exploring")
 
 	if err := explorePeer(i.Address, me, ret, connector); err != nil {
-		log.Info(err.Error())
+		log.Error(err.Error())
 	}
 
 	if len(in) == 0 {
