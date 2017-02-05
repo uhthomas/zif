@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"errors"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -70,7 +71,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, conne
 	}
 
 	if self == nil {
-		return nil
+		return errors.New("Failure to connect")
 	}
 
 	ret <- *self.(*proto.Entry)
