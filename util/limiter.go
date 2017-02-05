@@ -5,6 +5,7 @@ import "time"
 type Limiter struct {
 	Throttle chan time.Time
 	Ticker   *time.Ticker
+	quit     chan bool
 }
 
 // Return a new rate limiter. This is used to make sure that something like a
@@ -16,6 +17,7 @@ type Limiter struct {
 func NewLimiter(rate time.Duration, burst int, fill bool) *Limiter {
 	tick := time.NewTicker(rate)
 	throttle := make(chan time.Time, burst)
+	quit := make(chan bool)
 
 	if fill {
 		for i := 0; i < burst; i++ {
@@ -26,13 +28,15 @@ func NewLimiter(rate time.Duration, burst int, fill bool) *Limiter {
 	go func() {
 		for t := range tick.C {
 			select {
+			case _ = <-quit:
+				return
 			case throttle <- t:
 			default:
 			}
 		}
 	}()
 
-	return &Limiter{throttle, tick}
+	return &Limiter{throttle, tick, quit}
 }
 
 // Block until the given time has elapsed. Or just use a token from the bucket.
@@ -43,6 +47,7 @@ func (l *Limiter) Wait() {
 // Finish running.
 func (l *Limiter) Stop() {
 	l.Ticker.Stop()
+	l.quit <- true
 	close(l.Throttle)
 }
 

@@ -82,8 +82,9 @@ func (ndb *NetDB) Insert(kv *KeyValue) error {
 	if found != -1 {
 		bucket = append(bucket[:found], bucket[found+1:]...)
 	} else if len(bucket) == BucketSize {
-		// TODO: Ping all peers, remove any inactive
-		return &NoCapacity{BucketSize}
+
+		// remove the back of the bucket, this update will go at the front
+		bucket = bucket[:len(bucket)-1]
 	}
 
 	bucket = append([]Address{*kv.Key()}, bucket...)

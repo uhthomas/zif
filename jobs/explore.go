@@ -69,6 +69,10 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, conne
 		return err
 	}
 
+	if self == nil {
+		return nil
+	}
+
 	ret <- *self.(*proto.Entry)
 
 	closestToMe, err := p.FindClosest(me)
