@@ -53,6 +53,9 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/self/explore/", hs.SelfExplore)
 	router.HandleFunc("/self/encode/", hs.AddressEncode).Methods("POST")
 
+	router.HandleFunc("/self/profile/cpu/", hs.CpuProfile).Methods("POST")
+	router.HandleFunc("/self/profile/mem/", hs.MemProfile).Methods("POST")
+
 	log.WithField("address", addr).Info("Starting HTTP server")
 
 	err := http.ListenAndServe(addr, router)
@@ -327,6 +330,29 @@ func (hs *HttpServer) AddressEncode(w http.ResponseWriter, r *http.Request) {
 	write_http_response(w, hs.CommandServer.AddressEncode(
 		CommandAddressEncode{decoded},
 	))
+}
+
+func (hs *HttpServer) CpuProfile(w http.ResponseWriter, r *http.Request) {
+	var res CommandResult
+	path := r.FormValue("path")
+	do := r.FormValue("do")
+
+	if do == "start" {
+		res = hs.CommandServer.StartCpuProfile(CommandFile{path})
+	} else if do == "stop" {
+		hs.CommandServer.StopCpuProfile()
+	}
+
+	write_http_response(w, res)
+}
+
+func (hs *HttpServer) MemProfile(w http.ResponseWriter, r *http.Request) {
+	var res CommandResult
+	path := r.FormValue("path")
+
+	res = hs.CommandServer.MemProfile(CommandFile{path})
+
+	write_http_response(w, res)
 }
 
 func (hs *HttpServer) IndexHandler(w http.ResponseWriter, r *http.Request) {

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"runtime/pprof"
+
 	"github.com/zif/zif/data"
 	"github.com/zif/zif/dht"
 	"github.com/zif/zif/proto"
@@ -518,4 +520,32 @@ func (cs *CommandServer) AddressEncode(ce CommandAddressEncode) CommandResult {
 	decoded, err := address.String()
 
 	return CommandResult{err == nil, decoded, err}
+}
+
+func (cs *CommandServer) StartCpuProfile(cf CommandFile) CommandResult {
+	f, err := os.Create(cf.File)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	err = pprof.StartCPUProfile(f)
+
+	return CommandResult{err == nil, nil, err}
+}
+
+func (cs *CommandServer) StopCpuProfile() {
+	pprof.StopCPUProfile()
+}
+
+func (cs *CommandServer) MemProfile(cf CommandFile) CommandResult {
+	f, err := os.Create(cf.File)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	err = pprof.WriteHeapProfile(f)
+
+	return CommandResult{err == nil, nil, err}
 }

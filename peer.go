@@ -111,7 +111,7 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 
 	if lp.Entry.PublicAddress == "" {
 		log.Debug("Local peer public address is nil, attempting to fetch")
-		ip := external_ip()
+		ip := ExternalIp()
 		log.Debug("External IP is ", ip)
 		lp.Entry.PublicAddress = ip
 	}

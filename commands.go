@@ -14,6 +14,10 @@ type CommandPeer struct {
 	Address string `json:"address"`
 }
 
+type CommandFile struct {
+	File string `json:"file"`
+}
+
 type CommandPing CommandPeer
 type CommandAnnounce CommandPeer
 

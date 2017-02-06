@@ -24,6 +24,7 @@ import (
 )
 
 const ResolveListSize = 1
+const TimeBeforeReExplore = 60 * 60
 
 type LocalPeer struct {
 	Peer
@@ -117,14 +118,6 @@ func (lp *LocalPeer) Setup() {
 	}
 
 	filepath.Walk("./data", handler)
-
-	// TODO: This does not work without internet xD
-	if lp.Entry.PublicAddress == "" {
-		log.Debug("Local peer public address is nil, attempting to fetch")
-		ip := external_ip()
-		log.Debug("External IP is ", ip)
-		lp.Entry.PublicAddress = ip
-	}
 
 	lp.SearchProvider = data.NewSearchProvider()
 }
@@ -274,7 +267,13 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 func (lp *LocalPeer) StartExploring() error {
 	in := make(chan proto.Entry, jobs.ExploreBufferSize)
 
-	err := lp.seedExplore(in)
+	// Used to keep track of when a peer was last explored. We need to make sure
+	// that a peer is not explored more than once every hour, unless we run out
+	// of peers to explore.
+	// This should be a map of string -> int64
+	seen := cmap.New()
+
+	err := lp.seedExplore(in, &seen)
 
 	if err != nil {
 		return err
@@ -286,7 +285,7 @@ func (lp *LocalPeer) StartExploring() error {
 			return peer, err
 		},
 		lp.address,
-		func(in chan proto.Entry) { lp.seedExplore(in) })
+		func(in chan proto.Entry) { lp.seedExplore(in, &seen) })
 
 	go func() {
 		for i := range ret {
@@ -346,7 +345,7 @@ func (lp *LocalPeer) StartExploring() error {
 	return nil
 }
 
-func (lp *LocalPeer) seedExplore(in chan proto.Entry) error {
+func (lp *LocalPeer) seedExplore(in chan proto.Entry, seen *cmap.ConcurrentMap) error {
 	closest, err := lp.DHT.FindClosest(*lp.Address())
 
 	if err != nil {
@@ -368,6 +367,19 @@ func (lp *LocalPeer) seedExplore(in chan proto.Entry) error {
 	for _, i := range closest {
 		if i == nil {
 			continue
+		}
+
+		// We have already explored it, check if it is due another explore.
+		if seen.Has(i.Key().StringOr("")) {
+			val, _ := seen.Get(i.Key().StringOr(""))
+
+			if time.Now().Unix()-val.(int64) >= TimeBeforeReExplore {
+				seen.Set(i.Key().StringOr(""), time.Now().Unix())
+
+				// We can also re-explore if there is nothing left to work with.
+			} else if len(in) == 0 {
+				continue
+			}
 		}
 
 		if !i.Key().Equals(lp.Address()) {

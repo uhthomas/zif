@@ -61,11 +61,22 @@ func main() {
 		} else {
 			panic(err)
 		}
+
+		// should this override tor?
 	} else if viper.GetBool("socks.enabled") {
 		lp.SetSocks(true)
 		lp.SetSocksPort(viper.GetInt("socks.port"))
 		lp.Peer.Streams().Socks = true
 		lp.Peer.Streams().SocksPort = viper.GetInt("socks.port")
+
+		// TODO: configurable public address
+	} else {
+		if lp.Entry.PublicAddress == "" {
+			log.Debug("Local peer public address is nil, attempting to fetch")
+			ip := zif.ExternalIp()
+			log.Debug("External IP is ", ip)
+			lp.Entry.PublicAddress = ip
+		}
 	}
 
 	lp.Entry.Port = port
