@@ -370,7 +370,7 @@ func (lp *LocalPeer) seedExplore(in chan proto.Entry, seen *cmap.ConcurrentMap) 
 		}
 
 		// We have already explored it, check if it is due another explore.
-		if seen.Has(i.Key().StringOr("")) {
+		/*if seen.Has(i.Key().StringOr("")) {
 			val, _ := seen.Get(i.Key().StringOr(""))
 
 			if time.Now().Unix()-val.(int64) >= TimeBeforeReExplore {
@@ -380,7 +380,7 @@ func (lp *LocalPeer) seedExplore(in chan proto.Entry, seen *cmap.ConcurrentMap) 
 			} else if len(in) == 0 {
 				continue
 			}
-		}
+		}*/
 
 		if !i.Key().Equals(lp.Address()) {
 			entry := proto.Entry{}
