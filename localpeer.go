@@ -58,8 +58,8 @@ func (lp *LocalPeer) Setup() {
 
 	lp.Address().Generate(lp.PublicKey())
 
-	lp.DHT = dht.NewDHT(lp.address, "./data/dht")
-	lp.DHT.LoadTable("./data/dht/table.dat")
+	lp.DHT = dht.NewDHT(lp.address, "./data/peers.db")
+	lp.DHT.LoadTable("./data/table.dat")
 
 	if err != nil {
 		panic(err)
@@ -170,7 +170,7 @@ func (lp *LocalPeer) WriteKey() error {
 			New("LocalPeer does not have a private key, please generate")
 	}
 
-	err := ioutil.WriteFile("identity.dat", lp.privateKey, 0400)
+	err := ioutil.WriteFile("./data/identity.dat", lp.privateKey, 0400)
 
 	return err
 }
@@ -178,7 +178,7 @@ func (lp *LocalPeer) WriteKey() error {
 // Read the private key from file. This is the "identity.dat" file. The public
 // key is also then generated from the private key.
 func (lp *LocalPeer) ReadKey() error {
-	pk, err := ioutil.ReadFile("identity.dat")
+	pk, err := ioutil.ReadFile("./data/identity.dat")
 
 	if err != nil {
 		return err
