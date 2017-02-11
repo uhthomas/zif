@@ -5,6 +5,7 @@ package zif
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -55,6 +56,8 @@ func (hs *HttpServer) ListenHttp(addr string) {
 
 	router.HandleFunc("/self/profile/cpu/", hs.CpuProfile).Methods("POST")
 	router.HandleFunc("/self/profile/mem/", hs.MemProfile).Methods("POST")
+
+	router.HandleFunc("/self/seedleech/", hs.SetSeedLeech).Methods("POST")
 
 	log.WithField("address", addr).Info("Starting HTTP server")
 
@@ -190,6 +193,8 @@ func (hs *HttpServer) AddPost(w http.ResponseWriter, r *http.Request) {
 	err := json.Unmarshal([]byte(pj), &post)
 
 	if err != nil {
+		fmt.Println("oh noes")
+		fmt.Println(pj)
 		write_http_response(w, CommandResult{false, nil, err})
 		return
 	}
@@ -351,6 +356,38 @@ func (hs *HttpServer) MemProfile(w http.ResponseWriter, r *http.Request) {
 	path := r.FormValue("path")
 
 	res = hs.CommandServer.MemProfile(CommandFile{path})
+
+	write_http_response(w, res)
+}
+
+func (hs *HttpServer) SetSeedLeech(w http.ResponseWriter, r *http.Request) {
+	id := r.FormValue("id")
+	seed := r.FormValue("seed")
+	leech := r.FormValue("leech")
+
+	id_s, err := strconv.Atoi(id)
+
+	if err != nil {
+		write_http_response(w, CommandResult{false, nil, err})
+	}
+
+	seed_s, err := strconv.Atoi(seed)
+
+	if err != nil {
+		write_http_response(w, CommandResult{false, nil, err})
+	}
+
+	leech_s, err := strconv.Atoi(leech)
+
+	if err != nil {
+		write_http_response(w, CommandResult{false, nil, err})
+	}
+
+	res := hs.CommandServer.SetSeedLeech(CommandSetSeedLeech{
+		Id:       uint(id_s),
+		Seeders:  uint(seed_s),
+		Leechers: uint(leech_s),
+	})
 
 	write_http_response(w, res)
 }

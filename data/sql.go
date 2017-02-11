@@ -87,3 +87,15 @@ const sql_suggest_posts string = `SELECT title FROM (
 									LIMIT 0,?`
 
 const sql_count_post = `SELECT MAX(id) FROM post`
+
+const sql_update_seed_leecth = `UPDATE post
+								SET seeders=?
+								WHERE id=?`
+
+const sql_update_leechers = `UPDATE post
+								SET leechers=?
+								WHERE id=?`
+
+const sql_update_seeders = `UPDATE post
+								SET seeders=?
+								WHERE id=?`

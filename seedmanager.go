@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/zif/zif/dht"
-	"github.com/zif/zif/proto"
 	"github.com/zif/zif/util"
 
 	log "github.com/sirupsen/logrus"
@@ -24,10 +23,12 @@ type SeedManager struct {
 
 	// the address we are tracking seeds for
 	track dht.Address
-	entry *proto.Entry
+	entry *dht.Entry
 	Close chan bool
 }
 
+// Creates a new seed manager, given an address to track seeds for and the
+// localpeer.
 func NewSeedManager(track dht.Address, lp *LocalPeer) (*SeedManager, error) {
 	ret := SeedManager{
 		lp:    lp,
@@ -46,6 +47,7 @@ func NewSeedManager(track dht.Address, lp *LocalPeer) (*SeedManager, error) {
 	return &ret, nil
 }
 
+// Start looking for seeds
 func (sm *SeedManager) Start() {
 	log.WithField("peer", sm.track.StringOr("")).Info("Starting seed manager")
 	go sm.findSeeds()
@@ -99,7 +101,7 @@ func (sm *SeedManager) findSeeds() {
 				continue
 			}
 
-			qResult := qResultVerifiable.(*proto.Entry)
+			qResult := qResultVerifiable.(*dht.Entry)
 
 			result := util.SliceDiff(sm.entry.Seeds, qResult.Seeds)
 
@@ -143,14 +145,9 @@ func (sm *SeedManager) findSeeds() {
 
 			if len(result) > 0 {
 				sm.entry.Seeds = append(sm.entry.Seeds, result...)
-				encoded, err := sm.entry.Encode()
-
-				if err != nil {
-					continue
-				}
 
 				log.WithField("peer", s).Info("Found new seeds")
-				sm.lp.DHT.Insert(dht.NewKeyValue(sm.entry.Address, encoded))
+				sm.lp.DHT.Insert(*sm.entry)
 
 			}
 		}

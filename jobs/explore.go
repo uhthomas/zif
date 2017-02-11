@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/zif/zif/common"
 	"github.com/zif/zif/dht"
-	"github.com/zif/zif/proto"
 )
 
 const ExploreFrequency = time.Minute * 2
@@ -15,12 +14,12 @@ const ExploreBufferSize = 100
 
 // This job runs every two minutes, and tries to build the netdb with as many
 // entries as it possibly can
-func ExploreJob(in chan proto.Entry, data ...interface{}) <-chan proto.Entry {
-	ret := make(chan proto.Entry, ExploreBufferSize)
+func ExploreJob(in chan dht.Entry, data ...interface{}) <-chan dht.Entry {
+	ret := make(chan dht.Entry, ExploreBufferSize)
 
 	connector := data[0].(func(dht.Address) (interface{}, error))
 	me := data[1].(dht.Address)
-	seed := data[2].(func(ret chan proto.Entry))
+	seed := data[2].(func(ret chan dht.Entry))
 
 	ticker := time.NewTicker(ExploreFrequency)
 
@@ -36,7 +35,7 @@ func ExploreJob(in chan proto.Entry, data ...interface{}) <-chan proto.Entry {
 	return ret
 }
 
-func exploreTick(in chan proto.Entry, ret chan proto.Entry, me dht.Address, connector common.ConnectPeer, seed func(chan proto.Entry)) {
+func exploreTick(in chan dht.Entry, ret chan dht.Entry, me dht.Address, connector common.ConnectPeer, seed func(chan dht.Entry)) {
 	i := <-in
 	s, _ := i.Address.String()
 
@@ -56,7 +55,7 @@ func exploreTick(in chan proto.Entry, ret chan proto.Entry, me dht.Address, conn
 	}
 }
 
-func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, connectPeer common.ConnectPeer) error {
+func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.Entry, connectPeer common.ConnectPeer) error {
 	peer, err := connectPeer(addr)
 	p := peer.(common.Peer)
 
@@ -74,7 +73,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, conne
 		return errors.New("Failure to connect")
 	}
 
-	ret <- *self.(*proto.Entry)
+	ret <- *self.(*dht.Entry)
 
 	closestToMe, err := p.FindClosest(me)
 
@@ -83,7 +82,7 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, conne
 	}
 
 	for _, i := range closestToMe {
-		ret <- *(i.(*proto.Entry))
+		ret <- *(i.(*dht.Entry))
 	}
 
 	randAddr, err := dht.RandomAddress()
@@ -99,8 +98,8 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- proto.Entry, conne
 	}
 
 	for _, i := range closest {
-		if !i.(*proto.Entry).Address.Equals(&me) {
-			ret <- *(i.(*proto.Entry))
+		if !i.(*dht.Entry).Address.Equals(&me) {
+			ret <- *(i.(*dht.Entry))
 		}
 	}
 

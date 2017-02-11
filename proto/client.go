@@ -223,7 +223,7 @@ func (c *Client) FindClosest(address dht.Address) ([]common.Verifier, error) {
 	result := make([]common.Verifier, 0, len(entries))
 
 	for _, i := range entries {
-		entry := &Entry{}
+		entry := &dht.Entry{}
 		err := i.Decode(&entry)
 
 		if err != nil {
@@ -241,7 +241,7 @@ func (c *Client) FindClosest(address dht.Address) ([]common.Verifier, error) {
 	return result, err
 }
 
-func (c *Client) Query(address dht.Address) (*Entry, error) {
+func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -288,7 +288,7 @@ func (c *Client) Query(address dht.Address) (*Entry, error) {
 		return nil, errors.New("Peer returned no")
 	}
 
-	var entry Entry
+	var entry dht.Entry
 	err = msgpack.Unmarshal(kv.Value(), &entry)
 
 	if err != nil {
@@ -308,6 +308,7 @@ func (c *Client) Query(address dht.Address) (*Entry, error) {
 // both it's own and the peers address, storing the result. This means that after
 // a bootstrap, it should be possible to connect to *any* peer!
 func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
+	defer c.Close()
 	peers, err := c.FindClosest(address)
 
 	if err != nil {
@@ -316,23 +317,21 @@ func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 
 	// add them all to our routing table! :D
 	for _, i := range peers {
-		e := i.(*Entry)
+		e := i.(*dht.Entry)
 
 		if e == nil {
 			return errors.New("Nil entry")
 		}
 
-		if len(e.Address.Raw) != dht.AddressBinarySize {
-			continue
-		}
+		err := e.Verify()
 
-		dat, err := e.Encode()
-
+		// If the entry fails a validity check, CANCEL this, as the peer may
+		// well be a bad peer.
 		if err != nil {
-			return err
+			return errors.New("Bad peer, entry not valid")
 		}
 
-		d.Insert(dht.NewKeyValue(e.Address, dat))
+		d.Insert(*e)
 	}
 
 	if len(peers) > 1 {

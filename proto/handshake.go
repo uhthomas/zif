@@ -7,11 +7,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/zif/zif/common"
+	"github.com/zif/zif/dht"
 	"github.com/zif/zif/util"
 )
 
 // Perform a handshake operation given a peer. server.go does the other end of this.
-func handshake(cl Client, lp common.Signer, data common.Encoder) (*Entry, error) {
+func handshake(cl Client, lp common.Signer, data common.Encoder) (*dht.Entry, error) {
 	header, err := handshake_recieve(cl)
 
 	if err != nil {
@@ -35,7 +36,7 @@ func handshake(cl Client, lp common.Signer, data common.Encoder) (*Entry, error)
 }
 
 // Just recieves a handshake from a peer.
-func handshake_recieve(cl Client) (*Entry, error) {
+func handshake_recieve(cl Client) (*dht.Entry, error) {
 	check := func(e error) bool {
 		if e != nil {
 			log.Error(e.Error())
@@ -64,7 +65,7 @@ func handshake_recieve(cl Client) (*Entry, error) {
 		return nil, err
 	}
 
-	var entry Entry
+	var entry dht.Entry
 	err = header.Read(&entry)
 
 	if err != nil {

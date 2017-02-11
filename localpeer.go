@@ -28,7 +28,7 @@ const TimeBeforeReExplore = 60 * 60
 
 type LocalPeer struct {
 	Peer
-	Entry         *proto.Entry
+	Entry         *dht.Entry
 	DHT           *dht.DHT
 	Server        proto.Server
 	Collection    *data.Collection
@@ -48,7 +48,7 @@ type LocalPeer struct {
 func (lp *LocalPeer) Setup() {
 	var err error
 
-	lp.Entry = &proto.Entry{}
+	lp.Entry = &dht.Entry{}
 	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
 
 	lp.Databases = cmap.New()
@@ -207,7 +207,7 @@ func (lp *LocalPeer) LoadEntry() error {
 		return err
 	}
 
-	entry, err := proto.DecodeEntry(dat, true)
+	entry, err := dht.DecodeEntry(dat, true)
 
 	if err != nil {
 		return err
@@ -265,7 +265,7 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 }
 
 func (lp *LocalPeer) StartExploring() error {
-	in := make(chan proto.Entry, jobs.ExploreBufferSize)
+	in := make(chan dht.Entry, jobs.ExploreBufferSize)
 
 	// Used to keep track of when a peer was last explored. We need to make sure
 	// that a peer is not explored more than once every hour, unless we run out
@@ -285,56 +285,55 @@ func (lp *LocalPeer) StartExploring() error {
 			return peer, err
 		},
 		lp.address,
-		func(in chan proto.Entry) { lp.seedExplore(in, &seen) })
+		func(in chan dht.Entry) { lp.seedExplore(in, &seen) })
 
 	go func() {
 		for i := range ret {
-			kv, err := lp.DHT.Query(i.Address)
-
-			if i.Address.Equals(lp.Address()) {
-				continue
-			}
-
-			ps, _ := i.Address.String()
-			encoded, err := i.Encode()
+			// We may well already have this entry, so query for it.
+			current, err := lp.DHT.Query(i.Address)
 
 			if err != nil {
 				log.Error(err.Error())
 				continue
 			}
 
-			if kv == nil {
+			if i.Address.Equals(lp.Address()) {
+				continue
+			}
+
+			ps, _ := i.Address.String()
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			// if we do not have the entry, then insert it
+			if current == nil {
 
 				if err != nil {
 					log.Error(err.Error())
 					continue
 				}
 
-				lp.DHT.Insert(dht.NewKeyValue(i.Address, encoded))
+				lp.DHT.Insert(i)
 				log.WithField("peer", ps).Info("Discovered new peer")
 
 				in <- i
-			} else {
-				current, err := proto.DecodeEntry(kv.Value(), false)
-				if err != nil {
-					continue
-				}
 
+				// if we already have the entry, check if it needs updating at all
+			} else {
+				// if the new entry was updated at a later date, then update it
 				if i.Updated > current.Updated {
-					lp.DHT.Insert(dht.NewKeyValue(i.Address, encoded))
+					lp.DHT.Insert(i)
 					log.WithField("peer", ps).Info("Updated peer")
 
+					// If the newer entry has more seeds, merge its list with
+					// ours
 				} else if len(i.Seeds) > len(current.Seeds) {
 					current.Seeds = util.MergeSeeds(current.Seeds, i.Seeds)
 
-					currentDat, err := current.Encode()
-
-					if err != nil {
-						log.Error(err.Error())
-						continue
-					}
-
-					lp.DHT.Insert(dht.NewKeyValue(current.Address, currentDat))
+					lp.DHT.Insert(i)
 
 					log.WithField("peer", ps).Info("Found new seeds")
 				}
@@ -345,7 +344,7 @@ func (lp *LocalPeer) StartExploring() error {
 	return nil
 }
 
-func (lp *LocalPeer) seedExplore(in chan proto.Entry, seen *cmap.ConcurrentMap) error {
+func (lp *LocalPeer) seedExplore(in chan dht.Entry, seen *cmap.ConcurrentMap) error {
 	closest, err := lp.DHT.FindClosest(*lp.Address())
 
 	if err != nil {
@@ -358,7 +357,7 @@ func (lp *LocalPeer) seedExplore(in chan proto.Entry, seen *cmap.ConcurrentMap) 
 	closest = append(closest, closestRand...)
 	log.WithField("seeds", len(closest)).Info("Seeding peer explore")
 
-	dht.ShufflePairs(closest)
+	dht.ShuffleEntries(closest)
 
 	if len(closest) == 0 {
 		return errors.New("Failed to seed bootstrap, bootstrap first")
@@ -382,16 +381,10 @@ func (lp *LocalPeer) seedExplore(in chan proto.Entry, seen *cmap.ConcurrentMap) 
 			}
 		}*/
 
-		if !i.Key().Equals(lp.Address()) {
-			entry := proto.Entry{}
-			err := i.Decode(&entry)
-
-			if err != nil {
-				log.Error(err.Error())
-				continue
-			}
-
-			in <- entry
+		// ideally the localpeer address should not end up in the database.
+		// However, if this somehow happens, make sure not to explore... itself.
+		if !i.Address.Equals(lp.Address()) {
+			in <- *i
 		}
 	}
 
@@ -411,7 +404,7 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 	return lp.peerManager.ConnectPeerDirect(addr)
 }
 
-func (lp *LocalPeer) ConnectPeer(addr dht.Address) (*Peer, *proto.Entry, error) {
+func (lp *LocalPeer) ConnectPeer(addr dht.Address) (*Peer, *dht.Entry, error) {
 	return lp.peerManager.ConnectPeer(addr)
 }
 
@@ -452,11 +445,11 @@ func (lp *LocalPeer) GetSocksPort() int {
 	return lp.peerManager.socksPort
 }
 
-func (lp *LocalPeer) Resolve(addr dht.Address) (*proto.Entry, error) {
+func (lp *LocalPeer) Resolve(addr dht.Address) (*dht.Entry, error) {
 	return lp.peerManager.Resolve(addr)
 }
 
-func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
+func (lp *LocalPeer) QueryEntry(addr dht.Address) (*dht.Entry, error) {
 	if addr.Equals(lp.Address()) {
 		return lp.Entry, nil
 	}
@@ -471,7 +464,7 @@ func (lp *LocalPeer) QueryEntry(addr dht.Address) (*proto.Entry, error) {
 		return nil, errors.New("No entry with address")
 	}
 
-	return proto.DecodeEntry(kv.Value(), false)
+	return kv, nil
 }
 
 func (lp *LocalPeer) QuerySelf() {
@@ -510,7 +503,7 @@ func (lp *LocalPeer) QuerySelf() {
 		if err != nil {
 			continue
 		}
-		entry := e.(*proto.Entry)
+		entry := e.(*dht.Entry)
 
 		if len(entry.Seeds) > len(lp.Entry.Seeds) {
 			log.WithField("from", s).Info("Found new seeds for self")
@@ -521,19 +514,11 @@ func (lp *LocalPeer) QuerySelf() {
 	}
 }
 
-func (lp *LocalPeer) AddEntry(entry *proto.Entry) error {
-	dat, err := entry.Encode()
-
-	if err != nil {
-		return err
-	}
-
-	kv := dht.NewKeyValue(entry.Address, dat)
-
-	return lp.DHT.Insert(kv)
+func (lp *LocalPeer) AddEntry(entry dht.Entry) error {
+	return lp.DHT.Insert(entry)
 }
 
-func (lp *LocalPeer) AddSeeding(entry *proto.Entry) error {
+func (lp *LocalPeer) AddSeeding(entry dht.Entry) error {
 	// save with the local entry, then the remote
 	lp.Entry.Seeding = append(lp.Entry.Seeding, entry.Address.Raw)
 	entry.Seeds = append(entry.Seeds, lp.Address().Raw)

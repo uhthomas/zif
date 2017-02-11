@@ -3,6 +3,7 @@ package zif
 import (
 	"bufio"
 	"compress/gzip"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -66,8 +67,7 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		err = cl.WriteMessage(msg)
 
 	} else {
-		kv := &dht.KeyValue{}
-		kv, err = lp.DHT.Query(address)
+		kv, err := lp.DHT.Query(address)
 
 		if err != nil {
 			return err
@@ -170,7 +170,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 
 	defer msg.Stream.Close()
 
-	entry := proto.Entry{}
+	entry := dht.Entry{}
 	err = msg.Read(&entry)
 
 	log.WithField("address", entry.Address.StringOr("")).Info("Announce")
@@ -179,8 +179,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 		return err
 	}
 
-	dat, _ := entry.Encode()
-	err = lp.DHT.Insert(dht.NewKeyValue(entry.Address, dat))
+	err = lp.DHT.Insert(entry)
 
 	if err == nil {
 		cl.WriteMessage(&proto.Message{Header: proto.ProtoOk})
@@ -298,22 +297,18 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 	var hash []byte
 	var hashList []byte
 
+	entry, err := lp.DHT.Query(address)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
 	if address.Equals(lp.Address()) {
 		sig = lp.Entry.CollectionSig
 		hash = lp.Collection.Hash()
 		hashList = lp.Collection.HashList
 
-	} else if lp.DHT.Has(address) {
-		kv, err := lp.DHT.Query(address)
-
-		if err != nil {
-			return err
-		}
-
-		if kv == nil {
-			return errors.New("Cannot return collection hash list")
-		}
-
+	} else if entry != nil {
 		// load the hashlist from disk, if it exists. If not, err
 		// if not "err", then it'd probably read its own collection
 		hl, err := ioutil.ReadFile(fmt.Sprintf("./data/%s/collection.dat", address.StringOr("err")))
@@ -324,12 +319,6 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 
 		hashList = make([]byte, len(hl))
 		copy(hashList, hl)
-
-		entry, err := proto.DecodeEntry(kv.Value(), false)
-
-		if err != nil {
-			return err
-		}
 
 		sig = make([]byte, len(entry.CollectionSig))
 		copy(sig, entry.CollectionSig)
@@ -447,37 +436,26 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 
 	} else {
 		// then we need to see if we have the entry for that address
-		kv, err := lp.DHT.Query(address)
+		entry, err := lp.DHT.Query(address)
 
 		if err != nil {
 			return err
 		}
 
-		if kv == nil {
+		if entry == nil {
 			return errors.New("Cannot add peer, do not have entry")
 		}
 
-		decoded, err := proto.DecodeEntry(kv.Value(), false)
-
-		if err != nil {
-			return err
-		}
-
+		// read the address of the peer as raw bytes, and add it to the seed list
 		b, _ := msg.From.Bytes()
-		decoded.Seeds = append(decoded.Seeds, b)
+		entry.Seeds = append(entry.Seeds, b)
 
 		log.WithFields(
 			log.Fields{
 				"for":  pfor,
 				"seed": from}).Info("Added seed")
 
-		newEntry, err := decoded.Encode()
-
-		if err != nil {
-			return err
-		}
-
-		lp.DHT.Insert(dht.NewKeyValue(address, newEntry))
+		lp.DHT.Insert(*entry)
 	}
 
 	msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoOk})

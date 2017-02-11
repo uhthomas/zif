@@ -11,7 +11,6 @@ import (
 	"github.com/streamrail/concurrent-map"
 	"github.com/zif/zif/data"
 	"github.com/zif/zif/dht"
-	"github.com/zif/zif/proto"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -104,7 +103,7 @@ func (pm *PeerManager) ConnectPeerDirect(addr string) (*Peer, error) {
 
 // Resolved a Zif address into an entry, connects to the peer at the
 // PublicAddress in the Entry, then return it. The peer is also stored in a map.
-func (pm *PeerManager) ConnectPeer(addr dht.Address) (*Peer, *proto.Entry, error) {
+func (pm *PeerManager) ConnectPeer(addr dht.Address) (*Peer, *dht.Entry, error) {
 	var peer *Peer
 
 	entry, err := pm.Resolve(addr)
@@ -350,7 +349,7 @@ func (pm *PeerManager) LoadSeeds() error {
 // Resolves a Zif address into an entry. Hopefully we already have the entry,
 // in which case it's just loaded from disk. Otherwise, recursive network
 // queries are made to try and find it.
-func (pm *PeerManager) Resolve(addr dht.Address) (*proto.Entry, error) {
+func (pm *PeerManager) Resolve(addr dht.Address) (*dht.Entry, error) {
 	log.WithField("address", addr.StringOr("")).Debug("Resolving")
 
 	if addr.Equals(pm.localPeer.Address()) {
@@ -364,7 +363,7 @@ func (pm *PeerManager) Resolve(addr dht.Address) (*proto.Entry, error) {
 	}
 
 	if kv != nil {
-		return proto.DecodeEntry(kv.Value(), false)
+		return kv, nil
 	}
 
 	// gets an initial set to work with
@@ -375,34 +374,22 @@ func (pm *PeerManager) Resolve(addr dht.Address) (*proto.Entry, error) {
 	}
 
 	for _, i := range closest {
-		e, err := proto.DecodeEntry(i.Value(), false)
+		// TODO: Goroutine this.
+		entry, err := pm.resolveStep(i, addr)
 
-		if err == nil {
-			// TODO: Goroutine this.
-			entry, err := pm.resolveStep(e, addr)
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
 
-			if err != nil {
-				log.Error(err.Error())
-				continue
-			}
+		if entry == nil {
+			continue
+		}
 
-			if entry == nil {
-				continue
-			}
+		if entry.Address.Equals(&addr) {
+			pm.localPeer.DHT.Insert(*entry)
 
-			if entry.Address.Equals(&addr) {
-				dat, err := entry.Encode()
-
-				if err != nil {
-					return nil, err
-				}
-
-				kv := dht.NewKeyValue(entry.Address, dat)
-
-				pm.localPeer.DHT.Insert(kv)
-
-				return entry, nil
-			}
+			return entry, nil
 		}
 	}
 
@@ -410,7 +397,7 @@ func (pm *PeerManager) Resolve(addr dht.Address) (*proto.Entry, error) {
 }
 
 // Will return the entry itself, or an error.
-func (pm *PeerManager) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Entry, error) {
+func (pm *PeerManager) resolveStep(e *dht.Entry, addr dht.Address) (*dht.Entry, error) {
 	// connect to the peer
 	var peer *Peer
 	var err error
@@ -435,7 +422,7 @@ func (pm *PeerManager) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Ent
 
 	if kv != nil {
 		entry := kv
-		return entry.(*proto.Entry), err
+		return entry.(*dht.Entry), err
 	}
 
 	closest, err := peer.FindClosest(addr)
@@ -445,7 +432,7 @@ func (pm *PeerManager) resolveStep(e *proto.Entry, addr dht.Address) (*proto.Ent
 	}
 
 	for _, i := range closest {
-		entry := i.(*proto.Entry)
+		entry := i.(*dht.Entry)
 
 		result, err := pm.resolveStep(entry, addr)
 

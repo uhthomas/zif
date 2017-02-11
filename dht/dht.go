@@ -5,9 +5,15 @@ type DHT struct {
 }
 
 func NewDHT(addr Address, path string) *DHT {
-	ret := &DHT{
-		db: NewNetDB(addr, path),
+	ret := &DHT{}
+
+	db, err := NewNetDB(addr, path)
+
+	if err != nil {
+		panic(err)
 	}
+
+	ret.db = db
 
 	return ret
 }
@@ -16,16 +22,16 @@ func (dht *DHT) Address() Address {
 	return dht.db.addr
 }
 
-func (dht *DHT) Insert(kv *KeyValue) error {
+func (dht *DHT) Insert(entry Entry) error {
 	// TODO: Announces
-	return dht.db.Insert(kv)
+	return dht.db.Insert(entry)
 }
 
-func (dht *DHT) Query(addr Address) (*KeyValue, error) {
+func (dht *DHT) Query(addr Address) (*Entry, error) {
 	return dht.db.Query(addr)
 }
 
-func (dht *DHT) FindClosest(addr Address) (Pairs, error) {
+func (dht *DHT) FindClosest(addr Address) (Entries, error) {
 	return dht.db.FindClosest(addr)
 }
 
@@ -35,8 +41,4 @@ func (dht *DHT) SaveTable(path string) {
 
 func (dht *DHT) LoadTable(path string) {
 	dht.db.LoadTable(path)
-}
-
-func (dht *DHT) Has(addr Address) bool {
-	return dht.db.Has(addr)
 }

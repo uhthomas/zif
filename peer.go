@@ -33,15 +33,15 @@ type Peer struct {
 
 	limiter *util.PeerLimiter
 
-	entry *proto.Entry
+	entry *dht.Entry
 
 	// If this peer is acting as a seed for another
 	seed    bool
-	seedFor *proto.Entry
+	seedFor *dht.Entry
 
 	addSeedManager func(dht.Address) error
-	addSeeding     func(*proto.Entry) error
-	addEntry       func(*proto.Entry) error
+	addSeeding     func(dht.Entry) error
+	addEntry       func(dht.Entry) error
 	updateSeen     func()
 }
 
@@ -145,8 +145,7 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 	p.limiter = &util.PeerLimiter{}
 	p.limiter.Setup()
 
-	encoded, _ := pair.Entry.Encode()
-	lp.DHT.Insert(dht.NewKeyValue(pair.Entry.Address, encoded))
+	lp.DHT.Insert(pair.Entry)
 
 	return nil
 }
@@ -213,7 +212,7 @@ func (p *Peer) CloseStreams() {
 	p.streams.Close()
 }
 
-func (p *Peer) Entry() (*proto.Entry, error) {
+func (p *Peer) Entry() (*dht.Entry, error) {
 	if p.entry != nil {
 		return p.entry, nil
 	}
@@ -221,7 +220,7 @@ func (p *Peer) Entry() (*proto.Entry, error) {
 	return p.GetEntry()
 }
 
-func (p *Peer) GetEntry() (*proto.Entry, error) {
+func (p *Peer) GetEntry() (*dht.Entry, error) {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return nil, err
@@ -233,7 +232,7 @@ func (p *Peer) GetEntry() (*proto.Entry, error) {
 		return nil, err
 	}
 
-	entry := e.(*proto.Entry)
+	entry := e.(*dht.Entry)
 
 	log.WithField("for", p.Address().StringOr("")).Info("Recieved entry")
 
@@ -251,16 +250,6 @@ func (p *Peer) Bootstrap(d *dht.DHT) error {
 	if err != nil {
 		return err
 	}
-
-	initial, err := p.Entry()
-
-	if err != nil {
-		return err
-	}
-
-	dat, _ := initial.Encode()
-
-	d.Insert(dht.NewKeyValue(initial.Address, dat))
 
 	stream, err := p.OpenStream()
 
@@ -397,7 +386,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	go db.InsertPieces(pieces, true)
 
-	var entry *proto.Entry
+	var entry *dht.Entry
 	if p.seed {
 		e, err := p.Query(p.seedFor.Address)
 
@@ -405,7 +394,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 			return err
 		}
 
-		entry = e.(*proto.Entry)
+		entry = e.(*dht.Entry)
 	} else {
 		_, err = p.GetEntry()
 
@@ -495,7 +484,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 		return err
 	}
 
-	err = p.RequestAddPeer(entry)
+	err = p.RequestAddPeer(*entry)
 
 	// we're done mirroring, so now we need to switch OFF the fact that this is
 	// a seed. If it becomes a seed again, it will be properly set by the
@@ -508,7 +497,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 	return err
 }
 
-func (p *Peer) RequestAddPeer(entry *proto.Entry) error {
+func (p *Peer) RequestAddPeer(entry dht.Entry) error {
 	_, err := p.Ping(time.Second * 10)
 	if err != nil {
 		return err

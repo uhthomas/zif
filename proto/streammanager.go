@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 	"github.com/zif/zif/common"
+	"github.com/zif/zif/dht"
 )
 
 type StreamManager struct {
@@ -118,7 +119,7 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, dat
 	return &pair, nil
 }
 
-func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encoder) (*Entry, error) {
+func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encoder) (*dht.Entry, error) {
 	cl, err := NewClient(conn)
 
 	if err != nil {

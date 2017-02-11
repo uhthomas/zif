@@ -12,7 +12,6 @@ import (
 
 	"github.com/zif/zif/data"
 	"github.com/zif/zif/dht"
-	"github.com/zif/zif/proto"
 	"github.com/zif/zif/util"
 
 	log "github.com/sirupsen/logrus"
@@ -210,7 +209,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	peer := cs.LocalPeer.GetPeer(address)
 
 	if peer == nil {
-		var entry *proto.Entry
+		var entry *dht.Entry
 		peer, entry, err = cs.LocalPeer.ConnectPeer(address)
 
 		if err != nil {
@@ -456,7 +455,7 @@ func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResul
 		return CommandResult{true, nil, err}
 	}
 
-	err = peer.RequestAddPeer(entry)
+	err = peer.RequestAddPeer(*entry)
 
 	return CommandResult{err == nil, nil, err}
 }
@@ -546,6 +545,18 @@ func (cs *CommandServer) MemProfile(cf CommandFile) CommandResult {
 	}
 
 	err = pprof.WriteHeapProfile(f)
+
+	return CommandResult{err == nil, nil, err}
+}
+
+func (cs *CommandServer) SetSeedLeech(csl CommandSetSeedLeech) CommandResult {
+	err := cs.LocalPeer.Database.SetLeechers(csl.Id, csl.Leechers)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	err = cs.LocalPeer.Database.SetSeeders(csl.Id, csl.Seeders)
 
 	return CommandResult{err == nil, nil, err}
 }

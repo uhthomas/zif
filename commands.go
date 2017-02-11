@@ -96,6 +96,12 @@ type CommandAddressEncode struct {
 	Raw []byte `json:"raw"`
 }
 
+type CommandSetSeedLeech struct {
+	Id       uint
+	Seeders  uint
+	Leechers uint
+}
+
 // Command output types
 
 type CommandResult struct {

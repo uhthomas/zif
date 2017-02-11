@@ -1,10 +1,11 @@
 package dht
 
 import (
+	"database/sql"
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/peterbourgon/diskv"
+	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,12 +14,19 @@ const (
 )
 
 type NetDB struct {
-	table    [][]Address
-	addr     Address
-	database *diskv.Diskv
+	table [][]Address
+	addr  Address
+	conn  *sql.DB
+
+	stmtInsertEntry    *sql.Stmt
+	stmtInsertFtsEntry *sql.Stmt
+	stmtEntryLen       *sql.Stmt
+	stmtQueryAddress   *sql.Stmt
 }
 
-func NewNetDB(addr Address, path string) *NetDB {
+func NewNetDB(addr Address, path string) (*NetDB, error) {
+	var err error
+
 	ret := &NetDB{}
 	ret.addr = addr
 
@@ -31,20 +39,63 @@ func NewNetDB(addr Address, path string) *NetDB {
 		ret.table[n] = make([]Address, 0, BucketSize)
 	}
 
-	// setup diskv
-	transform := func(s string) []string {
-		return []string{}
+	ret.conn, err = sql.Open("sqlite3", path)
+
+	if err != nil {
+		return nil, err
 	}
 
-	ret.database = diskv.New(diskv.Options{
-		BasePath:     path,
-		Transform:    transform,
-		CacheSizeMax: 10 * 1024 * 1024,
-	})
+	// don't bother preparing these, they are only used at startup
 
-	return ret
+	// create the entries table first, it is most important
+	_, err = ret.conn.Exec(sqlCreateEntriesTable)
+	if err != nil {
+		return nil, err
+	}
+
+	// store seed lists
+	_, err = ret.conn.Exec(sqlCreateSeedsTable)
+	if err != nil {
+		return nil, err
+	}
+
+	// full text search
+	_, err = ret.conn.Exec(sqlCreateFtsTable)
+	if err != nil {
+		return nil, err
+	}
+
+	// speed up entry lookups
+	_, err = ret.conn.Exec(sqlIndexAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	// prepare all the SQL we will be needing
+	ret.stmtInsertEntry, err = ret.conn.Prepare(sqlInsertEntry)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtInsertFtsEntry, err = ret.conn.Prepare(sqlInsertFtsEntry)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtInsertFtsEntry, err = ret.conn.Prepare("SELECT MAX(id) FROM entry")
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtQueryAddress, err = ret.conn.Prepare(sqlQueryAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
 }
 
+// Get the total size of the in-memory routing table
 func (ndb *NetDB) TableLen() int {
 	size := 0
 
@@ -55,15 +106,26 @@ func (ndb *NetDB) TableLen() int {
 	return size
 }
 
-func (ndb *NetDB) Insert(kv *KeyValue) error {
-	if !kv.Valid() {
-		s, _ := kv.Key().String()
-		return &InvalidValue{s}
+// Get the total number of entries we have stored
+func (ndb *NetDB) Len() (int, error) {
+	var length int
+
+	row := ndb.stmtEntryLen.QueryRow()
+	err := row.Scan(&length)
+
+	if err != nil {
+		return -1, err
 	}
 
+	return length, err
+}
+
+// Insert an address into the in memory routing table. Theere is no need to store
+// any data along with it as this can be fetched from the DB.
+func (ndb *NetDB) insertIntoTable(addr Address) {
 	// Find the distance between the kv address and our own address, this is the
 	// index in the table
-	index := kv.Key().Xor(&ndb.addr).LeadingZeroes()
+	index := addr.Xor(&ndb.addr).LeadingZeroes()
 	bucket := ndb.table[index]
 
 	// there is capacity, insert at the front
@@ -72,7 +134,7 @@ func (ndb *NetDB) Insert(kv *KeyValue) error {
 	found := -1
 
 	for n, i := range bucket {
-		if i.Equals(kv.Key()) {
+		if i.Equals(&addr) {
 			found = n
 			break
 		}
@@ -87,43 +149,66 @@ func (ndb *NetDB) Insert(kv *KeyValue) error {
 		bucket = bucket[:len(bucket)-1]
 	}
 
-	bucket = append([]Address{*kv.Key()}, bucket...)
+	bucket = append([]Address{addr}, bucket...)
 
 	ndb.table[index] = bucket
+}
 
-	// key has been added to the routing table, now store the entry!
-	s, _ := kv.Key().String()
-	ndb.database.Write(s, kv.Value())
+func (ndb *NetDB) insertIntoDB(entry Entry) error {
 
-	return nil
+	_, err := ndb.stmtInsertEntry.Exec(entry.Address.Raw, entry.Name, entry.Desc,
+		entry.PublicAddress, entry.Port, entry.PublicKey,
+		entry.Signature, entry.CollectionSig, entry.CollectionHash,
+		entry.PostCount, len(entry.Seeds), len(entry.Seeding),
+		entry.Updated, entry.Seen)
+
+	return err
+}
+
+// Inserts an entry into both the routing table and the database
+func (ndb *NetDB) Insert(entry Entry) error {
+	err := entry.Verify()
+
+	if err != nil {
+		return err
+	}
+
+	ndb.insertIntoTable(entry.Address)
+	err = ndb.insertIntoDB(entry)
+
+	return err
 }
 
 // Returns the KeyValue if this node has the address, nil and err otherwise.
-func (ndb *NetDB) Query(addr Address) (*KeyValue, error) {
-	s, _ := addr.String()
-	if !ndb.database.Has(s) {
-		return nil, nil
-	}
+func (ndb *NetDB) Query(addr Address) (*Entry, error) {
+	ret := Entry{}
+	row := ndb.stmtQueryAddress.QueryRow(addr.Raw)
 
-	value, err := ndb.database.Read(s)
+	id := 0
+	seedCount := 0
+	seedingCount := 0
+
+	err := row.Scan(&id, &ret.Address, &ret.Name, &ret.Desc, &ret.PublicAddress,
+		&ret.Port, &ret.PublicKey, &ret.Signature, &ret.CollectionSig, &ret.CollectionHash,
+		&ret.PostCount, &seedCount, &seedingCount, &ret.Updated, &ret.Seen)
 
 	if err != nil {
 		return nil, err
 	}
 
-	kv := NewKeyValue(addr, value)
+	ret.Seeding = make([][]byte, seedingCount)
+	ret.Seeds = make([][]byte, seedCount)
 
-	// reinsert the kv, popular things will stay near the top
-	return kv, ndb.Insert(kv)
+	// resinsert into the table, this keeps popular things easy to access
+	// TODO: Store some sort of "lastQueried" in the database, then we have
+	// even more data on how popular something is.
+	// TODO: Make sure I'm not storing too much in the database :P
+	ndb.insertIntoTable(ret.Address)
+	return &ret, nil
 }
 
-func (ndb *NetDB) Has(addr Address) bool {
-	s, _ := addr.String()
-	return ndb.database.Has(s)
-}
-
-func (ndb *NetDB) queryAddresses(as []Address) Pairs {
-	ret := make(Pairs, 0, len(as))
+func (ndb *NetDB) queryAddresses(as []Address) Entries {
+	ret := make(Entries, 0, len(as))
 
 	for _, i := range as {
 		kv, err := ndb.Query(i)
@@ -138,7 +223,7 @@ func (ndb *NetDB) queryAddresses(as []Address) Pairs {
 	return ret
 }
 
-func (ndb *NetDB) FindClosest(addr Address) (Pairs, error) {
+func (ndb *NetDB) FindClosest(addr Address) (Entries, error) {
 	// Find the distance between the kv address and our own address, this is the
 	// index in the table
 	index := addr.Xor(&ndb.addr).LeadingZeroes()
@@ -148,7 +233,7 @@ func (ndb *NetDB) FindClosest(addr Address) (Pairs, error) {
 		return ndb.queryAddresses(bucket), nil
 	}
 
-	ret := make(Pairs, 0, BucketSize)
+	ret := make(Entries, 0, BucketSize)
 
 	// Start with bucket, copy all across, then move left outwards checking all
 	// other buckets.

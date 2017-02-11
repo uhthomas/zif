@@ -1,13 +1,12 @@
-package proto
+package dht
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
-
-	"github.com/zif/zif/dht"
 
 	"golang.org/x/crypto/ed25519"
 )
@@ -22,13 +21,13 @@ const (
 // This is an entry into the DHT. It is used to connect to a peer given just
 // it's Zif address.
 type Entry struct {
-	Address       dht.Address `json:"address"`
-	Name          string      `json:"name"`
-	Desc          string      `json:"desc"`
-	PublicAddress string      `json:"publicAddress"`
-	PublicKey     []byte      `json:"publicKey"`
-	PostCount     int         `json:"postCount"`
-	Updated       uint64      `json:"updated"`
+	Address       Address `json:"address"`
+	Name          string  `json:"name"`
+	Desc          string  `json:"desc"`
+	PublicAddress string  `json:"publicAddress"`
+	PublicKey     []byte  `json:"publicKey"`
+	PostCount     int     `json:"postCount"`
+	Updated       uint64  `json:"updated"`
 
 	// The owner of this entry should have signed it, we need to store the
 	// sigature. It's actually okay as we can verify that a peer owns a public
@@ -43,9 +42,10 @@ type Entry struct {
 
 	Seeds   [][]byte `json:"seeds"`
 	Seeding [][]byte `json:"seeding"`
+	Seen    int      `json:"seed"`
 
 	// Used in the FindClosest function, for sorting.
-	distance dht.Address
+	distance Address
 }
 
 // true if JSON, false if msgpack
@@ -108,7 +108,7 @@ func (e Entry) EncodeString() (string, error) {
 	return string(enc), err
 }
 
-func (e *Entry) SetLocalPeer(lp ProtocolHandler) {
+func (e *Entry) SetLocalPeer(lp Node) {
 	e.Address = *lp.Address()
 
 	e.PublicKey = make([]byte, len(lp.PublicKey()))
@@ -183,4 +183,12 @@ func (entry *Entry) Verify() error {
 	}
 
 	return nil
+}
+
+func ShuffleEntries(slice Entries) {
+	for i := range slice {
+		j := rand.Intn(i + 1)
+
+		slice[i], slice[j] = slice[j], slice[i]
+	}
 }

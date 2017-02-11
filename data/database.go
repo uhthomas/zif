@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 	log "github.com/sirupsen/logrus"
@@ -407,6 +408,32 @@ func (db *Database) Suggest(query string) ([]string, error) {
 	}
 
 	return ret, nil
+}
+
+func (db *Database) SetSeeders(id, seeders uint) error {
+	stmt, err := db.conn.Prepare(sql_update_seeders)
+
+	if err != nil {
+		fmt.Println("could not prepare")
+		return err
+	}
+
+	_, err = stmt.Exec(id, seeders)
+
+	return err
+}
+
+func (db *Database) SetLeechers(id, leechers uint) error {
+	stmt, err := db.conn.Prepare(sql_update_leechers)
+
+	if err != nil {
+		fmt.Println("could not preparel")
+		return err
+	}
+
+	_, err = stmt.Exec(id, leechers)
+
+	return err
 }
 
 // Close the database connection.
