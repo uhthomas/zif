@@ -18,10 +18,12 @@ type NetDB struct {
 	addr  Address
 	conn  *sql.DB
 
-	stmtInsertEntry    *sql.Stmt
-	stmtInsertFtsEntry *sql.Stmt
-	stmtEntryLen       *sql.Stmt
-	stmtQueryAddress   *sql.Stmt
+	stmtInsertEntry      *sql.Stmt
+	stmtInsertFtsEntry   *sql.Stmt
+	stmtEntryLen         *sql.Stmt
+	stmtQueryAddress     *sql.Stmt
+	stmtInsertSeed       *sql.Stmt
+	stmtQueryIdByAddress *sql.Stmt
 }
 
 func NewNetDB(addr Address, path string) (*NetDB, error) {
@@ -92,6 +94,16 @@ func NewNetDB(addr Address, path string) (*NetDB, error) {
 		return nil, err
 	}
 
+	ret.stmtInsertSeed, err = ret.conn.Prepare(sqlInsertSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtQueryIdByAddress, err = ret.conn.Prepare(sqlQueryIdByAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	return ret, nil
 }
 
@@ -156,11 +168,77 @@ func (ndb *NetDB) insertIntoTable(addr Address) {
 
 func (ndb *NetDB) insertIntoDB(entry Entry) error {
 
-	_, err := ndb.stmtInsertEntry.Exec(entry.Address.Raw, entry.Name, entry.Desc,
+	addressString, err := entry.Address.String()
+
+	if err != nil {
+		return err
+	}
+
+	// Insert the entry into the main entry table
+	_, err = ndb.stmtInsertEntry.Exec(addressString, entry.Name, entry.Desc,
 		entry.PublicAddress, entry.Port, entry.PublicKey,
 		entry.Signature, entry.CollectionSig, entry.CollectionHash,
 		entry.PostCount, len(entry.Seeds), len(entry.Seeding),
 		entry.Updated, entry.Seen)
+
+	if err != nil {
+		return err
+	}
+
+	// if that is all ok, then we can register all the seeds in the seed table
+	// fun thing about this table, it can be used to populate both Seeds and
+	// Seeding :D
+	// Also need to make sure to not insert duplicates. SQL constraints should
+	// do that for me. Woop woop!
+
+	// first, register all the seeds for peers we are a seed for
+	for _, i := range entry.Seeding {
+		peer := Address{i}
+
+		// we are a seed for this peer
+		err := ndb.InsertSeed(peer, entry.Address)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	// then register all of the seeds for the current peer!
+	for _, i := range entry.Seeds {
+		peer := Address{i}
+
+		// the peer is a seed for us
+		err := ndb.InsertSeed(entry.Address, peer)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func (ndb *NetDB) InsertSeed(entry Address, seed Address) error {
+	// First we need to map the addresses, which are essentially a network-wide
+	// id, to an integer id which is local to our database.
+	entryIdRes := ndb.stmtQueryIdByAddress.QueryRow(entry.Raw)
+	seedIdRes := ndb.stmtQueryIdByAddress.QueryRow(seed.Raw)
+
+	entryId := -1
+	seedId := -1
+
+	err := entryIdRes.Scan(&entryId)
+	if err != nil {
+		return err
+	}
+
+	err = seedIdRes.Scan(&seedId)
+	if err != nil {
+		return err
+	}
+
+	// got the ids, so now insert them into the database!
+	_, err = ndb.stmtInsertSeed.Exec(seed, entry)
 
 	return err
 }
@@ -181,14 +259,21 @@ func (ndb *NetDB) Insert(entry Entry) error {
 
 // Returns the KeyValue if this node has the address, nil and err otherwise.
 func (ndb *NetDB) Query(addr Address) (*Entry, error) {
+	addressString, err := addr.String()
+
+	if err != nil {
+		return nil, err
+	}
+
 	ret := Entry{}
-	row := ndb.stmtQueryAddress.QueryRow(addr.Raw)
+	row := ndb.stmtQueryAddress.QueryRow(addressString)
 
 	id := 0
 	seedCount := 0
 	seedingCount := 0
+	address := ""
 
-	err := row.Scan(&id, &ret.Address, &ret.Name, &ret.Desc, &ret.PublicAddress,
+	err = row.Scan(&id, &address, &ret.Name, &ret.Desc, &ret.PublicAddress,
 		&ret.Port, &ret.PublicKey, &ret.Signature, &ret.CollectionSig, &ret.CollectionHash,
 		&ret.PostCount, &seedCount, &seedingCount, &ret.Updated, &ret.Seen)
 
@@ -196,8 +281,17 @@ func (ndb *NetDB) Query(addr Address) (*Entry, error) {
 		return nil, err
 	}
 
+	decoded, err := DecodeAddress(address)
+
+	if err != nil {
+		return nil, err
+	}
+
 	ret.Seeding = make([][]byte, seedingCount)
 	ret.Seeds = make([][]byte, seedCount)
+
+	ret.Address.Raw = make([]byte, len(decoded.Raw))
+	copy(ret.Address.Raw, decoded.Raw)
 
 	// resinsert into the table, this keeps popular things easy to access
 	// TODO: Store some sort of "lastQueried" in the database, then we have

@@ -340,6 +340,10 @@ func (cs *CommandServer) Resolve(cr CommandResolve) CommandResult {
 
 	entry, err := cs.LocalPeer.Resolve(address)
 
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
 	// forces the address to generate its encoded value, so this is then
 	// available in JSON.
 	entry.Address.String()
