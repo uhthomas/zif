@@ -24,6 +24,7 @@ type NetDB struct {
 	stmtQueryAddress     *sql.Stmt
 	stmtInsertSeed       *sql.Stmt
 	stmtQueryIdByAddress *sql.Stmt
+	stmtUpdateEntry      *sql.Stmt
 }
 
 func NewNetDB(addr Address, path string) (*NetDB, error) {
@@ -100,6 +101,11 @@ func NewNetDB(addr Address, path string) (*NetDB, error) {
 	}
 
 	ret.stmtQueryIdByAddress, err = ret.conn.Prepare(sqlQueryIdByAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtUpdateEntry, err = ret.conn.Prepare(sqlUpdateEntry)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +258,30 @@ func (ndb *NetDB) Insert(entry Entry) error {
 	}
 
 	ndb.insertIntoTable(entry.Address)
-	err = ndb.insertIntoDB(entry)
+
+	// first we attempt to update the entry. If this succeeds, don't bother with
+	// an insert :)
+
+	err = ndb.Update(entry)
+
+	if err != nil {
+		err = ndb.insertIntoDB(entry)
+	}
+
+	return err
+}
+
+func (ndb *NetDB) Update(entry Entry) error {
+	err := entry.Verify()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = ndb.stmtUpdateEntry.Exec(entry.Name, entry.Desc, entry.PublicAddress,
+		entry.Port, entry.PublicKey, entry.Signature, entry.CollectionSig,
+		entry.CollectionHash, entry.PostCount, len(entry.Seeds), len(entry.Seeding),
+		entry.Updated, entry.Seen)
 
 	return err
 }

@@ -29,7 +29,7 @@ const (
 			CREATE TABLE IF NOT EXISTS
 				entry(
 					id INTEGER PRIMARY KEY NOT NULL,
-					address STRING(40),
+					address STRING(40) UNIQUE,
 					name STRING(64) NOT NULL,
 					desc STRING(256),
 					publicAddress STRING(256) NOT NULL,
@@ -69,6 +69,24 @@ const (
 					desc,
 				)
 	`
+	sqlUpdateEntry = `
+			UPDATE entry SET 
+				name=?,
+				desc=?,
+				publicAddress=?,
+				port=?,
+				publicKey=?,
+				signature=?,
+				collectionSig=?,
+				collectionHash=?,
+				postCount=?,
+				seedCount=?,
+				seedingCount=?,
+				updated=?,
+				seen=?
+			WHERE address=?
+	`
+
 	sqlInsertEntry = `
 			INSERT OR IGNORE INTO entry (
 				address,
