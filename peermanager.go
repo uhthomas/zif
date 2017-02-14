@@ -1,6 +1,7 @@
 package zif
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -357,6 +358,10 @@ func (pm *PeerManager) Resolve(addr dht.Address) (*dht.Entry, error) {
 	}
 
 	kv, err := pm.localPeer.DHT.Query(addr)
+
+	if err == sql.ErrNoRows {
+		err = nil
+	}
 
 	if err != nil {
 		return nil, err

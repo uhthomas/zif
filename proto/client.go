@@ -254,29 +254,18 @@ func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
 		return nil, errors.New("Peer refused query address")
 	}
 
-	var kv dht.KeyValue
-	kvr, err := c.ReadMessage()
+	var entry dht.Entry
+	er, err := c.ReadMessage()
 
 	if err != nil {
 		return nil, err
 	}
 
-	kvr.Read(&kv)
-
-	if len(kvr.Content) > common.MaxMessageSize {
-		return nil, errors.New("Entry too large")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	if kvr.Header == ProtoNo {
+	if er.Header == ProtoNo {
 		return nil, errors.New("Peer returned no")
 	}
 
-	var entry dht.Entry
-	err = msgpack.Unmarshal(kv.Value(), &entry)
+	er.Read(&entry)
 
 	if err != nil {
 		return nil, err

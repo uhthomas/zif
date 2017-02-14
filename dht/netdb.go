@@ -308,7 +308,7 @@ func (ndb *NetDB) Update(entry Entry) error {
 	return err
 }
 
-// Returns the KeyValue if this node has the address, nil and err otherwise.
+// Returns the KeyValue if this node has the address, nil if not, and err otherwise
 func (ndb *NetDB) Query(addr Address) (*Entry, int, error) {
 	addressString, err := addr.String()
 

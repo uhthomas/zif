@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"database/sql"
 	"errors"
 	"time"
 
@@ -46,7 +47,9 @@ func exploreTick(in chan dht.Entry, ret chan dht.Entry, me dht.Address, connecto
 	log.WithField("peer", s).Info("Exploring")
 
 	if err := explorePeer(i.Address, me, ret, connector); err != nil {
-		log.Error(err.Error())
+		if err != sql.ErrNoRows {
+			log.Error(err.Error())
+		}
 	}
 
 	if len(in) == 0 {

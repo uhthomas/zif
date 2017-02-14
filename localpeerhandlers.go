@@ -55,10 +55,9 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 			return err
 		}
 
-		kv := dht.NewKeyValue(lp.Entry.Address, dat)
 		msg := &proto.Message{Header: proto.ProtoDhtQuery}
 
-		err = msg.Write(kv)
+		err = msg.Write(dat)
 
 		if err != nil {
 			return err
