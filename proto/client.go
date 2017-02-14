@@ -256,6 +256,11 @@ func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
 
 	var kv dht.KeyValue
 	kvr, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
 	kvr.Read(&kv)
 
 	if len(kvr.Content) > common.MaxMessageSize {
