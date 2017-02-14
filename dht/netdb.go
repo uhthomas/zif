@@ -187,10 +187,10 @@ func (ndb *NetDB) insertIntoDB(entry Entry) error {
 		entry.PostCount, len(entry.Seeds), len(entry.Seeding),
 		entry.Updated, entry.Seen)
 
-	if err != nil {
-		return err
-	}
+	return err
+}
 
+func (ndb *NetDB) insertEntrySeeds(entry Entry) error {
 	// if that is all ok, then we can register all the seeds in the seed table
 	// fun thing about this table, it can be used to populate both Seeds and
 	// Seeding :D
@@ -221,19 +221,26 @@ func (ndb *NetDB) insertIntoDB(entry Entry) error {
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (ndb *NetDB) InsertSeed(entry Address, seed Address) error {
 	// First we need to map the addresses, which are essentially a network-wide
 	// id, to an integer id which is local to our database.
-	entryIdRes := ndb.stmtQueryIdByAddress.QueryRow(entry.Raw)
-	seedIdRes := ndb.stmtQueryIdByAddress.QueryRow(seed.Raw)
+	entryAddressString, err := entry.String()
+	seedAddressString, err := seed.String()
+
+	if err != nil {
+		return err
+	}
+
+	entryIdRes := ndb.stmtQueryIdByAddress.QueryRow(entryAddressString)
+	seedIdRes := ndb.stmtQueryIdByAddress.QueryRow(seedAddressString)
 
 	entryId := -1
 	seedId := -1
 
-	err := entryIdRes.Scan(&entryId)
+	err = entryIdRes.Scan(&entryId)
 	if err != nil {
 		return err
 	}
@@ -244,7 +251,7 @@ func (ndb *NetDB) InsertSeed(entry Address, seed Address) error {
 	}
 
 	// got the ids, so now insert them into the database!
-	_, err = ndb.stmtInsertSeed.Exec(seed, entry)
+	_, err = ndb.stmtInsertSeed.Exec(seedId, entryId)
 
 	return err
 }
@@ -257,18 +264,16 @@ func (ndb *NetDB) Insert(entry Entry) error {
 		return err
 	}
 
+	log.WithField("peer", entry.Address.StringOr("")).Debug("Inserting into NetDB")
+
 	ndb.insertIntoTable(entry.Address)
 
-	// first we attempt to update the entry. If this succeeds, don't bother with
-	// an insert :)
+	// attempts to update, if this fails then the insert succeeds. Otherwise it
+	// is updated and the insert fails
+	ndb.Update(entry)
+	ndb.insertIntoDB(entry)
 
-	err = ndb.Update(entry)
-
-	if err != nil {
-		err = ndb.insertIntoDB(entry)
-	}
-
-	return err
+	return ndb.insertEntrySeeds(entry)
 }
 
 func (ndb *NetDB) Update(entry Entry) error {
@@ -281,7 +286,7 @@ func (ndb *NetDB) Update(entry Entry) error {
 	_, err = ndb.stmtUpdateEntry.Exec(entry.Name, entry.Desc, entry.PublicAddress,
 		entry.Port, entry.PublicKey, entry.Signature, entry.CollectionSig,
 		entry.CollectionHash, entry.PostCount, len(entry.Seeds), len(entry.Seeding),
-		entry.Updated, entry.Seen)
+		entry.Updated, entry.Seen, entry.Address.StringOr(""))
 
 	return err
 }

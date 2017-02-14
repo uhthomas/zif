@@ -205,40 +205,22 @@ func (c *Client) FindClosest(address dht.Address) ([]common.Verifier, error) {
 		return nil, errors.New(fmt.Sprintf("Too many entries returned: %d", length))
 	}
 
-	entries := make(dht.Pairs, 0, length)
+	entries := make([]common.Verifier, 0, length)
 
 	for i := 0; i < length; i++ {
-		kv := &dht.KeyValue{}
-		err = c.Decode(kv)
+		kv := dht.Entry{}
+		err = c.Decode(&kv)
 
 		if err != nil {
 			return nil, err
 		}
 
-		entries = append(entries, kv)
+		entries = append(entries, &kv)
 	}
 
 	log.WithField("entries", len(entries)).Info("Find closest complete")
 
-	result := make([]common.Verifier, 0, len(entries))
-
-	for _, i := range entries {
-		entry := &dht.Entry{}
-		err := i.Decode(&entry)
-
-		if err != nil {
-			return nil, err
-		}
-
-		valid := entry.Verify()
-		if valid != nil {
-			return nil, valid
-		}
-
-		result = append(result, entry)
-	}
-
-	return result, err
+	return entries, err
 }
 
 func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
@@ -319,16 +301,19 @@ func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 	for _, i := range peers {
 		e := i.(*dht.Entry)
 
+		if e.Address.Equals(&address) {
+			continue
+		}
+
 		if e == nil {
 			return errors.New("Nil entry")
 		}
 
 		err := e.Verify()
 
-		// If the entry fails a validity check, CANCEL this, as the peer may
-		// well be a bad peer.
 		if err != nil {
-			return errors.New("Bad peer, entry not valid")
+			log.WithField("address", e.Address.StringOr("")).Error("Bad peer, entry not valid: ", err.Error())
+			continue
 		}
 
 		d.Insert(*e)
@@ -473,11 +458,15 @@ func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*Message
 		return nil, err
 	}
 
+	log.Debug("Sent hash list request")
+
 	hl, err := c.ReadMessage()
 
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("Recieved response")
 
 	mhl := MessageCollection{}
 	err = hl.Read(&mhl)
@@ -485,6 +474,8 @@ func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*Message
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("Read hash list ok")
 
 	err = mhl.Verify(pk)
 

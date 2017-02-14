@@ -191,7 +191,14 @@ func (lp *LocalPeer) ReadKey() error {
 }
 
 func (lp *LocalPeer) SaveEntry() error {
+	lp.SignEntry()
 	dat, err := lp.Entry.EncodeString()
+
+	if err != nil {
+		return err
+	}
+
+	err = lp.DHT.Insert(*lp.Entry)
 
 	if err != nil {
 		return err
@@ -220,7 +227,7 @@ func (lp *LocalPeer) LoadEntry() error {
 
 func (lp *LocalPeer) Close() {
 	lp.CloseStreams()
-	lp.DHT.SaveTable("./data/dht/table.dat")
+	lp.DHT.SaveTable("./data/table.dat")
 	lp.Server.Close()
 	lp.Database.Close()
 }
@@ -523,13 +530,9 @@ func (lp *LocalPeer) AddSeeding(entry dht.Entry) error {
 	lp.Entry.Seeding = append(lp.Entry.Seeding, entry.Address.Raw)
 	entry.Seeds = append(entry.Seeds, lp.Address().Raw)
 
-	err := lp.AddEntry(entry)
-
-	if err != nil {
-		return err
-	}
-
 	lp.SignEntry()
+
+	err := lp.AddEntry(entry)
 
 	if err != nil {
 		return err

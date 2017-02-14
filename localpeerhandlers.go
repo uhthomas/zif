@@ -134,16 +134,17 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 			return err
 		}
 
-		kv := dht.NewKeyValue(lp.Entry.Address, dat)
-
-		err = cl.WriteMessage(kv)
+		err = cl.WriteMessage(dat)
 
 	} else {
+		log.WithField("peer", address.StringOr("")).Debug("FindClosest for")
 		pairs, err := lp.DHT.FindClosest(address)
 
 		if err != nil {
 			return err
 		}
+
+		log.WithField("count", len(pairs)).Debug("Found entries")
 
 		results.Write(len(pairs))
 
@@ -152,6 +153,8 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 		if err != nil {
 			return err
 		}
+
+		log.Debug("Wrote length to peer")
 
 		for _, kv := range pairs {
 			err = cl.WriteMessage(kv)
@@ -299,11 +302,18 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 
 	entry, err := lp.DHT.Query(address)
 
-	if err != nil && err != sql.ErrNoRows {
+	// could be the local peer
+	// if it is not, that is dealt with below :)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
+
+	if err != nil {
 		return err
 	}
 
 	if address.Equals(lp.Address()) {
+		log.Info("Collection request for local peer")
 		sig = lp.Entry.CollectionSig
 		hash = lp.Collection.Hash()
 		hashList = lp.Collection.HashList

@@ -409,6 +409,8 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 		}
 	}
 
+	p.addEntry(*entry)
+
 	log.WithField("peer", entry.Address.StringOr("")).Info("Mirroring")
 
 	if err != nil {
