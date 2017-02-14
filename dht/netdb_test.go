@@ -22,10 +22,18 @@ const (
 
 var src = rand.NewSource(time.Now().UnixNano())
 
-func fatalErr(err error, t *testing.T) {
+func fatalErr(err error, t testing.TB) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+}
+
+func makeTesting() {
+	os.Mkdir(".testing", 0777)
+}
+
+func removeTesting() {
+	os.RemoveAll(".testing")
 }
 
 func randString(n int) string {
@@ -46,7 +54,7 @@ func randString(n int) string {
 	return string(b)
 }
 
-func randomAddress(t *testing.T) *dht.Address {
+func randomAddress(t testing.TB) *dht.Address {
 	addr, err := dht.RandomAddress()
 
 	if err != nil {
@@ -56,7 +64,7 @@ func randomAddress(t *testing.T) *dht.Address {
 	return addr
 }
 
-func dbWithRandomAddress(t *testing.T) *dht.NetDB {
+func dbWithRandomAddress(t testing.TB) *dht.NetDB {
 	// pretty much just tests that the SQL gets prepared properly
 	addr := randomAddress(t)
 
@@ -69,7 +77,7 @@ func dbWithRandomAddress(t *testing.T) *dht.NetDB {
 	return db
 }
 
-func randomEntry(t *testing.T) dht.Entry {
+func randomEntry(t testing.TB) dht.Entry {
 	name := randString(util.RandInt(5, 25))
 	desc := randString(util.RandInt(5, 144))
 
@@ -100,10 +108,10 @@ func randomEntry(t *testing.T) dht.Entry {
 }
 
 func TestMain(m *testing.M) {
-	os.Mkdir(".testing", 0777)
 
+	makeTesting()
 	ret := m.Run()
-	os.RemoveAll(".testing")
+	removeTesting()
 	os.Exit(ret)
 }
 
@@ -171,4 +179,37 @@ func TestInsertSeed(t *testing.T) {
 	if !seeding[0].Equals(&entry.Address) {
 		t.Fatal("Seeding address not correct")
 	}
+}
+
+func BenchmarkInsert(b *testing.B) {
+	makeTesting()
+	db := dbWithRandomAddress(b)
+
+	for n := 0; n < b.N; n++ {
+		b.StopTimer()
+		entry := randomEntry(b)
+		b.StartTimer()
+
+		db.Insert(entry)
+	}
+
+	removeTesting()
+}
+
+func BenchmarkQuery(b *testing.B) {
+	makeTesting()
+	db := dbWithRandomAddress(b)
+
+	for n := 0; n < b.N; n++ {
+		// don't time the actual inserting!
+		// this is not what we are measuring in this case
+		b.StopTimer()
+		entry := randomEntry(b)
+		db.Insert(entry)
+		b.StartTimer()
+
+		db.Query(entry.Address)
+	}
+
+	removeTesting()
 }
