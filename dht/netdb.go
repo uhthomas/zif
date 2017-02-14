@@ -25,6 +25,8 @@ type NetDB struct {
 	stmtInsertSeed       *sql.Stmt
 	stmtQueryIdByAddress *sql.Stmt
 	stmtUpdateEntry      *sql.Stmt
+	stmtQuerySeeds       *sql.Stmt
+	stmtQuerySeeding     *sql.Stmt
 }
 
 func NewNetDB(addr Address, path string) (*NetDB, error) {
@@ -106,6 +108,16 @@ func NewNetDB(addr Address, path string) (*NetDB, error) {
 	}
 
 	ret.stmtUpdateEntry, err = ret.conn.Prepare(sqlUpdateEntry)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtQuerySeeds, err = ret.conn.Prepare(sqlQuerySeeds)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtQuerySeeding, err = ret.conn.Prepare(sqlQuerySeeding)
 	if err != nil {
 		return nil, err
 	}
@@ -321,11 +333,67 @@ func (ndb *NetDB) Query(addr Address) (*Entry, error) {
 		return nil, err
 	}
 
-	ret.Seeding = make([][]byte, seedingCount)
-	ret.Seeds = make([][]byte, seedCount)
+	ret.Seeding = make([][]byte, 0, seedingCount)
+	ret.Seeds = make([][]byte, 0, seedCount)
 
 	ret.Address.Raw = make([]byte, len(decoded.Raw))
 	copy(ret.Address.Raw, decoded.Raw)
+
+	// now that all the slices for seeds/seeding are there, we need to popular them
+	// we also already have the id, which is nice
+	if seedCount > 0 {
+		log.Debug("Querying seeds from netdb")
+		seeds, err := ndb.stmtQuerySeeds.Query(id)
+
+		if err != nil {
+			return nil, err
+		}
+
+		// we should now have all the addresses we need, loop through, decode,
+		// and stick them into the seeder list! Still unsure if they should be
+		// stored in sqlite encoded, it does make debugging easier however.
+		address := ""
+		for seeds.Next() {
+			err = seeds.Scan(&address)
+
+			if err != nil {
+				return nil, err
+			}
+
+			// decode the address
+			addr, err := DecodeAddress(address)
+			if err != nil {
+				return nil, err
+			}
+
+			ret.Seeds = append(ret.Seeds, addr.Raw)
+		}
+	}
+
+	// same as above but for seeding
+	if seedingCount > 0 {
+		seeding, err := ndb.stmtQuerySeeding.Query(id)
+
+		if err != nil {
+			return nil, err
+		}
+
+		address := ""
+		for seeding.Next() {
+			err = seeding.Scan(&address)
+
+			if err != nil {
+				return nil, err
+			}
+
+			// decode the address
+			addr, err := DecodeAddress(address)
+			if err != nil {
+				return nil, err
+			}
+			ret.Seeding = append(ret.Seeding, addr.Raw)
+		}
+	}
 
 	// resinsert into the table, this keeps popular things easy to access
 	// TODO: Store some sort of "lastQueried" in the database, then we have

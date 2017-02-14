@@ -15,6 +15,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// these two are inserted by the makefile at build time
+var (
+	Version   = "N/A"
+	BuildTime = "N/A"
+)
+
 func SetupLocalPeer(addr string) *zif.LocalPeer {
 	var lp zif.LocalPeer
 
@@ -46,6 +52,11 @@ func main() {
 
 	lp := SetupLocalPeer(fmt.Sprintf("%s:%v", addr))
 	lp.LoadEntry()
+
+	log.WithFields(log.Fields{
+		"version": Version,
+		"built":   BuildTime,
+	}).Info("Starting zifd")
 
 	if viper.GetBool("tor.enabled") {
 		_, onion, err := zif.SetupZifTorService(port, viper.GetInt("tor.control"),

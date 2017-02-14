@@ -137,4 +137,21 @@ const (
 	sqlQueryIdByAddress = `
 		SELECT id FROM entry WHERE address=?
 	`
+
+	// Get all the seeders for a given address
+	sqlQuerySeeds = `
+		SELECT entry.address FROM entry
+			JOIN seed
+				ON entry.id = seed.seed
+			WHERE seed.for = ?
+	`
+
+	// pretty much the opposite of the above, get a list of addresses that the
+	// peer is seeding
+	sqlQuerySeeding = `
+		SELECT entry.address FROM entry
+			JOIN seed
+				ON entry.id = seed.for
+			WHERE seed.seed = ?
+	`
 )

@@ -85,13 +85,12 @@ func (e Entry) String() (string, error) {
 	str += e.Address.StringOr("")
 	str += string(e.PostCount)
 
-	am a pleb
-	for sig verify to work, need to make DHT queries stick in the actual seed as 
-	well.
-	otherwise it be borked
 	for _, i := range e.Seeding {
 		str += string(i)
 	}
+
+	// note that we do not, in fact, sign who the seeds are. This allows others
+	// to build the swarm while this peer is not online.
 
 	return str, nil
 }
