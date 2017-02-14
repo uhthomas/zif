@@ -154,4 +154,8 @@ const (
 				ON entry.id = seed.for
 			WHERE seed.seed = ?
 	`
+
+	sqlEntryLen = `
+		SELECT MAX(id) FROM entry
+	`
 )

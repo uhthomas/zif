@@ -340,7 +340,12 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 		return errors.New("Cannot return collection hash list")
 	}
 
-	mhl := proto.MessageCollection{hash, hashList, len(hashList) / 32, sig}
+	mhl := proto.MessageCollection{
+		Hash:      hash,
+		HashList:  hashList,
+		Size:      len(hashList) / 32,
+		Signature: sig,
+	}
 
 	resp := &proto.Message{
 		Header: proto.ProtoHashList,

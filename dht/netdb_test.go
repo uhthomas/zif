@@ -1,145 +1,174 @@
 package dht_test
 
 import (
-	"bytes"
-	"fmt"
-	"io/ioutil"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/zif/zif/libzif/dht"
-	"github.com/zif/zif/libzif/util"
+	"github.com/zif/zif/dht"
+	"github.com/zif/zif/util"
+	"golang.org/x/crypto/ed25519"
 )
 
-// would be so cool if you had that public key for real :O
-var addr = dht.NewAddress([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-	27, 28, 29, 30, 31, 32})
+// this is helpful for testing
+// thanks to: http://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+)
 
-var addr2 = dht.NewAddress([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-	27, 28, 29, 30, 31, 33})
+var src = rand.NewSource(time.Now().UnixNano())
 
-func insert(t *testing.T, db *dht.NetDB, a dht.Address, el int) {
-	err := db.Insert(dht.NewKeyValue(a, a.Raw))
+func fatalErr(err error, t *testing.T) {
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func randString(n int) string {
+	b := make([]byte, n)
+	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
+	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = src.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+
+	return string(b)
+}
+
+func randomAddress(t *testing.T) *dht.Address {
+	addr, err := dht.RandomAddress()
 
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
-	if db.TableLen() != el {
-		t.Errorf("TableLen not correct: %d, expected: %d", db.TableLen(), el)
-	}
+	return addr
 }
 
-func newDB() (*dht.NetDB, func()) {
-	dir, _ := ioutil.TempDir("", "zif")
+func dbWithRandomAddress(t *testing.T) *dht.NetDB {
+	// pretty much just tests that the SQL gets prepared properly
+	addr := randomAddress(t)
 
-	db := dht.NewNetDB(addr, dir)
-
-	return db, func() { os.RemoveAll(dir) }
-}
-
-func TestNetDBInsert(t *testing.T) {
-	db, cl := newDB()
-	defer cl()
-
-	fmt.Println(addr.Xor(&addr2).LeadingZeroes())
-
-	// two inserts should result in just one
-	insert(t, db, addr, 1)
-	insert(t, db, addr, 1)
-
-	insert(t, db, addr2, 2)
-}
-
-func BenchmarkNetDBInsert(b *testing.B) {
-	db, cl := newDB()
-	defer cl()
-
-	for i := 0; i < b.N; i++ {
-		data, _ := util.CryptoRandBytes(20)
-		db.Insert(dht.NewKeyValue(dht.Address{data}, data))
-	}
-}
-
-func TestNetDBQuery(t *testing.T) {
-	db, cl := newDB()
-	defer cl()
-
-	insert(t, db, addr, 1)
-	insert(t, db, addr2, 2)
-
-	kv, err := db.Query(addr)
+	db, err := dht.NewNetDB(*addr, ".testing/"+addr.StringOr(""))
 
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
-	if !kv.Key.Equals(&addr) || !bytes.Equal(kv.Value, addr.Raw) {
-		t.Error("Query returned invalid data")
-	}
-
-	dat, _ := util.CryptoRandBytes(20)
-	randAddr := dht.Address{dat}
-
-	kv, err = db.Query(randAddr)
-
-	if err == nil {
-		t.Error("Random query did not error as expected")
-	}
+	return db
 }
 
-func BenchmarkNetDBQuery(b *testing.B) {
-	db, cl := newDB()
-	defer cl()
+func randomEntry(t *testing.T) dht.Entry {
+	name := randString(util.RandInt(5, 25))
+	desc := randString(util.RandInt(5, 144))
 
-	db.Insert(dht.NewKeyValue(addr, addr.Raw))
+	pub, priv, err := ed25519.GenerateKey(nil)
+	addr := dht.Address{}
+	addr.Generate(pub)
 
-	for i := 0; i < b.N; i++ {
-		db.Query(addr)
+	entry := dht.Entry{
+		Name:          name,
+		Desc:          desc,
+		Address:       addr,
+		PublicKey:     pub,
+		PublicAddress: "localhost",
+		Port:          5050,
 	}
-}
 
-func TestNetDBFindClosest(t *testing.T) {
-	db, cl := newDB()
-	defer cl()
-
-	insert(t, db, addr, 1)
-	insert(t, db, addr2, 2)
-
-	pairs, err := db.FindClosest(addr)
+	dat, err := entry.Bytes()
 
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err)
 	}
 
-	if len(pairs) != 1 {
-		t.Error(fmt.Sprintf("Incorrect length returned: %d", len(pairs)))
+	sig := ed25519.Sign(priv, dat)
+
+	entry.Signature = sig
+
+	return entry
+}
+
+func TestMain(m *testing.M) {
+	os.Mkdir(".testing", 0777)
+
+	ret := m.Run()
+
+	os.Exit(ret)
+}
+
+func TestNewNetDB(t *testing.T) {
+	dbWithRandomAddress(t)
+}
+
+// Tests Insert, and by extension len and tablelen
+func TestNetDBInsertAndLen(t *testing.T) {
+	db := dbWithRandomAddress(t)
+
+	entry := randomEntry(t)
+
+	err := db.Insert(entry)
+
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if !pairs[0].Key.Equals(&addr2) {
-		t.Error("Incorrect address returned")
+	length, err := db.Len()
+	if err != nil {
+		t.Fatal(err.Error())
+	} else if length != 1 {
+		t.Fatal("Database insert failed")
+	}
+
+	length = db.TableLen()
+
+	if length != 1 {
+		t.Fatal("Database insert failed")
 	}
 }
 
-func BenchmarkNetDBFindClosest(b *testing.B) {
-	db, cl := newDB()
-	defer cl()
+func TestInsertSeed(t *testing.T) {
+	db := dbWithRandomAddress(t)
+	entry := randomEntry(t)
+	seed := randomEntry(t)
 
-	for i := 0; i < dht.BucketSize*160; i++ {
-		dat, _ := util.CryptoRandBytes(20)
-		addr := dht.Address{dat}
+	// insert the entries first
+	fatalErr(db.Insert(entry), t)
+	fatalErr(db.Insert(seed), t)
 
-		db.Insert(dht.NewKeyValue(addr, addr.Raw))
+	// then register some seeds :)
+	fatalErr(db.InsertSeed(entry.Address, seed.Address), t)
+	t.Log("Inserted seeds")
+
+	seeds, err := db.QuerySeeds(entry.Address)
+	fatalErr(err, t)
+
+	seeding, err := db.QuerySeeding(seed.Address)
+	fatalErr(err, t)
+
+	if len(seeds) != 1 {
+		t.Fatalf("Seeds not registered properly, length: %d", len(seeds))
 	}
 
-	b.ResetTimer()
+	if len(seeding) != 1 {
+		t.Fatal("Seeding not registered properly")
+	}
 
-	for i := 0; i < b.N; i++ {
-		dat, _ := util.CryptoRandBytes(20)
-		addr := dht.Address{dat}
+	if !seeds[0].Equals(&seed.Address) {
+		t.Fatal("Seed address not correct")
+	}
 
-		db.FindClosest(addr)
+	if !seeding[0].Equals(&entry.Address) {
+		t.Fatal("Seeding address not correct")
 	}
 }

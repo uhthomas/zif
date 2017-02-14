@@ -34,7 +34,7 @@ type Client struct {
 func NewClient(conn net.Conn) (*Client, error) {
 	c := &Client{conn: conn}
 
-	c.limiter = &io.LimitedReader{c.conn, common.MaxMessageSize}
+	c.limiter = &io.LimitedReader{R: c.conn, N: common.MaxMessageSize}
 	c.decoder = msgpack.NewDecoder(c.limiter)
 	c.encoder = msgpack.NewEncoder(c.conn)
 
@@ -85,7 +85,7 @@ func (c *Client) ReadMessage() (*Message, error) {
 	var msg Message
 
 	if c.limiter == nil {
-		c.limiter = &io.LimitedReader{c.conn, common.MaxMessageSize}
+		c.limiter = &io.LimitedReader{R: c.conn, N: common.MaxMessageSize}
 	}
 
 	if c.decoder == nil {

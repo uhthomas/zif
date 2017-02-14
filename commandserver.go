@@ -308,7 +308,18 @@ func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 func (cs *CommandServer) AddPost(ap CommandAddPost) CommandResult {
 	log.Info("Command: Add Post request")
 
-	post := data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags, ap.Meta}
+	post := data.Post{
+		Id:         ap.Id,
+		InfoHash:   ap.InfoHash,
+		Title:      ap.Title,
+		Size:       ap.Size,
+		FileCount:  ap.FileCount,
+		Seeders:    ap.Seeders,
+		Leechers:   ap.Leechers,
+		UploadDate: ap.UploadDate,
+		Tags:       ap.Tags,
+		Meta:       ap.Meta,
+	}
 
 	id, err := cs.LocalPeer.AddPost(post, false)
 

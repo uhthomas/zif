@@ -122,6 +122,11 @@ func NewNetDB(addr Address, path string) (*NetDB, error) {
 		return nil, err
 	}
 
+	ret.stmtEntryLen, err = ret.conn.Prepare(sqlEntryLen)
+	if err != nil {
+		return nil, err
+	}
+
 	return ret, nil
 }
 
@@ -304,11 +309,11 @@ func (ndb *NetDB) Update(entry Entry) error {
 }
 
 // Returns the KeyValue if this node has the address, nil and err otherwise.
-func (ndb *NetDB) Query(addr Address) (*Entry, error) {
+func (ndb *NetDB) Query(addr Address) (*Entry, int, error) {
 	addressString, err := addr.String()
 
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	ret := Entry{}
@@ -324,13 +329,13 @@ func (ndb *NetDB) Query(addr Address) (*Entry, error) {
 		&ret.PostCount, &seedCount, &seedingCount, &ret.Updated, &ret.Seen)
 
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	decoded, err := DecodeAddress(address)
 
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	ret.Seeding = make([][]byte, 0, seedingCount)
@@ -341,73 +346,112 @@ func (ndb *NetDB) Query(addr Address) (*Entry, error) {
 
 	// now that all the slices for seeds/seeding are there, we need to popular them
 	// we also already have the id, which is nice
-	if seedCount > 0 {
-		log.Debug("Querying seeds from netdb")
-		seeds, err := ndb.stmtQuerySeeds.Query(id)
-
-		if err != nil {
-			return nil, err
-		}
-
-		// we should now have all the addresses we need, loop through, decode,
-		// and stick them into the seeder list! Still unsure if they should be
-		// stored in sqlite encoded, it does make debugging easier however.
-		address := ""
-		for seeds.Next() {
-			err = seeds.Scan(&address)
-
-			if err != nil {
-				return nil, err
-			}
-
-			// decode the address
-			addr, err := DecodeAddress(address)
-			if err != nil {
-				return nil, err
-			}
-
-			ret.Seeds = append(ret.Seeds, addr.Raw)
-		}
-	}
-
-	// same as above but for seeding
-	if seedingCount > 0 {
-		seeding, err := ndb.stmtQuerySeeding.Query(id)
-
-		if err != nil {
-			return nil, err
-		}
-
-		address := ""
-		for seeding.Next() {
-			err = seeding.Scan(&address)
-
-			if err != nil {
-				return nil, err
-			}
-
-			// decode the address
-			addr, err := DecodeAddress(address)
-			if err != nil {
-				return nil, err
-			}
-			ret.Seeding = append(ret.Seeding, addr.Raw)
-		}
-	}
 
 	// resinsert into the table, this keeps popular things easy to access
 	// TODO: Store some sort of "lastQueried" in the database, then we have
 	// even more data on how popular something is.
 	// TODO: Make sure I'm not storing too much in the database :P
 	ndb.insertIntoTable(ret.Address)
-	return &ret, nil
+	return &ret, id, nil
+}
+
+// fetch the seeds for an entry, given the entry and its id
+func (ndb *NetDB) querySeeds(id int) ([]Address, error) {
+	ret := make([]Address, 0)
+
+	log.Debug("Querying seeds from netdb")
+	seeds, err := ndb.stmtQuerySeeds.Query(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// we should now have all the addresses we need, loop through, decode,
+	// and stick them into the seeder list! Still unsure if they should be
+	// stored in sqlite encoded, it does make debugging easier however.
+	address := ""
+	for seeds.Next() {
+		err = seeds.Scan(&address)
+
+		if err != nil {
+			return nil, err
+		}
+
+		// decode the address
+		addr, err := DecodeAddress(address)
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, addr)
+	}
+
+	return ret, nil
+}
+
+// fetch what an entry is seeding
+func (ndb *NetDB) querySeeding(id int) ([]Address, error) {
+	ret := make([]Address, 0)
+
+	log.Debug("Querying seeds from netdb")
+	seeds, err := ndb.stmtQuerySeeding.Query(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	address := ""
+	for seeds.Next() {
+		err = seeds.Scan(&address)
+
+		if err != nil {
+			return nil, err
+		}
+
+		// decode the address
+		addr, err := DecodeAddress(address)
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, addr)
+	}
+
+	return ret, nil
+}
+
+// Fetch the seeds for an entry, given its address
+func (ndb *NetDB) QuerySeeds(addr Address) ([]Address, error) {
+	// get the entry and ID
+	_, id, err := ndb.Query(addr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	addresses, err := ndb.querySeeds(id)
+
+	return addresses, err
+
+}
+
+func (ndb *NetDB) QuerySeeding(addr Address) ([]Address, error) {
+	// get the entry and ID
+	_, id, err := ndb.Query(addr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ndb.querySeeding(id)
+
 }
 
 func (ndb *NetDB) queryAddresses(as []Address) Entries {
 	ret := make(Entries, 0, len(as))
 
 	for _, i := range as {
-		kv, err := ndb.Query(i)
+		kv, _, err := ndb.Query(i)
 
 		if err != nil {
 			continue
@@ -444,7 +488,7 @@ func (ndb *NetDB) FindClosest(addr Address) (Entries, error) {
 					break
 				}
 
-				kv, err := ndb.Query(i)
+				kv, _, err := ndb.Query(i)
 
 				if err != nil {
 					continue
@@ -462,7 +506,7 @@ func (ndb *NetDB) FindClosest(addr Address) (Entries, error) {
 					break
 				}
 
-				kv, err := ndb.Query(i)
+				kv, _, err := ndb.Query(i)
 
 				if err != nil {
 					continue

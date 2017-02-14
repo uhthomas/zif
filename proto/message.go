@@ -51,7 +51,7 @@ func (m *Message) Read(iface interface{}) error {
 
 	reader := bytes.NewReader(m.Content)
 	decompressor, err := gzip.NewReader(reader)
-	limiter := &io.LimitedReader{decompressor, common.MaxMessageContentSize}
+	limiter := &io.LimitedReader{R: decompressor, N: common.MaxMessageContentSize}
 
 	if err != nil {
 		return err

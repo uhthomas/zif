@@ -29,16 +29,16 @@ func (er *ErrorReader) ReadString(delim byte) string {
 	return ret[0 : len(ret)-1]
 }
 
-func (er *ErrorReader) ReadByte() byte {
+func (er *ErrorReader) ReadByte() (byte, error) {
 	var ret byte
 
 	ret, er.Err = er.reader.ReadByte()
 
 	if er.Err != nil {
-		return 0
+		return 0, er.Err
 	}
 
-	return ret
+	return ret, nil
 }
 
 type AddressResolutionError struct {

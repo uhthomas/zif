@@ -28,7 +28,9 @@ func (dht *DHT) Insert(entry Entry) error {
 }
 
 func (dht *DHT) Query(addr Address) (*Entry, error) {
-	return dht.db.Query(addr)
+	entry, _, err := dht.db.Query(addr)
+
+	return entry, err
 }
 
 func (dht *DHT) FindClosest(addr Address) (Entries, error) {

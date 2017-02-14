@@ -117,7 +117,7 @@ func (pm *PeerManager) ConnectPeer(addr dht.Address) (*Peer, *dht.Entry, error) 
 	}
 
 	if entry == nil {
-		return nil, nil, data.AddressResolutionError{entry.Address.StringOr("")}
+		return nil, nil, data.AddressResolutionError{Address: entry.Address.StringOr("")}
 	}
 
 	if peer = pm.GetPeer(entry.Address); peer != nil {

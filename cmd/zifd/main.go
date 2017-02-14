@@ -50,7 +50,7 @@ func main() {
 
 	port, _ := strconv.Atoi(strings.Split(addr, ":")[1])
 
-	lp := SetupLocalPeer(fmt.Sprintf("%s:%v", addr))
+	lp := SetupLocalPeer(fmt.Sprintf("%s", addr))
 	lp.LoadEntry()
 
 	log.WithFields(log.Fields{

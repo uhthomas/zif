@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -38,6 +39,11 @@ func CryptoRandInt(min, max int64) int64 {
 	}
 
 	return num.Int64() + min
+}
+
+func RandInt(min, max int) int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(max-min) + min
 }
 
 func ReadPost(r io.Reader, delim byte) {
