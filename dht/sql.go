@@ -158,4 +158,8 @@ const (
 	sqlEntryLen = `
 		SELECT MAX(id) FROM entry
 	`
+
+	sqlQueryLatest = `
+		SELECT * FROM entry ORDER BY id DESC LIMIT 20
+	`
 )

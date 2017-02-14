@@ -27,6 +27,7 @@ type NetDB struct {
 	stmtUpdateEntry      *sql.Stmt
 	stmtQuerySeeds       *sql.Stmt
 	stmtQuerySeeding     *sql.Stmt
+	stmtQueryLatest      *sql.Stmt
 }
 
 func NewNetDB(addr Address, path string) (*NetDB, error) {
@@ -123,6 +124,11 @@ func NewNetDB(addr Address, path string) (*NetDB, error) {
 	}
 
 	ret.stmtEntryLen, err = ret.conn.Prepare(sqlEntryLen)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtQueryLatest, err = ret.conn.Prepare(sqlQueryLatest)
 	if err != nil {
 		return nil, err
 	}
@@ -516,6 +522,41 @@ func (ndb *NetDB) FindClosest(addr Address) (Entries, error) {
 			}
 		}
 
+	}
+
+	return ret, nil
+}
+
+func (ndb *NetDB) QueryLatest() ([]Entry, error) {
+	ret := make([]Entry, 0, 20)
+	entries, err := ndb.stmtQuerySeeds.Query()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for entries.Next() {
+		e := Entry{}
+		row, err := ndb.stmtQueryLatest.Query()
+
+		if err != nil {
+			return nil, err
+		}
+
+		id := 0
+		seedCount := 0
+		seedingCount := 0
+		address := ""
+
+		err = row.Scan(&id, &address, &e.Name, &e.Desc, &e.PublicAddress,
+			&e.Port, &e.PublicKey, &e.Signature, &e.CollectionSig, &e.CollectionHash,
+			&e.PostCount, &seedCount, &seedingCount, &e.Updated, &e.Seen)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, e)
 	}
 
 	return ret, nil

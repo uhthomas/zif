@@ -1,9 +1,15 @@
 package dht
 
+import (
+	"database/sql"
+	log "github.com/sirupsen/logrus"
+)
+
 type DHT struct {
 	db *NetDB
 }
 
+// sets up the dht
 func NewDHT(addr Address, path string) *DHT {
 	ret := &DHT{}
 
@@ -14,6 +20,18 @@ func NewDHT(addr Address, path string) *DHT {
 	}
 
 	ret.db = db
+
+	log.Debug("Inserting entries")
+	// insert a load of new entries, keep it fresh!
+	entries, err := db.QueryLatest()
+
+	if err == sql.ErrNoRows {
+		return ret
+	}
+
+	for _, i := range entries {
+		db.Insert(i)
+	}
 
 	return ret
 }
