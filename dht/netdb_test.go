@@ -103,7 +103,7 @@ func TestMain(m *testing.M) {
 	os.Mkdir(".testing", 0777)
 
 	ret := m.Run()
-
+	os.RemoveAll(".testing")
 	os.Exit(ret)
 }
 
