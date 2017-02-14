@@ -48,16 +48,9 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	if address.Equals(lp.Address()) {
 		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
 
-		var dat []byte
-		dat, err = lp.Entry.Encode()
-
-		if err != nil {
-			return err
-		}
-
 		msg := &proto.Message{Header: proto.ProtoDhtQuery}
 
-		err = msg.Write(dat)
+		err = msg.Write(lp.Entry)
 
 		if err != nil {
 			return err

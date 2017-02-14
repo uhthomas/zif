@@ -242,6 +242,7 @@ func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Debug("Written address")
 
 	// Make sure the peer accepts the address
 	recv, err := c.ReadMessage()
@@ -254,6 +255,8 @@ func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
 		return nil, errors.New("Peer refused query address")
 	}
 
+	log.Debug("Peer accepted address")
+
 	var entry dht.Entry
 	er, err := c.ReadMessage()
 
@@ -264,18 +267,23 @@ func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
 	if er.Header == ProtoNo {
 		return nil, errors.New("Peer returned no")
 	}
+	log.Debug("Recieved entry")
 
-	er.Read(&entry)
+	err = er.Read(&entry)
 
 	if err != nil {
 		return nil, err
 	}
+
+	log.WithField("peer", entry.Address.StringOr("")).Debug("Decoded entry")
 
 	err = entry.Verify()
 
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("Verified entry")
 
 	return &entry, nil
 }
