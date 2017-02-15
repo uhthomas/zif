@@ -24,6 +24,7 @@ const AnnounceFrequency = time.Minute * 30
 var (
 	PeerUnreachable  = errors.New("Peer could not be reached")
 	PeerDisconnected = errors.New("Peer has disconnected")
+	RecursionLimit   = errors.New("Recursion limit reached, peer cannot be resolved")
 )
 
 // handles peer connections
@@ -378,11 +379,16 @@ func (pm *PeerManager) Resolve(addr dht.Address) (*dht.Entry, error) {
 		return nil, err
 	}
 
+	depth := 6
 	for _, i := range closest {
 		// TODO: Goroutine this.
-		entry, err := pm.resolveStep(i, addr)
+		entry, err := pm.resolveStep(i, addr, &depth)
 
 		if err != nil {
+			if err == RecursionLimit {
+				return nil, err
+			}
+
 			log.Error(err.Error())
 			continue
 		}
@@ -402,10 +408,15 @@ func (pm *PeerManager) Resolve(addr dht.Address) (*dht.Entry, error) {
 }
 
 // Will return the entry itself, or an error.
-func (pm *PeerManager) resolveStep(e *dht.Entry, addr dht.Address) (*dht.Entry, error) {
+func (pm *PeerManager) resolveStep(e *dht.Entry, addr dht.Address, depth *int) (*dht.Entry, error) {
 	// connect to the peer
 	var peer *Peer
 	var err error
+
+	if *depth == 0 {
+		return nil, RecursionLimit
+	}
+	*depth -= 1
 
 	log.WithField("peer", e.Address.StringOr("")).Info("Querying for resolve")
 
@@ -439,7 +450,7 @@ func (pm *PeerManager) resolveStep(e *dht.Entry, addr dht.Address) (*dht.Entry, 
 	for _, i := range closest {
 		entry := i.(*dht.Entry)
 
-		result, err := pm.resolveStep(entry, addr)
+		result, err := pm.resolveStep(entry, addr, depth)
 
 		if err != nil {
 			return nil, err

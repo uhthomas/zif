@@ -197,7 +197,7 @@ func (ndb *NetDB) insertIntoTable(addr Address) {
 	ndb.SaveTable("./data/table.dat")
 }
 
-// Returns the number of rows affected. One if all goes well :)
+// Returns updated, inserted. One should be zero.
 func (ndb *NetDB) insertIntoDB(entry Entry) (int64, error) {
 
 	addressString, err := entry.Address.String()
