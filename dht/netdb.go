@@ -334,6 +334,10 @@ func (ndb *NetDB) Query(addr Address) (*Entry, int, error) {
 		&ret.Port, &ret.PublicKey, &ret.Signature, &ret.CollectionSig, &ret.CollectionHash,
 		&ret.PostCount, &seedCount, &seedingCount, &ret.Updated, &ret.Seen)
 
+	if err == sql.ErrNoRows {
+		return nil, -1, nil
+	}
+
 	if err != nil {
 		return nil, -1, err
 	}
