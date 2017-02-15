@@ -550,7 +550,7 @@ func (ndb *NetDB) FindClosest(addr Address) (Entries, error) {
 
 func (ndb *NetDB) QueryLatest() ([]Entry, error) {
 	ret := make([]Entry, 0, 20)
-	entries, err := ndb.stmtQuerySeeds.Query()
+	entries, err := ndb.stmtQueryLatest.Query()
 
 	if err != nil {
 		return nil, err
@@ -558,18 +558,13 @@ func (ndb *NetDB) QueryLatest() ([]Entry, error) {
 
 	for entries.Next() {
 		e := Entry{}
-		row, err := ndb.stmtQueryLatest.Query()
-
-		if err != nil {
-			return nil, err
-		}
 
 		id := 0
 		seedCount := 0
 		seedingCount := 0
 		address := ""
 
-		err = row.Scan(&id, &address, &e.Name, &e.Desc, &e.PublicAddress,
+		err = entries.Scan(&id, &address, &e.Name, &e.Desc, &e.PublicAddress,
 			&e.Port, &e.PublicKey, &e.Signature, &e.CollectionSig, &e.CollectionHash,
 			&e.PostCount, &seedCount, &seedingCount, &e.Updated, &e.Seen)
 

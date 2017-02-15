@@ -21,7 +21,7 @@ func NewDHT(addr Address, path string) *DHT {
 
 	ret.db = db
 
-	log.Debug("Inserting entries")
+	log.Debug("Loading latest into DHT")
 	// insert a load of new entries, keep it fresh!
 	entries, err := db.QueryLatest()
 
