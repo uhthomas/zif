@@ -344,6 +344,7 @@ func (lp *LocalPeer) StartExploring() error {
 
 					// If the newer entry has more seeds, merge its list with
 					// ours
+
 				} else if len(i.Seeds) > len(current.Seeds) {
 					current.Seeds = util.MergeSeeds(current.Seeds, i.Seeds)
 
@@ -382,6 +383,13 @@ func (lp *LocalPeer) seedExplore(in chan dht.Entry, seen *cmap.ConcurrentMap) er
 		return errors.New("Failed to seed bootstrap, bootstrap first")
 	}
 
+	// we don't want what we already have to bias our data too much.
+	// so, limit it to 3.
+
+	if len(closest) > 3 {
+		closest = closest[:3]
+	}
+
 	for _, i := range closest {
 		if i == nil {
 			continue
@@ -400,8 +408,6 @@ func (lp *LocalPeer) seedExplore(in chan dht.Entry, seen *cmap.ConcurrentMap) er
 			}
 		}*/
 
-		// ideally the localpeer address should not end up in the database.
-		// However, if this somehow happens, make sure not to explore... itself.
 		if !i.Address.Equals(lp.Address()) {
 			in <- *i
 		}

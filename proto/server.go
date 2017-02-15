@@ -33,6 +33,7 @@ func (s *Server) Listen(addr string, handler ProtocolHandler, data common.Encode
 
 		if err != nil {
 			log.Error(err.Error())
+			continue
 		}
 
 		log.Info("New TCP connection")

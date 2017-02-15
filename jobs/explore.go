@@ -1,8 +1,6 @@
 package jobs
 
 import (
-	"database/sql"
-	"errors"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -47,9 +45,7 @@ func exploreTick(in chan dht.Entry, ret chan dht.Entry, me dht.Address, connecto
 	log.WithField("peer", s).Info("Exploring")
 
 	if err := explorePeer(i.Address, me, ret, connector); err != nil {
-		if err != sql.ErrNoRows {
-			log.Error(err.Error())
-		}
+		log.Error(err.Error())
 	}
 
 	if len(in) == 0 {
@@ -84,18 +80,6 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.Entry, connect
 			ret <- *(i.(*dht.Entry))
 		}
 	}
-
-	self, err := p.Query(addr)
-
-	if err != nil {
-		return err
-	}
-
-	if self == nil {
-		return errors.New("Failure to connect")
-	}
-
-	ret <- *self.(*dht.Entry)
 
 	log.Debug("Exploring closest to self")
 	closestToMe, err := p.FindClosest(me)

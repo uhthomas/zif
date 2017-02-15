@@ -29,9 +29,13 @@ func NewDHT(addr Address, path string) *DHT {
 		return ret
 	}
 
+	count := 0
 	for _, i := range entries {
+		count += 1
 		db.Insert(i)
 	}
+
+	log.WithField("count", count).Debug("Inserted")
 
 	return ret
 }
