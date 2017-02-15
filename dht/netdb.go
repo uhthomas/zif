@@ -193,6 +193,8 @@ func (ndb *NetDB) insertIntoTable(addr Address) {
 	bucket = append([]Address{addr}, bucket...)
 
 	ndb.table[index] = bucket
+
+	ndb.SaveTable("./data/table.dat")
 }
 
 func (ndb *NetDB) insertIntoDB(entry Entry) error {
