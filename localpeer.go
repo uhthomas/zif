@@ -198,7 +198,7 @@ func (lp *LocalPeer) SaveEntry() error {
 		return err
 	}
 
-	err = lp.DHT.Insert(*lp.Entry)
+	_, err = lp.DHT.Insert(*lp.Entry)
 
 	if err != nil {
 		return err
@@ -319,28 +319,34 @@ func (lp *LocalPeer) StartExploring() error {
 			// if we do not have the entry, then insert it
 			if current == nil {
 
-				err := lp.DHT.Insert(i)
+				affected, err := lp.DHT.Insert(i)
 
 				if err != nil {
 					log.Error(err.Error())
 					continue
 				}
 
-				log.WithField("peer", ps).Info("Discovered new peer")
+				if affected > 0 {
+					log.WithField("peer", ps).Info("Discovered new peer")
 
-				in <- i
+					in <- i
+
+				}
 
 				// if we already have the entry, check if it needs updating at all
 			} else {
 				// if the new entry was updated at a later date, then update it
 				if i.Updated > current.Updated {
-					err := lp.DHT.Insert(i)
+					affected, err := lp.DHT.Insert(i)
 
 					if err != nil {
 						log.Error(err.Error())
 						continue
 					}
-					log.WithField("peer", ps).Info("Updated peer")
+
+					if affected > 0 {
+						log.WithField("peer", ps).Info("Updated peer")
+					}
 
 					// If the newer entry has more seeds, merge its list with
 					// ours
@@ -348,7 +354,7 @@ func (lp *LocalPeer) StartExploring() error {
 				} else if len(i.Seeds) > len(current.Seeds) {
 					current.Seeds = util.MergeSeeds(current.Seeds, i.Seeds)
 
-					err := lp.DHT.Insert(i)
+					_, err := lp.DHT.Insert(i)
 
 					if err != nil {
 						log.Error(err.Error())
@@ -540,7 +546,8 @@ func (lp *LocalPeer) QuerySelf() {
 }
 
 func (lp *LocalPeer) AddEntry(entry dht.Entry) error {
-	return lp.DHT.Insert(entry)
+	_, err := lp.DHT.Insert(entry)
+	return err
 }
 
 func (lp *LocalPeer) AddSeeding(entry dht.Entry) error {

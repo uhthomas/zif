@@ -174,9 +174,9 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 		return err
 	}
 
-	err = lp.DHT.Insert(entry)
+	affected, err := lp.DHT.Insert(entry)
 
-	if err == nil {
+	if err == nil && affected > 0 {
 		cl.WriteMessage(&proto.Message{Header: proto.ProtoOk})
 		log.WithField("peer", entry.Address.StringOr("")).Info("Saved new peer")
 
@@ -480,6 +480,14 @@ func (lp *LocalPeer) HandleHandshake(header proto.ConnHeader) (proto.NetworkPeer
 	}
 
 	lp.peerManager.SetPeer(peer)
+
+	// we have a "free" entry, insert it! Just in case :D
+	entry, err := peer.Entry()
+	if err != nil {
+		return nil, err
+	}
+
+	lp.DHT.Insert(*entry)
 
 	return peer, nil
 }

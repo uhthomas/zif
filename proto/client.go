@@ -318,7 +318,7 @@ func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 			continue
 		}
 
-		err = d.Insert(*e)
+		_, err = d.Insert(*e)
 
 		if err != nil {
 			return err

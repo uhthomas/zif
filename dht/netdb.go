@@ -197,22 +197,29 @@ func (ndb *NetDB) insertIntoTable(addr Address) {
 	ndb.SaveTable("./data/table.dat")
 }
 
-func (ndb *NetDB) insertIntoDB(entry Entry) error {
+// Returns the number of rows affected. One if all goes well :)
+func (ndb *NetDB) insertIntoDB(entry Entry) (int64, error) {
 
 	addressString, err := entry.Address.String()
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Insert the entry into the main entry table
-	_, err = ndb.stmtInsertEntry.Exec(addressString, entry.Name, entry.Desc,
+	res, err := ndb.stmtInsertEntry.Exec(addressString, entry.Name, entry.Desc,
 		entry.PublicAddress, entry.Port, entry.PublicKey,
 		entry.Signature, entry.CollectionSig, entry.CollectionHash,
 		entry.PostCount, len(entry.Seeds), len(entry.Seeding),
 		entry.Updated, entry.Seen)
 
-	return err
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := res.RowsAffected()
+
+	return affected, err
 }
 
 func (ndb *NetDB) insertEntrySeeds(entry Entry) error {
@@ -282,11 +289,11 @@ func (ndb *NetDB) InsertSeed(entry Address, seed Address) error {
 }
 
 // Inserts an entry into both the routing table and the database
-func (ndb *NetDB) Insert(entry Entry) error {
+func (ndb *NetDB) Insert(entry Entry) (int64, error) {
 	err := entry.Verify()
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	log.WithField("peer", entry.Address.StringOr("")).Debug("Inserting into NetDB")
@@ -295,40 +302,54 @@ func (ndb *NetDB) Insert(entry Entry) error {
 
 	// attempts to update, if this fails then the insert succeeds. Otherwise it
 	// is updated and the insert fails
-	err = ndb.Update(entry)
+	affected, err := ndb.Update(entry)
 	if err != nil {
 		log.Error(err.Error())
-		return err
+		return 0, err
 	}
 
-	err = ndb.insertIntoDB(entry)
+	if affected > 0 {
+		return affected, nil
+	}
+
+	affected, err = ndb.insertIntoDB(entry)
 	if err != nil {
 		log.Error(err.Error())
-		return err
+		return 0, err
 	}
 
-	return ndb.insertEntrySeeds(entry)
+	return affected, ndb.insertEntrySeeds(entry)
 }
 
-func (ndb *NetDB) Update(entry Entry) error {
+func (ndb *NetDB) Update(entry Entry) (int64, error) {
 	err := entry.Verify()
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	addressString, err := entry.Address.String()
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	_, err = ndb.stmtUpdateEntry.Exec(entry.Name, entry.Desc, entry.PublicAddress,
+	res, err := ndb.stmtUpdateEntry.Exec(entry.Name, entry.Desc, entry.PublicAddress,
 		entry.Port, entry.PublicKey, entry.Signature, entry.CollectionSig,
 		entry.CollectionHash, entry.PostCount, len(entry.Seeds), len(entry.Seeding),
 		entry.Updated, entry.Seen, addressString)
 
-	return err
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := res.RowsAffected()
+
+	return affected, err
 }
 
 // Returns the KeyValue if this node has the address, nil if not, and err otherwise

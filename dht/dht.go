@@ -44,7 +44,7 @@ func (dht *DHT) Address() Address {
 	return dht.db.addr
 }
 
-func (dht *DHT) Insert(entry Entry) error {
+func (dht *DHT) Insert(entry Entry) (int64, error) {
 	// TODO: Announces
 	return dht.db.Insert(entry)
 }
