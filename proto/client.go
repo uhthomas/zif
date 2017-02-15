@@ -318,7 +318,11 @@ func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 			continue
 		}
 
-		d.Insert(*e)
+		err = d.Insert(*e)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(peers) > 1 {

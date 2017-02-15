@@ -305,10 +305,11 @@ func (lp *LocalPeer) StartExploring() error {
 			}
 
 			if i.Address.Equals(lp.Address()) {
+				log.Error("Closest is localpeer")
 				continue
 			}
 
-			ps, _ := i.Address.String()
+			ps, err := i.Address.String()
 
 			if err != nil {
 				log.Error(err.Error())
@@ -318,12 +319,13 @@ func (lp *LocalPeer) StartExploring() error {
 			// if we do not have the entry, then insert it
 			if current == nil {
 
+				err := lp.DHT.Insert(i)
+
 				if err != nil {
 					log.Error(err.Error())
 					continue
 				}
 
-				lp.DHT.Insert(i)
 				log.WithField("peer", ps).Info("Discovered new peer")
 
 				in <- i
@@ -332,7 +334,12 @@ func (lp *LocalPeer) StartExploring() error {
 			} else {
 				// if the new entry was updated at a later date, then update it
 				if i.Updated > current.Updated {
-					lp.DHT.Insert(i)
+					err := lp.DHT.Insert(i)
+
+					if err != nil {
+						log.Error(err.Error())
+						continue
+					}
 					log.WithField("peer", ps).Info("Updated peer")
 
 					// If the newer entry has more seeds, merge its list with
@@ -340,7 +347,12 @@ func (lp *LocalPeer) StartExploring() error {
 				} else if len(i.Seeds) > len(current.Seeds) {
 					current.Seeds = util.MergeSeeds(current.Seeds, i.Seeds)
 
-					lp.DHT.Insert(i)
+					err := lp.DHT.Insert(i)
+
+					if err != nil {
+						log.Error(err.Error())
+						continue
+					}
 
 					log.WithField("peer", ps).Info("Found new seeds")
 				}

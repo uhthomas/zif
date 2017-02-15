@@ -66,6 +66,25 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.Entry, connect
 		return err
 	}
 
+	randAddr, err := dht.RandomAddress()
+
+	if err != nil {
+		return err
+	}
+
+	log.Debug("Exploring random")
+	closest, err := p.FindClosest(*randAddr)
+
+	if err != nil {
+		return err
+	}
+
+	for _, i := range closest {
+		if !i.(*dht.Entry).Address.Equals(&me) {
+			ret <- *(i.(*dht.Entry))
+		}
+	}
+
 	self, err := p.Query(addr)
 
 	if err != nil {
@@ -87,23 +106,6 @@ func explorePeer(addr dht.Address, me dht.Address, ret chan<- dht.Entry, connect
 	log.Debug("Explored closest")
 
 	for _, i := range closestToMe {
-		ret <- *(i.(*dht.Entry))
-	}
-
-	randAddr, err := dht.RandomAddress()
-
-	if err != nil {
-		return err
-	}
-
-	log.Debug("Exploring random")
-	closest, err := p.FindClosest(*randAddr)
-
-	if err != nil {
-		return err
-	}
-
-	for _, i := range closest {
 		if !i.(*dht.Entry).Address.Equals(&me) {
 			ret <- *(i.(*dht.Entry))
 		}

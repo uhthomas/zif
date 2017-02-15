@@ -293,8 +293,17 @@ func (ndb *NetDB) Insert(entry Entry) error {
 
 	// attempts to update, if this fails then the insert succeeds. Otherwise it
 	// is updated and the insert fails
-	ndb.Update(entry)
-	ndb.insertIntoDB(entry)
+	err = ndb.Update(entry)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+
+	err = ndb.insertIntoDB(entry)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
 
 	return ndb.insertEntrySeeds(entry)
 }
@@ -306,10 +315,16 @@ func (ndb *NetDB) Update(entry Entry) error {
 		return err
 	}
 
+	addressString, err := entry.Address.String()
+
+	if err != nil {
+		return err
+	}
+
 	_, err = ndb.stmtUpdateEntry.Exec(entry.Name, entry.Desc, entry.PublicAddress,
 		entry.Port, entry.PublicKey, entry.Signature, entry.CollectionSig,
 		entry.CollectionHash, entry.PostCount, len(entry.Seeds), len(entry.Seeding),
-		entry.Updated, entry.Seen, entry.Address.StringOr(""))
+		entry.Updated, entry.Seen, addressString)
 
 	return err
 }
