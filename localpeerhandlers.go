@@ -391,10 +391,10 @@ func (lp *LocalPeer) HandlePiece(msg *proto.Message) error {
 	gzw := gzip.NewWriter(bw)
 
 	for i := range posts {
-		i.Write("|", "", gzw)
+		i.Write("|", "", true, gzw)
 	}
 
-	(&data.Post{Id: -1}).Write("|", "", gzw)
+	(&data.Post{Id: -1}).Write("|", "", true, gzw)
 
 	gzw.Flush()
 	bw.Flush()

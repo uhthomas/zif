@@ -38,19 +38,21 @@ func (p Post) Json() ([]byte, error) {
 	return json, nil
 }
 
-func (p *Post) Bytes(sep, term []byte) []byte {
+func (p *Post) Bytes(sep, term []byte, seedLeech bool) []byte {
 	buf := bytes.Buffer{}
 
-	p.Write(string(sep), string(term), &buf)
+	p.Write(string(sep), string(term), seedLeech, &buf)
 
 	return buf.Bytes()
 }
 
-func (p *Post) String(sep, term string) string {
-	return string(p.Bytes([]byte(sep), []byte(term)))
+func (p *Post) String(sep, term string, seedLeech bool) string {
+	return string(p.Bytes([]byte(sep), []byte(term), seedLeech))
 }
 
-func (p *Post) Write(sep, term string, w io.Writer) {
+// Includes an option to include seed/leech or not. Other than seed and leech
+// count, posts are immutable. This prevents other peers from changing their data.
+func (p *Post) Write(sep, term string, seedLeech bool, w io.Writer) {
 	w.Write([]byte(strconv.Itoa(p.Id)))
 	w.Write([]byte(sep))
 	w.Write([]byte(p.InfoHash))
@@ -60,10 +62,14 @@ func (p *Post) Write(sep, term string, w io.Writer) {
 	w.Write([]byte(strconv.Itoa(p.Size)))
 	w.Write([]byte(sep))
 	w.Write([]byte(strconv.Itoa(p.FileCount)))
-	w.Write([]byte(sep))
-	w.Write([]byte(strconv.Itoa(p.Seeders)))
-	w.Write([]byte(sep))
-	w.Write([]byte(strconv.Itoa(p.Leechers)))
+
+	if seedLeech {
+		w.Write([]byte(sep))
+		w.Write([]byte(strconv.Itoa(p.Seeders)))
+		w.Write([]byte(sep))
+		w.Write([]byte(strconv.Itoa(p.Leechers)))
+	}
+
 	w.Write([]byte(sep))
 	w.Write([]byte(strconv.Itoa(p.UploadDate)))
 	w.Write([]byte(sep))

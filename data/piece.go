@@ -29,7 +29,7 @@ func (p *Piece) Add(post Post, store bool) error {
 		p.Posts = append(p.Posts, post)
 	}
 
-	data := post.String("|", "")
+	data := post.String("|", "", false)
 	p.hash.Write([]byte(data))
 
 	return nil
@@ -47,7 +47,7 @@ func (p *Piece) Rehash() ([]byte, error) {
 	p.hash = sha3.New256()
 
 	for _, i := range p.Posts {
-		data := i.Bytes([]byte("|"), []byte(""))
+		data := i.Bytes([]byte("|"), []byte(""), false)
 		p.hash.Write([]byte(data))
 	}
 
