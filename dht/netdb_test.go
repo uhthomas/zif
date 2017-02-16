@@ -125,7 +125,7 @@ func TestNetDBInsertAndLen(t *testing.T) {
 
 	entry := randomEntry(t)
 
-	err := db.Insert(entry)
+	_, err := db.Insert(entry)
 
 	if err != nil {
 		t.Fatal(err)
@@ -166,8 +166,11 @@ func TestInsertSeed(t *testing.T) {
 	seed := randomEntry(t)
 
 	// insert the entries first
-	fatalErr(db.Insert(entry), t)
-	fatalErr(db.Insert(seed), t)
+	_, err := db.Insert(entry)
+	fatalErr(err, t)
+
+	_, err = db.Insert(seed)
+	fatalErr(err, t)
 
 	// then register some seeds :)
 	fatalErr(db.InsertSeed(entry.Address, seed.Address), t)
