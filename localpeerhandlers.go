@@ -106,7 +106,7 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 	log.Debug("Accepted address")
 
 	results := &proto.Message{
-		Header: proto.ProtoEntry,
+		Header: proto.ProtoDhtEntry,
 	}
 
 	if address.Equals(lp.Address()) {

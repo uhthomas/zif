@@ -33,12 +33,10 @@ var (
 	// TODO: Look into how Bittorrent trackers keep peer lists up to date properly.
 	ProtoRequestAddPeer = "req.addpeer"
 
-	ProtoEntry    = "entry" // An individual DHT entry in Content
 	ProtoPosts    = "posts" // A list of posts in Content
 	ProtoHashList = "hashlist"
-	ProtoPiece    = "piece"
-	ProtoPost     = "post"
 
+	ProtoDhtEntry       = "dht.entry" // An individual DHT entry in Content
 	ProtoDhtQuery       = "dht.query"
 	ProtoDhtAnnounce    = "dht.announce"
 	ProtoDhtFindClosest = "dht.findclosest"

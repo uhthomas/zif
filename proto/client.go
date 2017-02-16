@@ -108,7 +108,7 @@ func (c *Client) Decode(i interface{}) error {
 
 // Sends a DHT entry to a peer.
 func (c *Client) SendStruct(e common.Encoder) error {
-	msg := Message{Header: ProtoEntry}
+	msg := Message{Header: ProtoDhtEntry}
 	err := msg.Write(e)
 
 	if err != nil {
