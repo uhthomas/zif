@@ -10,7 +10,7 @@ import (
 )
 
 // This contains the more "complex" structures that will be sent in message
-// data fields.
+// content fields.
 
 type MessageCollection struct {
 	Hash      []byte
@@ -33,6 +33,13 @@ type MessageRequestPiece struct {
 // Allows us to decode a pieces without also decoding all of the posts within it.
 type MessagePiece struct {
 	Posts interface{}
+}
+
+type MessageCapabilities struct {
+	// an array of strings, each a compression type, in order of preference.
+	// Index 0 is the preferred method. The method used is the shared method
+	// with the lowest index.
+	Compression []string
 }
 
 func (mp *MessagePiece) Hash() ([]byte, error) {

@@ -9,6 +9,7 @@ var (
 	ProtoVersion int16 = 0x0000
 
 	ProtoHeader = "header"
+	ProtoCap    = ":ap"
 
 	// inform a peer on the status of the latest request
 	ProtoOk        = "ok"

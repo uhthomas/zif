@@ -143,7 +143,8 @@ func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data commo
 	// but...
 	// is the server who we think it is?
 	// better check!
-	server_header, err := handshake_recieve(*cl)
+	// TODO: Decide on caps! We already know our own caps, should be easy :)
+	server_header, _, err := handshake_recieve(*cl)
 
 	if err != nil {
 		return server_header, err
