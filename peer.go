@@ -424,7 +424,7 @@ func (p *Peer) Mirror(db *data.Database, lp dht.Address, onPiece chan int) error
 
 	defer stream.Close()
 
-	mcol, err := stream.Collection(entry.Address, entry.PublicKey)
+	mcol, err := stream.Collection(entry.Address, *entry)
 
 	if err != nil {
 		return err

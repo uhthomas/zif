@@ -209,7 +209,7 @@ func (ndb *NetDB) insertIntoDB(entry Entry) (int64, error) {
 	// Insert the entry into the main entry table
 	res, err := ndb.stmtInsertEntry.Exec(addressString, entry.Name, entry.Desc,
 		entry.PublicAddress, entry.Port, entry.PublicKey,
-		entry.Signature, entry.CollectionSig, entry.CollectionHash,
+		entry.Signature, entry.CollectionHash,
 		entry.PostCount, len(entry.Seeds), len(entry.Seeding),
 		entry.Updated, entry.Seen)
 
@@ -335,7 +335,7 @@ func (ndb *NetDB) Update(entry Entry) (int64, error) {
 	}
 
 	res, err := ndb.stmtUpdateEntry.Exec(entry.Name, entry.Desc, entry.PublicAddress,
-		entry.Port, entry.PublicKey, entry.Signature, entry.CollectionSig,
+		entry.Port, entry.PublicKey, entry.Signature,
 		entry.CollectionHash, entry.PostCount, len(entry.Seeds), len(entry.Seeding),
 		entry.Updated, entry.Seen, addressString)
 
@@ -369,7 +369,7 @@ func (ndb *NetDB) Query(addr Address) (*Entry, int, error) {
 	address := ""
 
 	err = row.Scan(&id, &address, &ret.Name, &ret.Desc, &ret.PublicAddress,
-		&ret.Port, &ret.PublicKey, &ret.Signature, &ret.CollectionSig, &ret.CollectionHash,
+		&ret.Port, &ret.PublicKey, &ret.Signature, &ret.CollectionHash,
 		&ret.PostCount, &seedCount, &seedingCount, &ret.Updated, &ret.Seen)
 
 	if err == sql.ErrNoRows {
@@ -586,7 +586,7 @@ func (ndb *NetDB) QueryLatest() ([]Entry, error) {
 		address := ""
 
 		err = entries.Scan(&id, &address, &e.Name, &e.Desc, &e.PublicAddress,
-			&e.Port, &e.PublicKey, &e.Signature, &e.CollectionSig, &e.CollectionHash,
+			&e.Port, &e.PublicKey, &e.Signature, &e.CollectionHash,
 			&e.PostCount, &seedCount, &seedingCount, &e.Updated, &e.Seen)
 
 		if err != nil {

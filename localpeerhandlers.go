@@ -288,8 +288,6 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 
 	log.WithField("address", address.StringOr("")).Info("Collection request recieved")
 
-	var sig []byte
-	var hash []byte
 	var hashList []byte
 
 	entry, err := lp.DHT.Query(address)
@@ -306,8 +304,6 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 
 	if address.Equals(lp.Address()) {
 		log.Info("Collection request for local peer")
-		sig = lp.Entry.CollectionSig
-		hash = lp.Collection.Hash()
 		hashList = lp.Collection.HashList
 
 	} else if entry != nil {
@@ -322,21 +318,13 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 		hashList = make([]byte, len(hl))
 		copy(hashList, hl)
 
-		sig = make([]byte, len(entry.CollectionSig))
-		copy(sig, entry.CollectionSig)
-
-		hash = make([]byte, len(entry.CollectionHash))
-		copy(hash, entry.CollectionHash)
-
 	} else {
 		return errors.New("Cannot return collection hash list")
 	}
 
 	mhl := proto.MessageCollection{
-		Hash:      hash,
-		HashList:  hashList,
-		Size:      len(hashList) / 32,
-		Signature: sig,
+		HashList: hashList,
+		Size:     len(hashList) / 32,
 	}
 
 	resp := &proto.Message{

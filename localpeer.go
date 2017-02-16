@@ -253,10 +253,6 @@ func (lp *LocalPeer) AddPost(p data.Post, store bool) (int64, error) {
 	lp.Collection.Save("./data/collection.dat")
 
 	hash := lp.Collection.Hash()
-	sig := lp.Sign(lp.Collection.Hash())
-
-	lp.Entry.CollectionSig = make([]byte, len(sig))
-	copy(lp.Entry.CollectionSig, sig)
 
 	lp.Entry.CollectionHash = make([]byte, len(hash))
 	copy(lp.Entry.CollectionHash, hash)

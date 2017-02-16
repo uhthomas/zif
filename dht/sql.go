@@ -15,7 +15,6 @@ const (
 		port           - the port used to connect to the node
 		publicKey      - the publicKey for the node, can be checked with the address
 		signature      - this entry, signed
-		collectionSig  - the signature of the hash of all of the posts
 		collectionHash - the root hash of all the posts
 		postCount      - the number of posts this node has
 		seedCount      - the number of seeds this node has
@@ -36,7 +35,6 @@ const (
 					port INT,
 					publicKey BLOB(32) NOT NULL,
 					signature BLOB(64),
-					collectionSig BLOB(64),
 					collectionHash BLOB(32),
 					postCount INT,
 					seedCount INT,
@@ -77,7 +75,6 @@ const (
 				port=?,
 				publicKey=?,
 				signature=?,
-				collectionSig=?,
 				collectionHash=?,
 				postCount=?,
 				seedCount=?,
@@ -96,7 +93,6 @@ const (
 				port,
 				publicKey,
 				signature,
-				collectionSig,
 				collectionHash,
 				postCount,
 				seedCount,

@@ -8,7 +8,6 @@ import (
 	"net"
 	"strconv"
 
-	"golang.org/x/crypto/ed25519"
 	"gopkg.in/vmihailenco/msgpack.v2"
 
 	log "github.com/sirupsen/logrus"
@@ -445,7 +444,7 @@ func (c *Client) Popular(page int) ([]*data.Post, error) {
 
 // Download a hash list for a peer. Expects said hash list to be valid and
 // signed.
-func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*MessageCollection, error) {
+func (c *Client) Collection(address dht.Address, entry dht.Entry) (*MessageCollection, error) {
 	log.WithField("for", address.StringOr("")).Info("Sending request for a collection")
 
 	msg := &Message{
@@ -483,7 +482,7 @@ func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*Message
 
 	log.Debug("Read hash list ok")
 
-	err = mhl.Verify(pk)
+	err = mhl.Verify(entry.CollectionHash)
 
 	if err != nil {
 		return nil, err

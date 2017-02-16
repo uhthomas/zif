@@ -33,10 +33,7 @@ type Entry struct {
 	// sigature. It's actually okay as we can verify that a peer owns a public
 	// key by generating an address from it - if the address is not the peers,
 	// then Mallory is just using someone elses entry for their own address.
-	Signature []byte `json:"signature"`
-	// Signature of the root hash of a hash list representing all of the posts
-	// a peer has.
-	CollectionSig  []byte `json:"collectionSig"`
+	Signature      []byte `json:"signature"`
 	CollectionHash []byte `json:"collectionHash"`
 	Port           int    `json:"port"`
 
