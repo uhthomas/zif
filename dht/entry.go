@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strconv"
 
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 
@@ -74,13 +75,24 @@ func (e Entry) Bytes() ([]byte, error) {
 func (e Entry) String() (string, error) {
 	var str string
 
+	addressString, err := e.Address.String()
+
+	if err != nil {
+		return "", err
+	}
+
+	postCount := strconv.Itoa(e.PostCount)
+	updated := strconv.Itoa(int(e.Updated))
+
+	str += addressString
 	str += e.Name
 	str += e.Desc
+	str += string(e.PublicAddress)
 	str += string(e.PublicKey)
 	str += string(e.Port)
-	str += string(e.PublicAddress)
-	str += e.Address.StringOr("")
-	str += string(e.PostCount)
+	str += postCount
+	str += updated
+	str += string(e.CollectionHash)
 
 	for _, i := range e.Seeding {
 		str += string(i)
