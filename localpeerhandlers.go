@@ -38,13 +38,6 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 
 	log.WithField("target", address.StringOr("")).Info("Recieved query")
 
-	ok := &proto.Message{Header: proto.ProtoOk}
-	err = cl.WriteMessage(ok)
-
-	if err != nil {
-		return err
-	}
-
 	if address.Equals(lp.Address()) {
 		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
 
@@ -96,61 +89,25 @@ func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
 
 	log.WithField("target", address.StringOr("")).Info("Recieved find closest")
 
-	ok := &proto.Message{Header: proto.ProtoOk}
-	err = cl.WriteMessage(ok)
+	results := &proto.Message{
+		Header: proto.ProtoDhtEntries,
+	}
+
+	log.WithField("peer", address.StringOr("")).Debug("FindClosest for")
+	pairs, err := lp.DHT.FindClosest(address)
 
 	if err != nil {
 		return err
 	}
 
-	log.Debug("Accepted address")
+	log.WithField("count", len(pairs)).Debug("Found entries")
 
-	results := &proto.Message{
-		Header: proto.ProtoDhtEntry,
-	}
+	results.Write(pairs)
 
-	if address.Equals(lp.Address()) {
-		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
+	err = cl.WriteMessage(results)
 
-		dat, err := lp.Entry.Encode()
-
-		if err != nil {
-			return err
-		}
-
-		results.Write(1)
-
-		err = cl.WriteMessage(results)
-
-		if err != nil {
-			return err
-		}
-
-		err = cl.WriteMessage(dat)
-
-	} else {
-		log.WithField("peer", address.StringOr("")).Debug("FindClosest for")
-		pairs, err := lp.DHT.FindClosest(address)
-
-		if err != nil {
-			return err
-		}
-
-		log.WithField("count", len(pairs)).Debug("Found entries")
-
-		results.Write(len(pairs))
-
-		err = cl.WriteMessage(results)
-
-		if err != nil {
-			return err
-		}
-
-		log.Debug("Wrote length to peer")
-
-		for _, kv := range pairs {
-			err = cl.WriteMessage(kv)
-		}
+	if err != nil {
+		return err
 	}
 
 	return err

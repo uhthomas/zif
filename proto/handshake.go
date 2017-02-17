@@ -59,6 +59,23 @@ func handshake_recieve(cl Client) (*dht.Entry, *MessageCapabilities, error) {
 
 	log.Debug("Header recieved")
 
+	var entry dht.Entry
+	err = header.Read(&entry)
+
+	if check(err) {
+		cl.WriteMessage(Message{Header: ProtoNo})
+		return nil, nil, err
+	}
+
+	err = entry.Verify()
+
+	if check(err) {
+		cl.WriteMessage(Message{Header: ProtoNo})
+		return nil, nil, err
+	}
+
+	log.WithFields(log.Fields{"peer": entry.Address.StringOr("")}).Info("Incoming connection")
+
 	err = cl.WriteMessage(Message{Header: ProtoOk})
 
 	if check(err) {
@@ -74,20 +91,6 @@ func handshake_recieve(cl Client) (*dht.Entry, *MessageCapabilities, error) {
 
 	peerCaps := &MessageCapabilities{}
 	peerCapsMsg.Read(peerCaps)
-
-	var entry dht.Entry
-	err = header.Read(&entry)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = entry.Verify()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	log.WithFields(log.Fields{"peer": entry.Address.StringOr("")}).Info("Incoming connection")
 
 	// Send the client a cookie for them to sign, this proves they have the
 	// private key, and it is highly unlikely an attacker has a signed cookie

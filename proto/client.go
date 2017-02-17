@@ -3,7 +3,6 @@ package proto
 import (
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -175,51 +174,18 @@ func (c *Client) FindClosest(address dht.Address) ([]common.Verifier, error) {
 
 	log.Debug("Send FindClosest request")
 
-	// Make sure the peer accepts the address
-	recv, err := c.ReadMessage()
-
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("Peer accepted address")
-
-	if !recv.Ok() {
-		return nil, errors.New("Peer refused query address")
-	}
-
 	closest, err := c.ReadMessage()
 
 	if err != nil {
 		return nil, err
 	}
 
-	length, err := closest.ReadInt()
+	ret := make([]common.Verifier, 0, 1)
+	closest.Read(ret)
 
-	if err != nil {
-		return nil, err
-	}
+	log.WithField("entries", len(ret)).Info("Find closest complete")
 
-	if length > dht.BucketSize {
-		return nil, errors.New(fmt.Sprintf("Too many entries returned: %d", length))
-	}
-
-	entries := make([]common.Verifier, 0, length)
-
-	for i := 0; i < length; i++ {
-		kv := dht.Entry{}
-		err = c.Decode(&kv)
-
-		if err != nil {
-			return nil, err
-		}
-
-		entries = append(entries, &kv)
-	}
-
-	log.WithField("entries", len(entries)).Info("Find closest complete")
-
-	return entries, err
+	return ret, err
 }
 
 func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
@@ -242,19 +208,6 @@ func (c *Client) Query(address dht.Address) (*dht.Entry, error) {
 		return nil, err
 	}
 	log.Debug("Written address")
-
-	// Make sure the peer accepts the address
-	recv, err := c.ReadMessage()
-
-	if err != nil {
-		return nil, err
-	}
-
-	if !recv.Ok() {
-		return nil, errors.New("Peer refused query address")
-	}
-
-	log.Debug("Peer accepted address")
 
 	var entry dht.Entry
 	er, err := c.ReadMessage()

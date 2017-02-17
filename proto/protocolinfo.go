@@ -38,6 +38,7 @@ var (
 	ProtoHashList = "hashlist"
 
 	ProtoDhtEntry       = "dht.entry" // An individual DHT entry in Content
+	ProtoDhtEntries     = "dht.entries"
 	ProtoDhtQuery       = "dht.query"
 	ProtoDhtAnnounce    = "dht.announce"
 	ProtoDhtFindClosest = "dht.findclosest"
