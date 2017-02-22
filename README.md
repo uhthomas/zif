@@ -1,6 +1,6 @@
 # Zif
 
-[Whitepaper](/zif/whitepaper)
+[Whitepaper](https://github.com/zif/whitepaper)
 
 A distributed torrent sharing and indexing network.
 
