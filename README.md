@@ -8,11 +8,7 @@ A distributed torrent sharing and indexing network.
 
 Check out the ``develop`` branch for the latest work!
 
-# Why?
-
-I believe in anyone being able to share any information they wish, with anyone - without censorship getting in the way. Bittorrent is an excellent file-transfer protocol, though the torrent/magnet link discovery has been centralised and flawed since its inception.
-
-This is my attempt at a solution.
+Zif makes it easy to share files, without having any bandwidth or storage costs. It uses Bittorrent for file transfers, but provides a decentralised index for discovering new content.
 
 # What even is this?
 
