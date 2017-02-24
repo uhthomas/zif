@@ -1,5 +1,7 @@
 # Zif
 
+[Whitepaper](https://github.com/zif/whitepaper)
+
 A distributed torrent sharing and indexing network.
 
 **NOTE: I'd prefer if people please refrain from putting this on Hacker News/Reddit/lobste.rs/etc for the moment, it's still buggy and messy and not yet how I want it to be**
