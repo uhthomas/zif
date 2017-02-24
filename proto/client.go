@@ -152,7 +152,7 @@ func (c *Client) Announce(e common.Encoder) error {
 	return nil
 }
 
-func (c *Client) FindClosest(address dht.Address) ([]common.Verifier, error) {
+func (c *Client) FindClosest(address dht.Address) ([]*dht.Entry, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -180,8 +180,12 @@ func (c *Client) FindClosest(address dht.Address) ([]common.Verifier, error) {
 		return nil, err
 	}
 
-	ret := make([]common.Verifier, 0, 1)
-	closest.Read(ret)
+	ret := make([]*dht.Entry, 0, 1)
+	err = closest.Read(&ret)
+
+	if err != nil {
+		return nil, err
+	}
 
 	log.WithField("entries", len(ret)).Info("Find closest complete")
 
@@ -253,24 +257,22 @@ func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 
 	// add them all to our routing table! :D
 	for _, i := range peers {
-		e := i.(*dht.Entry)
-
-		if e.Address.Equals(&address) {
+		if i.Address.Equals(&address) {
 			continue
 		}
 
-		if e == nil {
-			return errors.New("Nil entry")
+		if i == nil {
+			continue
 		}
 
-		err := e.Verify()
+		err := i.Verify()
 
 		if err != nil {
-			log.WithField("address", e.Address.StringOr("")).Error("Bad peer, entry not valid: ", err.Error())
+			log.WithField("address", i.Address.StringOr("")).Error("Bad peer, entry not valid: ", err.Error())
 			continue
 		}
 
-		_, err = d.Insert(*e)
+		_, err = d.Insert(*i)
 
 		if err != nil {
 			return err

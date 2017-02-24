@@ -303,7 +303,13 @@ func (p *Peer) FindClosest(address dht.Address) ([]common.Verifier, error) {
 
 	res, err := stream.FindClosest(address)
 
-	return res, err
+	ret := make([]common.Verifier, 0, len(res))
+
+	for _, i := range res {
+		ret = append(ret, i)
+	}
+
+	return ret, err
 }
 
 // asks a peer to query its database and return the results
