@@ -2,7 +2,6 @@ package proto
 
 import (
 	"bytes"
-	"compress/gzip"
 	"errors"
 	"io"
 	"net"
@@ -25,8 +24,7 @@ type Message struct {
 
 func (m *Message) Write(iface interface{}) error {
 	writer := bytes.Buffer{}
-	compression := gzip.NewWriter(&writer)
-	encoder := msgpack.NewEncoder(compression)
+	encoder := msgpack.NewEncoder(&writer)
 
 	err := encoder.Encode(iface)
 
@@ -45,17 +43,11 @@ func (m *Message) Read(iface interface{}) error {
 	}
 
 	reader := bytes.NewReader(m.Content)
-	compression, err := gzip.NewReader(reader)
-
-	if err != nil {
-		return err
-	}
-
-	limiter := io.LimitReader(compression, common.MaxMessageContentSize)
+	limiter := &io.LimitedReader{R: reader, N: common.MaxMessageContentSize}
 
 	decoder := msgpack.NewDecoder(limiter)
 
-	err = decoder.Decode(iface)
+	err := decoder.Decode(iface)
 
 	return err
 }
