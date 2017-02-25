@@ -39,5 +39,6 @@ type NetworkPeer interface {
 	Address() *dht.Address
 	Query(dht.Address) (common.Verifier, error)
 	FindClosest(dht.Address) ([]common.Verifier, error)
+	SetCapabilities(MessageCapabilities)
 	UpdateSeen()
 }

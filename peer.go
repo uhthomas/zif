@@ -39,6 +39,9 @@ type Peer struct {
 	seed    bool
 	seedFor *dht.Entry
 
+	capabilities proto.MessageCapabilities
+	compression  string
+
 	addSeedManager func(dht.Address) error
 	addSeeding     func(dht.Entry) error
 	addEntry       func(dht.Entry) error
@@ -139,6 +142,7 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 		return err
 	}
 
+	p.SetCapabilities(pair.Capabilities)
 	p.publicKey = pair.Entry.PublicKey
 	p.address = pair.Entry.Address
 
@@ -540,4 +544,21 @@ func (p *Peer) RequestAddPeer(entry dht.Entry) error {
 	}
 
 	return p.addSeeding(entry)
+}
+
+func (p *Peer) GetCapabilities() *proto.MessageCapabilities {
+	return &p.capabilities
+}
+
+func (p *Peer) SetCapabilities(caps proto.MessageCapabilities) {
+	p.capabilities = caps
+}
+
+func (p *Peer) NewMessage(header string) *proto.Message {
+	ret := &proto.Message{
+		Header:      header,
+		Compression: p.compression,
+	}
+
+	return ret
 }

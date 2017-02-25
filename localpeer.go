@@ -43,8 +43,6 @@ type LocalPeer struct {
 	privateKey  ed25519.PrivateKey
 	peerManager *PeerManager
 	seedManager *SeedManager
-
-	capabilities proto.MessageCapabilities
 }
 
 func (lp *LocalPeer) Setup() {
@@ -567,8 +565,4 @@ func (lp *LocalPeer) AddSeeding(entry dht.Entry) error {
 	}
 
 	return lp.SaveEntry()
-}
-
-func (lp *LocalPeer) GetCapabilities() *proto.MessageCapabilities {
-	return &lp.capabilities
 }

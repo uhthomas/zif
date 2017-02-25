@@ -97,7 +97,7 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, dat
 		return nil, err
 	}
 
-	header, err := sm.Handshake(conn, lp, data)
+	header, caps, err := sm.Handshake(conn, lp, data)
 
 	if err != nil {
 		return nil, err
@@ -113,17 +113,17 @@ func (sm *StreamManager) handleConnection(conn net.Conn, lp ProtocolHandler, dat
 		return nil, err
 	}
 
-	pair := ConnHeader{*c, *header}
+	pair := ConnHeader{*c, *header, *caps}
 	sm.connection = pair
 
 	return &pair, nil
 }
 
-func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encoder) (*dht.Entry, error) {
+func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encoder) (*dht.Entry, *MessageCapabilities, error) {
 	cl, err := NewClient(conn)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Debug("Sending handshake")
@@ -132,11 +132,11 @@ func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data commo
 	msg, err := cl.ReadMessage()
 
 	if err != nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if !msg.Ok() {
-		return nil, errors.New(string(msg.Content))
+		return nil, nil, errors.New(string(msg.Content))
 	}
 
 	// server now knows that we are definitely who we say we are.
@@ -146,26 +146,12 @@ func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data commo
 	server_header, caps, err := handshake_recieve(*cl)
 
 	if err != nil {
-		return server_header, err
+		return nil, nil, err
 	}
-
-	// check if the peer has our caps, in order of preference
-	// the server has preference
-	compression := ""
-	selfCaps := lp.GetCapabilities()
-	for _, i := range caps.Compression {
-		for _, j := range selfCaps.Compression {
-			if i == j {
-				compression = i
-			}
-		}
-	}
-
-	log.WithField("algorithm", compression).Info("Compression selected")
 
 	log.Info("Handshake complete")
 
-	return server_header, nil
+	return server_header, caps, nil
 }
 
 func (sm *StreamManager) ConnectClient() (*yamux.Session, error) {

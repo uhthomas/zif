@@ -182,20 +182,21 @@ func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler, data common.Encode
 		return
 	}
 
-	header, _, err := handshake(*cl, lp, data)
+	header, caps, err := handshake(*cl, lp, data)
 
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
-	peer, err := lp.HandleHandshake(ConnHeader{*cl, *header})
+	peer, err := lp.HandleHandshake(ConnHeader{*cl, *header, *caps})
 
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
+	lp.SetCapabilities(*caps)
 	lp.SetNetworkPeer(peer)
 
 	go s.ListenStream(peer, lp)
