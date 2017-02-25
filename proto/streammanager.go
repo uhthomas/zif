@@ -143,12 +143,25 @@ func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler, data commo
 	// but...
 	// is the server who we think it is?
 	// better check!
-	// TODO: Decide on caps! We already know our own caps, should be easy :)
-	server_header, _, err := handshake_recieve(*cl)
+	server_header, caps, err := handshake_recieve(*cl)
 
 	if err != nil {
 		return server_header, err
 	}
+
+	// check if the peer has our caps, in order of preference
+	// the server has preference
+	compression := ""
+	selfCaps := lp.GetCapabilities()
+	for _, i := range caps.Compression {
+		for _, j := range selfCaps.Compression {
+			if i == j {
+				compression = i
+			}
+		}
+	}
+
+	log.WithField("algorithm", compression).Info("Compression selected")
 
 	log.Info("Handshake complete")
 

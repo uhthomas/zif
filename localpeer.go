@@ -30,7 +30,7 @@ type LocalPeer struct {
 	Peer
 	Entry         *dht.Entry
 	DHT           *dht.DHT
-	Server        proto.Server
+	Server        *proto.Server
 	Collection    *data.Collection
 	Database      *data.Database
 	PublicAddress string
@@ -43,6 +43,8 @@ type LocalPeer struct {
 	privateKey  ed25519.PrivateKey
 	peerManager *PeerManager
 	seedManager *SeedManager
+
+	capabilities proto.MessageCapabilities
 }
 
 func (lp *LocalPeer) Setup() {
@@ -120,6 +122,11 @@ func (lp *LocalPeer) Setup() {
 	filepath.Walk("./data", handler)
 
 	lp.SearchProvider = data.NewSearchProvider()
+
+	lp.capabilities.Compression = append(lp.capabilities.Compression,
+		[]string{"gzip", "none"}...)
+
+	lp.Server = proto.NewServer(&lp.capabilities)
 }
 
 func (lp *LocalPeer) SignEntry() {
@@ -560,4 +567,8 @@ func (lp *LocalPeer) AddSeeding(entry dht.Entry) error {
 	}
 
 	return lp.SaveEntry()
+}
+
+func (lp *LocalPeer) GetCapabilities() *proto.MessageCapabilities {
+	return &lp.capabilities
 }

@@ -27,6 +27,7 @@ type ProtocolHandler interface {
 
 	GetNetworkPeer(dht.Address) NetworkPeer
 	SetNetworkPeer(NetworkPeer)
+	GetCapabilities() *MessageCapabilities
 }
 
 // Allows the protocol stuff to work with Peers, while libzif/peer can interface

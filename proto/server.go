@@ -14,7 +14,16 @@ import (
 )
 
 type Server struct {
-	listener net.Listener
+	listener     net.Listener
+	capabilities *MessageCapabilities
+}
+
+func NewServer(cap *MessageCapabilities) *Server {
+	ret := &Server{}
+
+	ret.capabilities = cap
+
+	return ret
 }
 
 func (s *Server) Listen(addr string, handler ProtocolHandler, data common.Encoder) {

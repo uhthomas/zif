@@ -177,13 +177,9 @@ func handshake_send(cl Client, lp common.Signer, data common.Encoder) error {
 		Header: ProtoCap,
 	}
 
-	caps := MessageCapabilities{
-		Compression: []string{"gzip"},
-	}
+	msgCaps.Write(lp.(ProtocolHandler).GetCapabilities())
 
-	msgCaps.Write(caps)
-
-	err = cl.WriteMessage(caps)
+	err = cl.WriteMessage(msgCaps)
 
 	if err != nil {
 		return err
