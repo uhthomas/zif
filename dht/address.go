@@ -11,13 +11,14 @@ import (
 
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 
+	"github.com/codahale/blake2"
 	"github.com/wjh/hellobitcoin/base58check"
 	"github.com/zif/zif/util"
-	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 )
 
 const AddressBinarySize = 20
+const AddressVersion = 0
 
 type Address struct {
 	Raw []byte
@@ -85,10 +86,10 @@ func RandomAddress() (*Address, error) {
 }
 
 // Generate a Zif address from a public key.
-// This process involves one SHA3-256 iteration, followed by RIPEMD160. This is
-// similar to bitcoin, and the RIPEMD160 makes the resulting address a bit shorted.
+// This process involves one SHA3-256 iteration, followed by BLAKE2. This is
+// similar to bitcoin, and the BLAKE2 makes the resulting address a bit shortej
 func (a *Address) Generate(key []byte) (string, error) {
-	ripemd := ripemd160.New()
+	blake := blake2.New(&blake2.Config{Size: AddressBinarySize})
 
 	if len(key) != 32 {
 		return "", (errors.New("Public key is not 32 bytes"))
@@ -99,9 +100,9 @@ func (a *Address) Generate(key []byte) (string, error) {
 	// the same format for addresses.
 
 	firstHash := sha3.Sum256(key)
-	ripemd.Write(firstHash[:])
+	blake.Write(append([]byte{AddressVersion}, firstHash[:]...))
 
-	secondHash := ripemd.Sum(nil)
+	secondHash := blake.Sum(nil)
 
 	a.Raw = secondHash
 

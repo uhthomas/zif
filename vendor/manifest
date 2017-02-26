@@ -34,6 +34,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/codahale/blake2",
+			"repository": "https://github.com/codahale/blake2",
+			"vcs": "git",
+			"revision": "8d10d0420cbfbdc9c1164c0c4ad3457a6c3771b9",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/coreos/go-etcd/etcd",
 			"repository": "https://github.com/coreos/go-etcd",
 			"vcs": "git",
