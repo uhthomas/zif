@@ -87,7 +87,7 @@ func RandomAddress() (*Address, error) {
 
 // Generate a Zif address from a public key.
 // This process involves one SHA3-256 iteration, followed by BLAKE2. This is
-// similar to bitcoin, and the BLAKE2 makes the resulting address a bit shortej
+// similar to bitcoin, and the BLAKE2 makes the resulting address a bit shorter
 func (a *Address) Generate(key []byte) (string, error) {
 	blake := blake2.New(&blake2.Config{Size: AddressBinarySize})
 
@@ -100,7 +100,7 @@ func (a *Address) Generate(key []byte) (string, error) {
 	// the same format for addresses.
 
 	firstHash := sha3.Sum256(key)
-	blake.Write(append([]byte{AddressVersion}, firstHash[:]...))
+	blake.Write(firstHash[:])
 
 	secondHash := blake.Sum(nil)
 
