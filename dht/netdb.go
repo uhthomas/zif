@@ -28,6 +28,7 @@ type NetDB struct {
 	stmtQuerySeeds       *sql.Stmt
 	stmtQuerySeeding     *sql.Stmt
 	stmtQueryLatest      *sql.Stmt
+	stmtSearchPeer       *sql.Stmt
 }
 
 func NewNetDB(addr Address, path string) (*NetDB, error) {
@@ -88,11 +89,6 @@ func NewNetDB(addr Address, path string) (*NetDB, error) {
 		return nil, err
 	}
 
-	ret.stmtInsertFtsEntry, err = ret.conn.Prepare("SELECT MAX(id) FROM entry")
-	if err != nil {
-		return nil, err
-	}
-
 	ret.stmtQueryAddress, err = ret.conn.Prepare(sqlQueryAddress)
 	if err != nil {
 		return nil, err
@@ -129,6 +125,11 @@ func NewNetDB(addr Address, path string) (*NetDB, error) {
 	}
 
 	ret.stmtQueryLatest, err = ret.conn.Prepare(sqlQueryLatest)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.stmtSearchPeer, err = ret.conn.Prepare(sqlSearchEntries)
 	if err != nil {
 		return nil, err
 	}
@@ -218,6 +219,22 @@ func (ndb *NetDB) insertIntoDB(entry Entry) (int64, error) {
 	}
 
 	affected, err := res.RowsAffected()
+
+	if err != nil {
+		return 0, err
+	}
+
+	if affected == 0 {
+		return 0, nil
+	}
+
+	id, err := res.LastInsertId()
+
+	if err != nil {
+		return 0, err
+	}
+
+	res, err = ndb.stmtInsertFtsEntry.Exec(id, entry.Name, entry.Desc)
 
 	return affected, err
 }
@@ -386,14 +403,13 @@ func (ndb *NetDB) Query(addr Address) (*Entry, int, error) {
 		return nil, -1, err
 	}
 
-	ret.Seeding = make([][]byte, 0, seedingCount)
-	ret.Seeds = make([][]byte, 0, seedCount)
-
 	ret.Address.Raw = make([]byte, len(decoded.Raw))
 	copy(ret.Address.Raw, decoded.Raw)
 
-	// now that all the slices for seeds/seeding are there, we need to popular them
-	// we also already have the id, which is nice
+	err = ndb.addSeedToEntry(&ret, seedCount, seedingCount, id)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	// resinsert into the table, this keeps popular things easy to access
 	// TODO: Store some sort of "lastQueried" in the database, then we have
@@ -401,6 +417,33 @@ func (ndb *NetDB) Query(addr Address) (*Entry, int, error) {
 	// TODO: Make sure I'm not storing too much in the database :P
 	ndb.insertIntoTable(ret.Address)
 	return &ret, id, nil
+}
+
+func (ndb *NetDB) addSeedToEntry(e *Entry, seedCount, seedingCount, id int) error {
+	e.Seeding = make([][]byte, 0, seedingCount)
+	e.Seeds = make([][]byte, 0, seedCount)
+
+	// now that all the slices for seeds/seeding are there, we need to popular them
+	// we also already have the id, which is nice
+	seeds, err := ndb.querySeeds(id)
+	if err != nil {
+		return err
+	}
+
+	seeding, err := ndb.querySeeding(id)
+	if err != nil {
+		return err
+	}
+
+	for _, i := range seeds {
+		e.Seeds = append(e.Seeds, i.Raw)
+	}
+
+	for _, i := range seeding {
+		e.Seeding = append(e.Seeding, i.Raw)
+	}
+
+	return nil
 }
 
 // fetch the seeds for an entry, given the entry and its id
@@ -593,7 +636,41 @@ func (ndb *NetDB) QueryLatest() ([]Entry, error) {
 			return nil, err
 		}
 
+		err = ndb.addSeedToEntry(&e, seedCount, seedingCount, id)
+		if err != nil {
+			return nil, err
+		}
+
 		ret = append(ret, e)
+	}
+
+	return ret, nil
+}
+
+func (ndb *NetDB) SearchPeer(name, desc string, page int) ([]Address, error) {
+	ret := make([]Address, 0, 20)
+	addresses, err := ndb.stmtSearchPeer.Query(name, desc, page, 25)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for addresses.Next() {
+		s := ""
+
+		err = addresses.Scan(&s)
+
+		if err != nil {
+			return nil, err
+		}
+
+		a, err := DecodeAddress(s)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, a)
 	}
 
 	return ret, nil

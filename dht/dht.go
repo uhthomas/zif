@@ -66,3 +66,7 @@ func (dht *DHT) SaveTable(path string) {
 func (dht *DHT) LoadTable(path string) {
 	dht.db.LoadTable(path)
 }
+
+func (dht *DHT) SearchEntries(name, desc string, page int) ([]Address, error) {
+	return dht.db.SearchPeer(name, desc, page)
+}

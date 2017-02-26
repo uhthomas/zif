@@ -127,6 +127,17 @@ func (cs *CommandServer) PeerSearch(ps CommandPeerSearch) CommandResult {
 
 	return CommandResult{err == nil, posts, err}
 }
+
+func (cs *CommandServer) EntrySearch(ps CommandSearchEntry) CommandResult {
+	var err error
+
+	log.Info("Command: Entry Search request")
+
+	addresses, err := cs.LocalPeer.DHT.SearchEntries(ps.Name, ps.Desc, ps.Page)
+
+	return CommandResult{err == nil, addresses, err}
+}
+
 func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 	var err error
 	var posts []*data.Post

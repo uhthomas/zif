@@ -62,9 +62,9 @@ const (
 	sqlCreateFtsTable = `
 			CREATE VIRTUAL TABLE IF NOT EXISTS
 				ftsEntry using fts4(
-					content="entries",
+					content="entry",
 					name,
-					desc,
+					desc
 				)
 	`
 	sqlUpdateEntry = `
@@ -157,5 +157,13 @@ const (
 
 	sqlQueryLatest = `
 		SELECT * FROM entry ORDER BY id DESC LIMIT 20
+	`
+
+	sqlSearchEntries = `
+		SELECT entry.address FROM entry 
+			WHERE entry.id=(
+				SELECT docid FROM ftsEntry WHERE name MATCH ? OR desc MATCH ?
+			)
+		LIMIT ?,?
 	`
 )

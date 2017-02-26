@@ -53,6 +53,7 @@ func (hs *HttpServer) ListenHttp(addr string) {
 
 	router.HandleFunc("/self/explore/", hs.SelfExplore)
 	router.HandleFunc("/self/encode/", hs.AddressEncode).Methods("POST")
+	router.HandleFunc("/self/searchentry/", hs.SearchEntry).Methods("POST")
 
 	router.HandleFunc("/self/profile/cpu/", hs.CpuProfile).Methods("POST")
 	router.HandleFunc("/self/profile/mem/", hs.MemProfile).Methods("POST")
@@ -396,4 +397,19 @@ func (hs *HttpServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Zif"))
+}
+
+func (hs *HttpServer) SearchEntry(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	desc := r.FormValue("desc")
+	page := r.FormValue("page")
+
+	pagei, err := strconv.Atoi(page)
+	if err != nil {
+		write_http_response(w, CommandResult{false, nil, err})
+		return
+	}
+
+	write_http_response(w, hs.CommandServer.EntrySearch(
+		CommandSearchEntry{name, desc, pagei}))
 }

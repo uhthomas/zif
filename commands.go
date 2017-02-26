@@ -28,6 +28,12 @@ type CommandRequestAddPeer struct {
 	Peer string `json:"peer"`
 }
 
+type CommandSearchEntry struct {
+	Name string
+	Desc string
+	Page int
+}
+
 type CommandRSearch struct {
 	CommandPeer
 	Query string `json:"query"`
