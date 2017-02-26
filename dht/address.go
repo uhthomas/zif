@@ -11,7 +11,7 @@ import (
 
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 
-	"github.com/codahale/blake2"
+	blake2 "github.com/minio/blake2b-simd"
 	"github.com/wjh/hellobitcoin/base58check"
 	"github.com/zif/zif/util"
 	"golang.org/x/crypto/sha3"
@@ -89,7 +89,10 @@ func RandomAddress() (*Address, error) {
 // This process involves one SHA3-256 iteration, followed by BLAKE2. This is
 // similar to bitcoin, and the BLAKE2 makes the resulting address a bit shorter
 func (a *Address) Generate(key []byte) (string, error) {
-	blake := blake2.New(&blake2.Config{Size: AddressBinarySize})
+	blake, e := blake2.New(&blake2.Config{Size: AddressBinarySize})
+	if e != nil {
+		return "", e
+	}
 
 	if len(key) != 32 {
 		return "", (errors.New("Public key is not 32 bytes"))

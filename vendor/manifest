@@ -34,14 +34,6 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/codahale/blake2",
-			"repository": "https://github.com/codahale/blake2",
-			"vcs": "git",
-			"revision": "8d10d0420cbfbdc9c1164c0c4ad3457a6c3771b9",
-			"branch": "master",
-			"notests": true
-		},
-		{
 			"importpath": "github.com/coreos/go-etcd/etcd",
 			"repository": "https://github.com/coreos/go-etcd",
 			"vcs": "git",
@@ -137,6 +129,14 @@
 			"repository": "https://github.com/mattn/go-sqlite3",
 			"vcs": "git",
 			"revision": "7ed900a7c4cc22315a007cc49821cce3baa7be0f",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/minio/blake2b-simd",
+			"repository": "https://github.com/minio/blake2b-simd",
+			"vcs": "git",
+			"revision": "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4",
 			"branch": "master",
 			"notests": true
 		},
