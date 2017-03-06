@@ -569,8 +569,10 @@ func (cs *CommandServer) StartCpuProfile(cf CommandFile) CommandResult {
 	return CommandResult{err == nil, nil, err}
 }
 
-func (cs *CommandServer) StopCpuProfile() {
+func (cs *CommandServer) StopCpuProfile() CommandResult {
 	pprof.StopCPUProfile()
+
+	return CommandResult{true,nil,nil}
 }
 
 func (cs *CommandServer) MemProfile(cf CommandFile) CommandResult {
