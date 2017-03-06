@@ -450,7 +450,7 @@ func (cs *CommandServer) Peers(cp CommandPeers) CommandResult {
 	ps := make([]*dht.Entry, cs.LocalPeer.PeerCount()+1)
 	var err error
 
-	ps[0], err = cs.LocalPeer.Peer.Entry()
+	ps[0] = cs.LocalPeer.Entry
 
 	if err != nil {
 		return CommandResult{false, nil, err}
