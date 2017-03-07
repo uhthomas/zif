@@ -458,13 +458,23 @@ func (cs *CommandServer) RebuildCollection(crc CommandRebuildCollection) Command
 func (cs *CommandServer) Peers(cp CommandPeers) CommandResult {
 	log.Info("Command: Peers request")
 
-	ps := make([]*Peer, cs.LocalPeer.PeerCount()+1)
+	ps := make([]*dht.Entry, cs.LocalPeer.PeerCount()+1)
+	var err error
 
-	ps[0] = &cs.LocalPeer.Peer
+	ps[0] = cs.LocalPeer.Entry
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
 
 	i := 1
 	for _, p := range cs.LocalPeer.Peers() {
-		ps[i] = p
+		ps[i], err = p.Entry()
+
+		if err != nil {
+			return CommandResult{false, nil, err}
+		}
+
 		i = i + 1
 	}
 
@@ -570,8 +580,10 @@ func (cs *CommandServer) StartCpuProfile(cf CommandFile) CommandResult {
 	return CommandResult{err == nil, nil, err}
 }
 
-func (cs *CommandServer) StopCpuProfile() {
+func (cs *CommandServer) StopCpuProfile() CommandResult {
 	pprof.StopCPUProfile()
+
+	return CommandResult{true,nil,nil}
 }
 
 func (cs *CommandServer) MemProfile(cf CommandFile) CommandResult {

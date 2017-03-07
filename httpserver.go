@@ -347,7 +347,7 @@ func (hs *HttpServer) CpuProfile(w http.ResponseWriter, r *http.Request) {
 	if do == "start" {
 		res = hs.CommandServer.StartCpuProfile(CommandFile{path})
 	} else if do == "stop" {
-		hs.CommandServer.StopCpuProfile()
+		res = hs.CommandServer.StopCpuProfile()
 	}
 
 	write_http_response(w, res)
