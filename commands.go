@@ -108,6 +108,10 @@ type CommandSetSeedLeech struct {
 	Leechers uint
 }
 
+type CommandNetMap struct {
+	Address string
+}
+
 // Command output types
 
 type CommandResult struct {

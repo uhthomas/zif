@@ -21,7 +21,8 @@ const AddressBinarySize = 20
 const AddressVersion = 0
 
 type Address struct {
-	Raw []byte
+	Raw     []byte
+	Encoded string
 }
 
 // Generates an Address from a PublicKey.
@@ -34,9 +35,22 @@ func NewAddress(key []byte) (addr Address) {
 
 // Returns Address.Bytes Base58 encoded and prepended with a Z.
 // Base58 removes ambiguous characters, reducing the chances of address confusion.
-func (a Address) String() (string, error) {
+func (a *Address) String() (string, error) {
+	if len(a.Encoded) > 0 {
+		return a.Encoded, nil
+	}
+
 	b, _ := a.Bytes()
-	return base58check.Encode("51", b)
+
+	encoded, err := base58check.Encode("51", b)
+
+	if err != nil {
+		return "", err
+	}
+
+	a.Encoded = encoded
+
+	return a.Encoded, nil
 }
 
 func (a Address) StringOr(or string) string {

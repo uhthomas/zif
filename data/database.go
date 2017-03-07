@@ -418,7 +418,7 @@ func (db *Database) SetSeeders(id, seeders uint) error {
 		return err
 	}
 
-	_, err = stmt.Exec(id, seeders)
+	_, err = stmt.Exec(seeders, id)
 
 	return err
 }
@@ -431,7 +431,7 @@ func (db *Database) SetLeechers(id, leechers uint) error {
 		return err
 	}
 
-	_, err = stmt.Exec(id, leechers)
+	_, err = stmt.Exec(leechers, id)
 
 	return err
 }

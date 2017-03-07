@@ -59,6 +59,7 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/self/profile/mem/", hs.MemProfile).Methods("POST")
 
 	router.HandleFunc("/self/seedleech/", hs.SetSeedLeech).Methods("POST")
+	router.HandleFunc("/self/map/", hs.NetMap)
 
 	log.WithField("address", addr).Info("Starting HTTP server")
 
@@ -370,18 +371,21 @@ func (hs *HttpServer) SetSeedLeech(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		write_http_response(w, CommandResult{false, nil, err})
+		return
 	}
 
 	seed_s, err := strconv.Atoi(seed)
 
 	if err != nil {
 		write_http_response(w, CommandResult{false, nil, err})
+		return
 	}
 
 	leech_s, err := strconv.Atoi(leech)
 
 	if err != nil {
 		write_http_response(w, CommandResult{false, nil, err})
+		return
 	}
 
 	res := hs.CommandServer.SetSeedLeech(CommandSetSeedLeech{
@@ -412,4 +416,9 @@ func (hs *HttpServer) SearchEntry(w http.ResponseWriter, r *http.Request) {
 
 	write_http_response(w, hs.CommandServer.EntrySearch(
 		CommandSearchEntry{name, desc, pagei}))
+}
+
+func (hs *HttpServer) NetMap(w http.ResponseWriter, r *http.Request) {
+	res := hs.CommandServer.NetMap(CommandNetMap{hs.CommandServer.LocalPeer.Entry.Address.StringOr("")})
+	write_http_response(w, res)
 }

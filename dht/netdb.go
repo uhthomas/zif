@@ -248,7 +248,7 @@ func (ndb *NetDB) insertEntrySeeds(entry Entry) error {
 
 	// first, register all the seeds for peers we are a seed for
 	for _, i := range entry.Seeding {
-		peer := Address{i}
+		peer := Address{Raw: i}
 
 		// we are a seed for this peer
 		err := ndb.InsertSeed(peer, entry.Address)
@@ -260,7 +260,7 @@ func (ndb *NetDB) insertEntrySeeds(entry Entry) error {
 
 	// then register all of the seeds for the current peer!
 	for _, i := range entry.Seeds {
-		peer := Address{i}
+		peer := Address{Raw: i}
 
 		// the peer is a seed for us
 		err := ndb.InsertSeed(entry.Address, peer)

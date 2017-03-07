@@ -135,6 +135,17 @@ func (cs *CommandServer) EntrySearch(ps CommandSearchEntry) CommandResult {
 
 	addresses, err := cs.LocalPeer.DHT.SearchEntries(ps.Name, ps.Desc, ps.Page)
 
+	if err != nil {
+		return CommandResult{err == nil, addresses, err}
+	}
+
+	for n, i := range addresses {
+		// force encoding for the client
+		i.String()
+		// not a pointer
+		addresses[n].Encoded = i.Encoded
+	}
+
 	return CommandResult{err == nil, addresses, err}
 }
 
@@ -585,4 +596,26 @@ func (cs *CommandServer) SetSeedLeech(csl CommandSetSeedLeech) CommandResult {
 	err = cs.LocalPeer.Database.SetSeeders(csl.Id, csl.Seeders)
 
 	return CommandResult{err == nil, nil, err}
+}
+
+func (cs *CommandServer) NetMap(cnm CommandNetMap) CommandResult {
+	address, err := dht.DecodeAddress(cnm.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	entry, err := cs.LocalPeer.QueryEntry(address)
+
+	currentNodes := make(map[string]bool)
+	// a map of link sources, with a key of the source and target appended
+	currentLinks := make(map[string]bool)
+	nodes, links := CreateNetMap(*entry, cs.LocalPeer.DHT, currentNodes, currentLinks)
+
+	ret := make(map[string]interface{})
+
+	ret["nodes"] = nodes
+	ret["links"] = links
+
+	return CommandResult{true, ret, nil}
 }
