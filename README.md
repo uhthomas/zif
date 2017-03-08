@@ -58,7 +58,7 @@ go get github.com/zif/zif
 The resulting "zifd" binary should be automatically installed into your $GOPATH.
 # Usage
 
-Zif presents a HTTP interface for usage, so you can interact with it using `curl`. There is a command program available [here](https://gitlab.com/PoroCYon/siv), which makes interaction easier.
+Zif presents a HTTP interface for usage, so you can interact with it using `curl`. There is a command program available [here](https://gitlab.com/PoroCYon/siv), which makes interaction easier. siv is also downloadable from the [release](https://github.com/zif/zif/releases) page.
 
 There is also a user interface being developed [here](https://github.com/zif/ui), with in-built streaming and downloading, all without needing a torrent client.
 
