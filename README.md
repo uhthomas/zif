@@ -62,21 +62,19 @@ Zif presents a HTTP interface for usage, so you can interact with it using `curl
 
 There is also a user interface being developed [here](https://github.com/zif/ui), with in-built streaming and downloading, all without needing a torrent client.
 
+## Connecting to the main network
+Presently I am running several Zif nodes, you can bootstrap from this network as follows (assuming you have Zifd running and listening on port 8080).
+
+First you need Tor running: to do this, cd into the `tor` directory, and run `tor -f torrc`. You will also need to edit `zifd.toml` and change `tor.enabled` and `socks.enabled` to be true. The permissions on the Zif directory may well need to be `700` for Tor to be happy.
+
 To get started, simply run zifd. The output will contain your Zif address, which will look something like this: `ZncGWimPZHWxjTMj51QNKg25PTCXphtLbh`
 
 In order to connect to the rest of the network, you will need to bootstrap. This can either be done using the below API, or using [siv](https://gitlab.com/PoroCYon/siv).
-
-One you have bootstrapped, you will need to either restart your node or manually start network exploration with `/self/explore`, or siv.
-
-## Connecting to the main network
-Presently I am running several Zif nodes, you can bootstrap from this network like so (assuming you have Zifd running and listening on port 8080):
 
 ```
 curl localhost:8080/self/bootstrap/x4yknq5x7iijrmgy.onion/
 curl localhost:8080/self/explore/
 ```
-
-**NOTE:** This requires that Zif be running via Tor. If you have Tor installed, you can simply run `tor -f torrc` inside of the "tor" folder included with Zif.
 
 ## API
 
