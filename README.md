@@ -41,6 +41,13 @@ make
 
 The resulting binary will be in `zif/bin`.
 
+## Windows
+The Makefile doesn't seem to work so well with Windows, so you'll need to have Go properly setup and installed, this may require setting $GOPATH
+```
+go get github.com/zif/zif
+```
+
+The resulting "zifd" binary should be automatically installed into your $GOPATH.
 # Usage
 
 Zif presents a HTTP interface for usage, so you can interact with it using `curl`. There is a command program available [here](https://gitlab.com/PoroCYon/siv), which makes interaction easier.
@@ -52,6 +59,16 @@ To get started, simply run zifd. The output will contain your Zif address, which
 In order to connect to the rest of the network, you will need to bootstrap. This can either be done using the below API, or using [siv](https://gitlab.com/PoroCYon/siv).
 
 One you have bootstrapped, you will need to either restart your node or manually start network exploration with `/self/explore`, or siv.
+
+## Connecting to the main network
+Presently I am running several Zif nodes, you can bootstrap from this network like so (assuming you have Zifd running and listening on port 8080):
+
+```
+curl localhost:8080/self/bootstrap/x4yknq5x7iijrmgy.onion/
+curl localhost:8080/self/explore/
+```
+
+**NOTE:** This requires that Zif be running via Tor. If you have Tor installed, you can simply run `tor -f torrc` inside of the "tor" folder included with Zif.
 
 ## API
 
