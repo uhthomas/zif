@@ -4,9 +4,9 @@
 
 A distributed torrent sharing and indexing network.
 
-Check out the ``develop`` branch for the latest work!
-
 Zif makes it easy to share files, without having any bandwidth or storage costs. It uses BitTorrent for file transfers, but provides a decentralised index for discovering new content.
+
+Check out the ``develop`` branch for the latest work!
 
 [![asciicast](https://asciinema.org/a/dt90kgjlc8byxqfc2z74fou6q.png)](https://asciinema.org/a/dt90kgjlc8byxqfc2z74fou6q)
 
