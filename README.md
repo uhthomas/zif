@@ -8,7 +8,13 @@ Check out the ``develop`` branch for the latest work!
 
 Zif makes it easy to share files, without having any bandwidth or storage costs. It uses BitTorrent for file transfers, but provides a decentralised index for discovering new content.
 
+[![asciicast](https://asciinema.org/a/dt90kgjlc8byxqfc2z74fou6q.png)](https://asciinema.org/a/dt90kgjlc8byxqfc2z74fou6q)
+
+*an example of the HTTP API interface*
+
 ![](http://i.giphy.com/26FmQ8QfY5zOglgGY.gif)
+
+*an example of the Electron UI, which can be found [here](https://github.com/zif/ui/)*
 
 # What even is this?
 
