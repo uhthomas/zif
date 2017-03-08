@@ -8,6 +8,8 @@ Check out the ``develop`` branch for the latest work!
 
 Zif makes it easy to share files, without having any bandwidth or storage costs. It uses BitTorrent for file transfers, but provides a decentralised index for discovering new content.
 
+![](http://i.giphy.com/26FmQ8QfY5zOglgGY.gif)
+
 # What even is this?
 
 - a queryable database of torrents and metadata
@@ -78,7 +80,7 @@ By default, Zif listens on `localhost:8080`. This is configurable in `zifd.toml`
 
 These routes affect the local peer, ie the client running on your machine. They're generally used to interact with your own database, or change settings, etc.
 
-#### `/self/addpost` POST
+#### `/self/addpost/` POST
 This is used to add a post to your database, a post is essentially a torrent infohash and some metadata. The POST body requires a parameter of `data` and `index`.
 
 The former is JSON, and is specified as such:
@@ -118,7 +120,7 @@ seeding        [][]byte
 seen           int      
 ```
 
-#### `/self/bootstrap/{address}` GET
+#### `/self/bootstrap/{address}/` GET
 Bootstraps the Zif node from the given address. This address must be a non-Zif address - for instance, a domain name, IP address, onion address, or anything else. Note that Zif can be configured to use a SOCKS proxy, see zifd.toml.
 
 #### `/self/search/` POST
@@ -126,16 +128,16 @@ Perform a full text search on the local database.
 
 This takes the parameters of `query` and `page`, where query is the search term and page is the page of results we want - this starts at 0.
 
-#### `/self/recent/{page}` GET
+#### `/self/recent/{page}/` GET
 Gets the most recent posts. The page is given as the `{page}` parameter.
 
-#### `/self/popular/{page}` GET
+#### `/self/popular/{page}/` GET
 Gets the most popular posts. The page is given as the `{page}` parameter.
 
-#### `/self/peers` GET
+#### `/self/peers/` GET
 Returns a list of peers.
 
-#### `/self/explore` GET
+#### `/self/explore/` GET
 Begin network exploration. This should happen automatically at start if you have peers in your routing table, otherwise it needs to be ran manually.
 
 #### `/self/set/{name}/` POST
@@ -172,8 +174,8 @@ Search the local copy of the peer's database, this only works after a successful
 #### `/peer/{address}/recent/{page}/`
 Get the `{page}` of most recent posts for the given peer.
 
-#### `/peer/{address}/popular/{page}`
+#### `/peer/{address}/popular/{page}/`
 Performs a remote search on the peer.
 
-#### `/peer/{address}/index/{since}`
+#### `/peer/{address}/index/{since}/`
 Add all posts with an id larger than `{since}` to the FTS index.
