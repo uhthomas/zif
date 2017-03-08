@@ -121,6 +121,19 @@ Returns a list of peers.
 #### `/self/explore` GET
 Begin network exploration. This should happen automatically at start if you have peers in your routing table, otherwise it needs to be ran manually.
 
+#### `/self/set/{name}/` POST
+This is used to set various settings for the node. Here are possible values for `{name}`:
+- name: This sets the name field of the entry and can be used to identify your node
+- desc: A short description of your entry
+- public: set the public address for your entry, this is what it's Zif address will resolve to
+
+
+#### `/self/get/{name}/` GET
+Gets values, much like set - supports the same values. Also supports:
+- zif: gets the Zif address
+- postcount: the number of posts this node has
+- entry: the full Zif DHT entry
+
 ### peer
 These routes allow you to query a remote peer. The `{address}` parameter refers to the encoded Zif address of the peer, like the example above.
 
